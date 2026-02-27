@@ -28,6 +28,13 @@ This virtual reality application is designed to provide medical professionals an
 - Press the play button
 - Directional Keys turn viewpoint and ASDW moves viewpoint forward, backwards, left and right.
 
+## Release Notes
+### Code Milestone 1
+- The Haply Inverse 3 Haptic controller works as intended for controlling the simulated currete. However, the feedback does not currently work for the scene we intend to use.
+- The earwax cube blockage works as intended in the ear canal.
+- After the Unity update, the Meta Quest controllers and VR headset no longer controls the look angle and move the simulated hands.
+- Previous project build has been thoroughly reviewed.
+
 ## Changelog
 ### Version 0.9.1
 - Updated Unity to 6000.3.9f1
