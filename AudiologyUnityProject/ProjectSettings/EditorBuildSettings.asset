@@ -6,19 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 0
-    path: Assets/Scenes/IntroScene.unity
+    path: Assets/PastTeam/Scenes/IntroScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 0
-    path: Assets/Scenes/SimulationScene.unity
+    path: Assets/PastTeam/Scenes/SimulationScene.unity
     guid: c8dfe39913a25f84fb54ead9e53a0950
   - enabled: 0
-    path: Assets/Scenes/EndScene.unity
+    path: Assets/PastTeam/Scenes/EndScene.unity
     guid: d7d5f0a5f04167344a4fcee147b12c3e
   - enabled: 0
-    path: Assets/Scenes/StatsScene.unity
+    path: Assets/PastTeam/Scenes/StatsScene.unity
     guid: 5b61d033f5155914aaa245a2bf08c3fd
   - enabled: 1
-    path: Assets/Scenes/TestScenes/DemoScene.unity
+    path: Assets/PastTeam/Scenes/TestScenes/DemoScene.unity
     guid: 3853ea15e5f96424f9c9bf167500ada1
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 92987b19b30fcd64891939c2ee13403a, type: 2}
