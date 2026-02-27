@@ -5,7 +5,7 @@ This virtual reality application is designed to provide medical professionals an
 ## How to Setup
 ### Prerequisites
 - Need: VR headset, Haply device, VR-ready computer/laptop (Windows)
-- Install Unity Hub and Unity version 6000.0.40f1
+- Install Unity Hub and Unity version 6000.3.9f1
 - Install the Meta Quest Link app and follow the Quest setup instructions
 - Clone the main branch of this repository
 
@@ -24,10 +24,14 @@ This virtual reality application is designed to provide medical professionals an
 
 ### Running the project
 - Make sure Haply and VR are connected to the computer
-- In Unity, select the Intro Scene
+- In Unity, open the TestScenes Folder and select FullScene
 - Press the play button
+- Directional Keys turn viewpoint and ASDW moves viewpoint forward, backwards, left and right.
 
 ## Changelog
+### Version 0.9.1
+- Updated Unity to 6000.3.9f1
+
 ### Version 0.9.0
  - Replaced the usage of an earwax sphere with an earwax cube, using said cube to create an earwax mass for the player to clear from the ear canal
  - Reworked the scripting of the earwax sphere with a new script, giving a better impression of an earwax material that can stick and does not roll or move freely within the ear canal
