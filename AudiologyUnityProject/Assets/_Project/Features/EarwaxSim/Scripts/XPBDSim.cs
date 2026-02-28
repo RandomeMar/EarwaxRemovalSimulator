@@ -1,14 +1,17 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class XPBDSim : MonoBehaviour
 {
+    const float eps = 1e-6f;
 
     [SerializeField]
     int solverIterations;
+    [SerializeField]
     Vector3 gravity = new Vector3(0, -9.8f, 0);
-
-    const float eps = 1e-6f;
+    [SerializeField]
+    Vector3 latticeOrigin = Vector3.zero;
 
     ParticleSet ps;
     DistanceConstraintSet dist;
@@ -19,6 +22,17 @@ public class XPBDSim : MonoBehaviour
         public Vector3[] previousPosition;
         public Vector3[] velocity;
         public float[] invMass;
+
+        public int count;
+
+        public ParticleSet(int count)
+        {
+            this.count = count;
+            this.currentPosition = new Vector3[count];
+            this.previousPosition = new Vector3[count];
+            this.velocity = new Vector3[count];
+            this.invMass = new float[count];
+        }
     }
 
     struct DistanceConstraint
@@ -27,11 +41,25 @@ public class XPBDSim : MonoBehaviour
         public float restLength;
         public float compliance;
         public float lambda;
+
+        public DistanceConstraint(int i, int j, float restLength, float compliance, float lambda)
+        {
+            this.i = i;
+            this.j = j;
+            this.restLength = restLength;
+            this.compliance = compliance;
+            this.lambda = lambda;
+        }
     }
 
     class DistanceConstraintSet
     {
-        DistanceConstraint[] constraints;
+        public DistanceConstraint[] constraints;
+
+        public DistanceConstraintSet(DistanceConstraint[] constraints)
+        {
+            this.constraints = constraints;
+        }
 
         public void SolveOnce(ParticleSet ps, float dt)
         {
@@ -63,6 +91,63 @@ public class XPBDSim : MonoBehaviour
     }
 
 
+
+    int calcIndex(int i, int j, int k, int n)
+    {
+        return n * (n * i + j) + k;
+    }
+
+    (ParticleSet, DistanceConstraintSet) GenerateLattice(int n = 3)
+    {
+        float length = 2f;
+        float invMass = 1f;
+
+        int particleCount = n * n * n;
+        float offset = length / (n - 1);
+
+        ParticleSet lattice = new(particleCount);
+        List<DistanceConstraint> constraints = new();
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                for(int k = 0; k < n; k++)
+                {
+                    // Particles
+                    int iter = calcIndex(i, j, k, n);
+                    lattice.currentPosition[iter] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
+                    lattice.currentPosition[iter] += latticeOrigin;
+
+
+                    lattice.previousPosition[iter] = lattice.currentPosition[iter];
+                    lattice.velocity[iter] = new(0, 0, 0);
+                    lattice.invMass[iter] = invMass;
+
+                    // Constraints
+                    if (i + 1 < n)
+                    {
+                        int index2 = calcIndex(i + 1, j, k, n);
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                    }
+                    if (j + 1 < n)
+                    {
+                        int index2 = calcIndex(i, j + 1, k, n);
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                    }
+                    if (k + 1 < n)
+                    {
+                        int index2 = calcIndex(i, j, k + 1, n);
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                    }
+                }
+            }
+        }
+        DistanceConstraintSet dcs = new(constraints.ToArray());
+
+        return (lattice, dcs);
+    }
+
     void ApplyForces(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -80,19 +165,33 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    void SolveFloorCollision()
+    void SolveFloorCollision(ParticleSet ps)
     {
         // TODO: For all positions, if y is below some floor value, reset to the floor value
+        float floorValue = 0;
+
+        for (int i = 0; i < ps.currentPosition.Length; i++)
+        {
+            if (ps.currentPosition[i].y < floorValue)
+            {
+                ps.currentPosition[i].y = floorValue;
+            }
+        }
     }
 
-    void UpdateVelocities()
+    void UpdateVelocities(ParticleSet ps, float dt)
     {
         // TODO: v = (current position - previous position) / dt
+        for (int i = 0; i < ps.velocity.Length; i++)
+        {
+            ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
+        }
     }
 
     private void Start()
     {
         // Spawn in particles
+        (ps, dist) = GenerateLattice();
     }
 
     private void FixedUpdate()
@@ -109,10 +208,29 @@ public class XPBDSim : MonoBehaviour
         for (int i = 0; i < solverIterations; i++)
         {
             dist.SolveOnce(ps, dt);
-            SolveFloorCollision();
+            SolveFloorCollision(ps);
         }
 
         // 4. Update velocities
-        UpdateVelocities();
+        UpdateVelocities(ps, dt);
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (ps == null) return;
+        if (ps.currentPosition == null) return;
+
+        for (int i = 0; i < ps.currentPosition.Length; i++)
+        {
+            Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+        }
+        
+        for (int i = 0; i < dist.constraints.Length; i++)
+        {
+            int from = dist.constraints[i].i;
+            int to = dist.constraints[i].j;
+            Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
+        }
+
     }
 }
