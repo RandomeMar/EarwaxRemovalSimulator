@@ -9,6 +9,8 @@ public class XPBDSim : MonoBehaviour
     [SerializeField]
     int solverIterations;
     [SerializeField]
+    int latticeParticleCount = 3;
+    [SerializeField]
     Vector3 gravity = new Vector3(0, -9.8f, 0);
     [SerializeField]
     Vector3 latticeOrigin = Vector3.zero;
@@ -16,6 +18,9 @@ public class XPBDSim : MonoBehaviour
     ParticleSet ps;
     DistanceConstraintSet dist;
 
+    /// <summary>
+    /// Container for particle data stored in arrays.
+    /// </summary>
     class ParticleSet
     {
         public Vector3[] currentPosition;
@@ -35,6 +40,9 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Represents a single XPBD distance constraint between two particles.
+    /// </summary>
     struct DistanceConstraint
     {
         public int i, j;
@@ -52,6 +60,9 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Collection of distance constraints stored in an array.
+    /// </summary>
     class DistanceConstraintSet
     {
         public DistanceConstraint[] constraints;
@@ -61,6 +72,11 @@ public class XPBDSim : MonoBehaviour
             this.constraints = constraints;
         }
 
+        /// <summary>
+        /// Solves a single iteration of all distance constraints in the set.
+        /// </summary>
+        /// <param name="ps"></param>
+        /// <param name="dt"></param>
         public void SolveOnce(ParticleSet ps, float dt)
         {
             for (int iter = 0; iter < this.constraints.Length; iter++)
@@ -91,13 +107,25 @@ public class XPBDSim : MonoBehaviour
     }
 
 
-
+    /// <summary>
+    /// Calculates the index of a particle in a latice particle set.
+    /// </summary>
+    /// <param name="i"></param>
+    /// <param name="j"></param>
+    /// <param name="k"></param>
+    /// <param name="n"></param>
+    /// <returns></returns>
     int calcIndex(int i, int j, int k, int n)
     {
         return n * (n * i + j) + k;
     }
 
-    (ParticleSet, DistanceConstraintSet) GenerateLattice(int n = 3)
+    /// <summary>
+    /// Generates a (n x n x n) lattice of particles and distance constraints.
+    /// </summary>
+    /// <param name="n"></param>
+    /// <returns></returns>
+    (ParticleSet, DistanceConstraintSet) GenerateLattice(int n)
     {
         float length = 2f;
         float invMass = 1f;
@@ -125,20 +153,41 @@ public class XPBDSim : MonoBehaviour
                     lattice.invMass[iter] = invMass;
 
                     // Constraints
+
+                    // Straight
                     if (i + 1 < n)
                     {
                         int index2 = calcIndex(i + 1, j, k, n);
                         constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+
+                        if (j + 1 < n)
+                        {
+                            index2 = calcIndex(i + 1, j + 1, k, n);
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                        }
+
                     }
                     if (j + 1 < n)
                     {
                         int index2 = calcIndex(i, j + 1, k, n);
                         constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+
+                        if (k + 1 < n)
+                        {
+                            index2 = calcIndex(i, j + 1, k + 1, n);
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                        }
                     }
                     if (k + 1 < n)
                     {
                         int index2 = calcIndex(i, j, k + 1, n);
                         constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+
+                        if (i + 1 < n)
+                        {
+                            index2 = calcIndex(i + 1, j, k + 1, n);
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                        }
                     }
                 }
             }
@@ -148,6 +197,11 @@ public class XPBDSim : MonoBehaviour
         return (lattice, dcs);
     }
 
+    /// <summary>
+    /// Updates a particle set's velocities based on gravity.
+    /// </summary>
+    /// <param name="ps"></param>
+    /// <param name="dt"></param>
     void ApplyForces(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -156,6 +210,11 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Calculates new particle positions based on particle velocity.
+    /// </summary>
+    /// <param name="ps"></param>
+    /// <param name="dt"></param>
     void PredictPositions(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -165,6 +224,10 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clamps particle positions to a floor value.
+    /// </summary>
+    /// <param name="ps"></param>
     void SolveFloorCollision(ParticleSet ps)
     {
         // TODO: For all positions, if y is below some floor value, reset to the floor value
@@ -179,6 +242,11 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates particle velocities based on the amount a particle moved in delta time.
+    /// </summary>
+    /// <param name="ps"></param>
+    /// <param name="dt"></param>
     void UpdateVelocities(ParticleSet ps, float dt)
     {
         // TODO: v = (current position - previous position) / dt
@@ -190,10 +258,11 @@ public class XPBDSim : MonoBehaviour
 
     private void Start()
     {
-        // Spawn in particles
-        (ps, dist) = GenerateLattice();
+        // Initialize particle set and constraint set.
+        (ps, dist) = GenerateLattice(latticeParticleCount);
     }
 
+    // Sim Loop
     private void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
@@ -215,6 +284,7 @@ public class XPBDSim : MonoBehaviour
         UpdateVelocities(ps, dt);
     }
 
+    // Draws particles and constraints for debugging.
     private void OnDrawGizmos()
     {
         if (ps == null) return;
