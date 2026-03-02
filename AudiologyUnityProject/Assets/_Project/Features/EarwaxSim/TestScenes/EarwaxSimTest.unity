@@ -294,7 +294,7 @@ MonoBehaviour:
   latticeParticleCount: 4
   gravity: {x: 0, y: -9.8, z: 0}
   latticeOrigin: {x: 0, y: 3, z: 0}
-  compliance: 0.005
+  compliance: 0.0005
   w: 1
 --- !u!1 &2113227063
 GameObject:

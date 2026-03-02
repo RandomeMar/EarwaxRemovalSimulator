@@ -214,6 +214,7 @@ public class XPBDSim : MonoBehaviour
             }
         }
         DistanceConstraintSet dcs = new(constraints.ToArray());
+        //lattice.invMass[calcIndex(n - 1, n - 1, n - 1, n)] = 0; // NOTE: This is only for testing
 
         return (lattice, dcs);
     }
@@ -279,10 +280,92 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    private int selectedParticle = -1;
+    Plane dragPlane;
+
+    int SelectParticle()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        float closestDist = float.MaxValue;
+        int closestIndex = -1;
+        float radius = 0.1f; // same as Gizmo sphere size
+
+        for (int i = 0; i < ps.count; i++)
+        {
+            Vector3 center = ps.currentPosition[i];
+
+            // Ray-sphere intersection test
+            Vector3 oc = ray.origin - center;
+            float a = Vector3.Dot(ray.direction, ray.direction);
+            float b = 2.0f * Vector3.Dot(oc, ray.direction);
+            float c = Vector3.Dot(oc, oc) - radius * radius;
+            float discriminant = b * b - 4 * a * c;
+
+            if (discriminant < 0) continue;
+
+            float t = (-b - Mathf.Sqrt(discriminant)) / (2.0f * a);
+
+            if (t > 0 && t < closestDist)
+            {
+                closestDist = t;
+                closestIndex = i;
+            }
+        }
+
+        return closestIndex;
+    }
+
+    void BeginDrag(int selectedIndex)
+    {
+        // Get drag plane
+        Vector3 planeNormal = Camera.main.transform.forward;
+        Vector3 planePoint = ps.currentPosition[selectedIndex];
+        dragPlane = new(planeNormal, planePoint);
+    }
+
+    void DragUpdate(int selectedIndex)
+    {
+        if (selectedIndex == -1) return;
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (dragPlane.Raycast(ray, out float enter))
+        {
+            Vector3 target = ray.GetPoint(enter);
+
+            // Hard drag (most stable for testing)
+            ps.currentPosition[selectedIndex] = target;
+            ps.previousPosition[selectedIndex] = target;
+            ps.velocity[selectedIndex] = Vector3.zero;
+        }
+    }
+
     private void Start()
     {
         // Initialize particle set and constraint set.
         (ps, dist) = GenerateLattice(latticeParticleCount);
+    }
+
+
+    private void Update()
+    {
+        if (Input.GetMouseButtonUp(0))
+        {
+            selectedParticle = -1;
+            return;
+        }
+
+        if (selectedParticle != -1)
+        {
+            BeginDrag(selectedParticle);
+            DragUpdate(selectedParticle);
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            selectedParticle = SelectParticle();
+        }
     }
 
     // Sim Loop
@@ -312,6 +395,8 @@ public class XPBDSim : MonoBehaviour
         // 4. Update velocities
         UpdateVelocities(ps, dt);
     }
+
+    
 
     // Draws particles and constraints for debugging.
     private void OnDrawGizmos()
