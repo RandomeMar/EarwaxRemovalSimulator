@@ -7,13 +7,26 @@ public class XPBDSim : MonoBehaviour
     const float eps = 1e-6f;
 
     [SerializeField]
+    [Range(1, 30)]
     int solverIterations;
+
     [SerializeField]
+    [Range(2, 30)]
     int latticeParticleCount = 3;
+
     [SerializeField]
     Vector3 gravity = new Vector3(0, -9.8f, 0);
+
     [SerializeField]
     Vector3 latticeOrigin = Vector3.zero;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    float compliance;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    float w;
 
     ParticleSet ps;
     DistanceConstraintSet dist;
@@ -79,9 +92,9 @@ public class XPBDSim : MonoBehaviour
         /// <param name="dt"></param>
         public void SolveOnce(ParticleSet ps, float dt)
         {
-            for (int iter = 0; iter < this.constraints.Length; iter++)
+            for (int index = 0; index < this.constraints.Length; index++)
             {
-                DistanceConstraint constraint = this.constraints[iter];
+                DistanceConstraint constraint = this.constraints[index];
                 int i = constraint.i;
                 int j = constraint.j;
                 Vector3 d = ps.currentPosition[i] - ps.currentPosition[j]; // Vector from j to i
@@ -89,16 +102,20 @@ public class XPBDSim : MonoBehaviour
                 float c = l - constraint.restLength; // C
 
                 // if l is close to 0: continue
-                if (l < eps) { continue; }
+                if (l <= eps) { continue; }
 
                 Vector3 n = d / l; // Normalized direction from j to i
 
                 float alpha = constraint.compliance / (dt * dt);
 
-                float deltaLambda = (-c - alpha * constraint.lambda) / (ps.invMass[i] + ps.invMass[j] + alpha);
+                // If the denominator is close to 0: continue
+                float denom = (ps.invMass[i] + ps.invMass[j] + alpha);
+                if (denom <= eps) { continue; }
+
+                float deltaLambda = (-c - alpha * constraint.lambda) / denom;
 
                 constraint.lambda += deltaLambda;
-                this.constraints[iter] = constraint;
+                this.constraints[index] = constraint;
 
                 ps.currentPosition[i] += ps.invMass[i] * n * deltaLambda;
                 ps.currentPosition[j] -= ps.invMass[j] * n * deltaLambda;
@@ -128,7 +145,7 @@ public class XPBDSim : MonoBehaviour
     (ParticleSet, DistanceConstraintSet) GenerateLattice(int n)
     {
         float length = 2f;
-        float invMass = 1f;
+        float invMass = w;
 
         int particleCount = n * n * n;
         float offset = length / (n - 1);
@@ -153,40 +170,38 @@ public class XPBDSim : MonoBehaviour
                     lattice.invMass[iter] = invMass;
 
                     // Constraints
-
-                    // Straight
                     if (i + 1 < n)
                     {
                         int index2 = calcIndex(i + 1, j, k, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
 
                         if (j + 1 < n)
                         {
                             index2 = calcIndex(i + 1, j + 1, k, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
 
                     }
                     if (j + 1 < n)
                     {
                         int index2 = calcIndex(i, j + 1, k, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
 
                         if (k + 1 < n)
                         {
                             index2 = calcIndex(i, j + 1, k + 1, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
                     }
                     if (k + 1 < n)
                     {
                         int index2 = calcIndex(i, j, k + 1, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, 0f, 0f));
+                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
 
                         if (i + 1 < n)
                         {
                             index2 = calcIndex(i + 1, j, k + 1, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, 0f, 0f));
+                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
                     }
                 }
@@ -206,6 +221,7 @@ public class XPBDSim : MonoBehaviour
     {
         for (int i = 0; i < ps.velocity.Length; i++)
         {
+            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
             ps.velocity[i] += gravity * dt;
         }
     }
@@ -219,6 +235,7 @@ public class XPBDSim : MonoBehaviour
     {
         for (int i = 0; i < ps.velocity.Length; i++)
         {
+            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
             ps.previousPosition[i] = ps.currentPosition[i];
             ps.currentPosition[i] += ps.velocity[i] * dt;
         }
@@ -230,7 +247,6 @@ public class XPBDSim : MonoBehaviour
     /// <param name="ps"></param>
     void SolveFloorCollision(ParticleSet ps)
     {
-        // TODO: For all positions, if y is below some floor value, reset to the floor value
         float floorValue = 0;
 
         for (int i = 0; i < ps.currentPosition.Length; i++)
@@ -238,6 +254,7 @@ public class XPBDSim : MonoBehaviour
             if (ps.currentPosition[i].y < floorValue)
             {
                 ps.currentPosition[i].y = floorValue;
+                ps.velocity[i].y = 0;
             }
         }
     }
@@ -249,9 +266,9 @@ public class XPBDSim : MonoBehaviour
     /// <param name="dt"></param>
     void UpdateVelocities(ParticleSet ps, float dt)
     {
-        // TODO: v = (current position - previous position) / dt
         for (int i = 0; i < ps.velocity.Length; i++)
         {
+            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
             ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
         }
     }
@@ -266,6 +283,12 @@ public class XPBDSim : MonoBehaviour
     private void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
+
+        // Reset lambda
+        for (int i = 0; i < dist.constraints.Length; i++)
+        {
+            dist.constraints[i].lambda = 0f;
+        }
 
         // 1. Apply external forces
         ApplyForces(ps, dt);
