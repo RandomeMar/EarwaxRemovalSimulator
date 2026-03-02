@@ -160,48 +160,54 @@ public class XPBDSim : MonoBehaviour
                 for(int k = 0; k < n; k++)
                 {
                     // Particles
-                    int iter = calcIndex(i, j, k, n);
-                    lattice.currentPosition[iter] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
-                    lattice.currentPosition[iter] += latticeOrigin;
+                    int curr = calcIndex(i, j, k, n);
+                    lattice.currentPosition[curr] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
+                    lattice.currentPosition[curr] += latticeOrigin;
 
 
-                    lattice.previousPosition[iter] = lattice.currentPosition[iter];
-                    lattice.velocity[iter] = new(0, 0, 0);
-                    lattice.invMass[iter] = invMass;
+                    lattice.previousPosition[curr] = lattice.currentPosition[curr];
+                    lattice.velocity[curr] = new(0, 0, 0);
+                    lattice.invMass[curr] = invMass;
 
                     // Constraints
                     if (i + 1 < n)
                     {
-                        int index2 = calcIndex(i + 1, j, k, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
+                        int iPlus = calcIndex(i + 1, j, k, n);
+                        constraints.Add(new DistanceConstraint(curr, iPlus, offset, compliance, 0f));
 
                         if (j + 1 < n)
                         {
-                            index2 = calcIndex(i + 1, j + 1, k, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int jPlus = calcIndex(i, j + 1, k, n);
+                            constraints.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int ijPlus = calcIndex(i + 1, j + 1, k, n);
+                            constraints.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
 
                     }
                     if (j + 1 < n)
                     {
-                        int index2 = calcIndex(i, j + 1, k, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
+                        int jPlus = calcIndex(i, j + 1, k, n);
+                        constraints.Add(new DistanceConstraint(curr, jPlus, offset, compliance, 0f));
 
                         if (k + 1 < n)
                         {
-                            index2 = calcIndex(i, j + 1, k + 1, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int kPlus = calcIndex(i, j, k + 1, n);
+                            constraints.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int jkPlus = calcIndex(i, j + 1, k + 1, n);
+                            constraints.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
                     }
                     if (k + 1 < n)
                     {
-                        int index2 = calcIndex(i, j, k + 1, n);
-                        constraints.Add(new DistanceConstraint(iter, index2, offset, compliance, 0f));
+                        int kPlus = calcIndex(i, j, k + 1, n);
+                        constraints.Add(new DistanceConstraint(curr, kPlus, offset, compliance, 0f));
 
                         if (i + 1 < n)
                         {
-                            index2 = calcIndex(i + 1, j, k + 1, n);
-                            constraints.Add(new DistanceConstraint(iter, index2, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int iPlus = calcIndex(i + 1, j, k, n);
+                            constraints.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            int kiPlus = calcIndex(i + 1, j, k + 1, n);
+                            constraints.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
                         }
                     }
                 }
