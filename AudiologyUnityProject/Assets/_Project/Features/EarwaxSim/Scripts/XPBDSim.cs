@@ -1,39 +1,47 @@
+using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
+using UnityEditor.Rendering.Universal.ShaderGUI;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.XR.Interaction.Toolkit.AffordanceSystem.Receiver.Primitives;
 
 public class XPBDSim : MonoBehaviour
 {
-    const float eps = 1e-6f;
-
-    [SerializeField]
+    #region
     [Range(1, 30)]
-    int solverIterations;
+    public int solverIterations;
+    public Vector3 gravity = new Vector3(0, -9.8f, 0);
 
-    [SerializeField]
+    [Header("Lattice Settings")]
+    public Vector3 latticeOrigin = Vector3.zero;
     [Range(2, 30)]
-    int latticeParticleCount = 3;
-
-    [SerializeField]
-    Vector3 gravity = new Vector3(0, -9.8f, 0);
-
-    [SerializeField]
-    Vector3 latticeOrigin = Vector3.zero;
-
-    [SerializeField]
+    public int latticeParticleCount = 3;
+    [Range(.5f, 30f)]
+    public float latticeLength = 2.0f;
     [Range(0f, 1f)]
-    float compliance;
+    public float invMass;
 
-    [SerializeField]
+    [Header("Distance Constraint Settings")]
     [Range(0f, 1f)]
-    float w;
+    public float distCompliance;
+    
+    [Header("Density Constraint Settings")]
+    public float cellSize = .5f;
+    public float restDensity;
+    public float denseCompliance;
+
+    #endregion
+
+    const float EPS = 1e-6f;
 
     ParticleSet ps;
+    SpacialHash grid;
     DistanceConstraintSet dist;
+    DensityConstraintSolver dense;
 
-    /// <summary>
-    /// Container for particle data stored in arrays.
-    /// </summary>
+
+    // Classes/Structs:
     class ParticleSet
     {
         public Vector3[] currentPosition;
@@ -53,9 +61,91 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Represents a single XPBD distance constraint between two particles.
-    /// </summary>
+    class SpacialHash
+    {
+        float cellSize;
+        Dictionary<long, List<int>> buckets;
+
+        public SpacialHash(float cellSize)
+        {
+            this.cellSize = cellSize;
+            this.buckets = new();
+        }
+
+        public Vector3Int CalcCellCoord(Vector3 position)
+            {
+                return new Vector3Int(
+                    Mathf.FloorToInt(position.x / cellSize),
+                    Mathf.FloorToInt(position.y / cellSize),
+                    Mathf.FloorToInt(position.z / cellSize)
+                    );
+            }
+
+        public long HashCoord(Vector3Int cellCoord)
+        {
+            const int SHIFT = 20;
+
+            long x = (long)(cellCoord.x + (1 << SHIFT));
+            long y = (long)(cellCoord.y + (1 << SHIFT));
+            long z = (long)(cellCoord.z + (1 << SHIFT));
+
+            return (x << 42) | (y << 21) | z;
+        }
+
+        public void BuildGrid(ParticleSet ps)
+        {
+            buckets.Clear();
+
+            for (int i = 0; i < ps.count; i++)
+            {
+                Vector3Int cellCoord = CalcCellCoord(ps.currentPosition[i]);
+                long key = HashCoord(cellCoord);
+                if (!buckets.TryGetValue(key, out var bucket))
+                {
+                    bucket = new List<int>(8); // 8 seems like a good starting value for bucket size
+                    buckets[key] = bucket;
+                }
+                bucket.Add(i);
+            }
+        }
+
+        public List<int> GetNeighbors(ParticleSet ps, int i)
+        {
+            Vector3Int baseCell = CalcCellCoord(ps.currentPosition[i]);
+            List<int> js = new();
+            for (int dx = -1; dx <= 1; dx++)
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dz = -1; dz <= 1; dz++)
+                    {
+                        Vector3Int c = new(
+                            baseCell.x + dx,
+                            baseCell.y + dy,
+                            baseCell.z + dz
+                            );
+
+                        long key = HashCoord(c);
+
+                        if (!buckets.TryGetValue(key, out var bucket)) continue;
+
+                        for (int b = 0; b < bucket.Count; b++)
+                        {
+                            int j = bucket[b];
+                            if (j == i) continue;
+                            // For each neighbor j of particle i
+                            js.Add(j);
+                        }
+                    }
+            return js;
+        }
+
+    }
+
+    interface IConstraintSolver
+    {
+        void ResetLambda();
+        void SolveOnce(ParticleSet ps, float dt, SpacialHash grid);
+    }
+
     struct DistanceConstraint
     {
         public int i, j;
@@ -73,10 +163,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Collection of distance constraints stored in an array.
-    /// </summary>
-    class DistanceConstraintSet
+    class DistanceConstraintSet : IConstraintSolver
     {
         public DistanceConstraint[] constraints;
 
@@ -85,12 +172,15 @@ public class XPBDSim : MonoBehaviour
             this.constraints = constraints;
         }
 
-        /// <summary>
-        /// Solves a single iteration of all distance constraints in the set.
-        /// </summary>
-        /// <param name="ps"></param>
-        /// <param name="dt"></param>
-        public void SolveOnce(ParticleSet ps, float dt)
+        public void ResetLambda()
+        {
+            for (int i = 0; i < this.constraints.Length; i++)
+            {
+                this.constraints[i].lambda = 0;
+            }
+        }
+
+        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
         {
             for (int index = 0; index < this.constraints.Length; index++)
             {
@@ -102,7 +192,7 @@ public class XPBDSim : MonoBehaviour
                 float c = l - constraint.restLength; // C
 
                 // if l is close to 0: continue
-                if (l <= eps) { continue; }
+                if (l <= EPS) { continue; }
 
                 Vector3 n = d / l; // Normalized direction from j to i
 
@@ -110,7 +200,7 @@ public class XPBDSim : MonoBehaviour
 
                 // If the denominator is close to 0: continue
                 float denom = (ps.invMass[i] + ps.invMass[j] + alpha);
-                if (denom <= eps) { continue; }
+                if (denom <= EPS) { continue; }
 
                 float deltaLambda = (-c - alpha * constraint.lambda) / denom;
 
@@ -123,35 +213,141 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    class DensityConstraintSolver : IConstraintSolver
+    {
+        public float restDensity;
+        public float h;
+        public float compliance;
+        private Vector3[] deltaX; // Used for Jacobi structure
+        private float[] lambda;
 
-    /// <summary>
-    /// Calculates the index of a particle in a latice particle set.
-    /// </summary>
-    /// <param name="i"></param>
-    /// <param name="j"></param>
-    /// <param name="k"></param>
-    /// <param name="n"></param>
-    /// <returns></returns>
+        public DensityConstraintSolver(float restDensity, float h, float compliance)
+        {
+            this.restDensity = restDensity;
+            this.h = h;
+            this.compliance = compliance;
+        }
+
+        private void EnsureCapacity(int count)
+        {
+            if (this.deltaX == null || this.deltaX.Length != count)
+                this.deltaX = new Vector3[count];
+
+            if (this.lambda == null || this.lambda.Length != count)
+                this.lambda = new float[count];
+        }
+
+        public void ResetLambda()
+        {
+            if (this.lambda == null) return;
+            Array.Clear(this.lambda, 0, this.lambda.Length);
+        }
+
+        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
+        {
+            EnsureCapacity(ps.count);
+            Array.Clear(this.deltaX, 0, ps.count);
+
+            float alpha = this.compliance / (dt * dt);
+
+            for (int i = 0; i < ps.count; i++)
+            {
+                if (ps.invMass[i] <= 0) continue;
+
+                int[] js = grid.GetNeighbors(ps, i).ToArray();
+
+                float density = 0f;
+                Vector3 gradi = Vector3.zero;
+                float denom = 0f;
+
+                foreach (int j in js)
+                {
+                    if (ps.invMass[j] <= 0) continue;
+                    float mj = 1f / ps.invMass[j];
+
+                    Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
+
+                    density += mj * Poly6(distVec.sqrMagnitude, this.h);
+                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
+                    gradi -= gradj;
+
+                    denom += gradj.sqrMagnitude * ps.invMass[j];
+                }
+
+                float c = density - this.restDensity;
+                denom += gradi.sqrMagnitude * ps.invMass[i];
+
+                // If the denominator is close to 0: continue
+                if (denom + alpha <= EPS) continue;
+
+                float deltaLambda = (-c - alpha * this.lambda[i]) / (denom + alpha);
+                this.lambda[i] += deltaLambda;
+
+                deltaX[i] += ps.invMass[i] * gradi * deltaLambda;
+
+                foreach (int j in js)
+                {
+                    if (ps.invMass[j] <= 0) continue;
+
+                    float mj = 1 / ps.invMass[j];
+                    Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
+                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
+
+                    deltaX[j] += ps.invMass[j] * gradj * deltaLambda;
+                }
+            }
+
+            // Jacobi structure
+            for (int i = 0; i < ps.count; i++)
+            {
+                ps.currentPosition[i] += deltaX[i];
+            }
+
+        }
+    }
+
+    
+    // Functions
+
+    // Smoothing kernel for calculating density
+    static float Poly6(float r2, float h)
+    {
+        float h2 = h * h;
+        if (r2 < 0 || h2 < r2) return 0;
+
+        return 315 / (64 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 3);
+    }
+
+    // Gradient of Poly6
+    static Vector3 GradPoly6(Vector3 rVec, float h)
+    {
+        float r2 = rVec.sqrMagnitude;
+        float h2 = h * h;
+
+        if (r2 <= 0 || h2 < r2) return Vector3.zero;
+
+        return -945 / (32 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 2) * rVec;
+    }
+
+
     int calcIndex(int i, int j, int k, int n)
     {
         return n * (n * i + j) + k;
     }
 
-    /// <summary>
-    /// Generates a (n x n x n) lattice of particles and distance constraints.
-    /// </summary>
-    /// <param name="n"></param>
-    /// <returns></returns>
-    (ParticleSet, DistanceConstraintSet) GenerateLattice(int n)
+    (ParticleSet, SpacialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
     {
-        float length = 2f;
-        float invMass = w;
+        float length = latticeLength;
+        float invMass = this.invMass;
 
         int particleCount = n * n * n;
         float offset = length / (n - 1);
 
         ParticleSet lattice = new(particleCount);
-        List<DistanceConstraint> constraints = new();
+        SpacialHash grid = new SpacialHash(cellSize);
+
+        List<DistanceConstraint> dist = new();
+        DensityConstraintSolver dense = new(restDensity, offset * 1.5f, denseCompliance);
 
         for (int i = 0; i < n; i++)
         {
@@ -173,57 +369,51 @@ public class XPBDSim : MonoBehaviour
                     if (i + 1 < n)
                     {
                         int iPlus = calcIndex(i + 1, j, k, n);
-                        constraints.Add(new DistanceConstraint(curr, iPlus, offset, compliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance, 0f));
 
                         if (j + 1 < n)
                         {
                             int jPlus = calcIndex(i, j + 1, k, n);
-                            constraints.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                             int ijPlus = calcIndex(i + 1, j + 1, k, n);
-                            constraints.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
 
                     }
                     if (j + 1 < n)
                     {
                         int jPlus = calcIndex(i, j + 1, k, n);
-                        constraints.Add(new DistanceConstraint(curr, jPlus, offset, compliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance, 0f));
 
                         if (k + 1 < n)
                         {
                             int kPlus = calcIndex(i, j, k + 1, n);
-                            constraints.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                             int jkPlus = calcIndex(i, j + 1, k + 1, n);
-                            constraints.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
                     }
                     if (k + 1 < n)
                     {
                         int kPlus = calcIndex(i, j, k + 1, n);
-                        constraints.Add(new DistanceConstraint(curr, kPlus, offset, compliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance, 0f));
 
                         if (i + 1 < n)
                         {
                             int iPlus = calcIndex(i + 1, j, k, n);
-                            constraints.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                             int kiPlus = calcIndex(i + 1, j, k + 1, n);
-                            constraints.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, compliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
                     }
                 }
             }
         }
-        DistanceConstraintSet dcs = new(constraints.ToArray());
-        //lattice.invMass[calcIndex(n - 1, n - 1, n - 1, n)] = 0; // NOTE: This is only for testing
+        DistanceConstraintSet dcs = new(dist.ToArray());
 
-        return (lattice, dcs);
+        return (lattice, grid, dcs, dense);
     }
 
-    /// <summary>
-    /// Updates a particle set's velocities based on gravity.
-    /// </summary>
-    /// <param name="ps"></param>
-    /// <param name="dt"></param>
     void ApplyForces(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -233,11 +423,6 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Calculates new particle positions based on particle velocity.
-    /// </summary>
-    /// <param name="ps"></param>
-    /// <param name="dt"></param>
     void PredictPositions(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -247,11 +432,7 @@ public class XPBDSim : MonoBehaviour
             ps.currentPosition[i] += ps.velocity[i] * dt;
         }
     }
-
-    /// <summary>
-    /// Clamps particle positions to a floor value.
-    /// </summary>
-    /// <param name="ps"></param>
+    
     void SolveFloorCollision(ParticleSet ps)
     {
         float floorValue = 0;
@@ -265,12 +446,7 @@ public class XPBDSim : MonoBehaviour
             }
         }
     }
-
-    /// <summary>
-    /// Updates particle velocities based on the amount a particle moved in delta time.
-    /// </summary>
-    /// <param name="ps"></param>
-    /// <param name="dt"></param>
+    
     void UpdateVelocities(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -280,9 +456,11 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    private int selectedParticle = -1;
+    private int grabbedParticle = -1;
     Plane dragPlane;
+    private int selectedParticle = -1;
 
+    // Mouse interaction functions
     int SelectParticle()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -333,17 +511,18 @@ public class XPBDSim : MonoBehaviour
         {
             Vector3 target = ray.GetPoint(enter);
 
-            // Hard drag (most stable for testing)
+            // TODO: I may later change this to a constraint instead of manually altering particle values
             ps.currentPosition[selectedIndex] = target;
             ps.previousPosition[selectedIndex] = target;
             ps.velocity[selectedIndex] = Vector3.zero;
         }
     }
 
+
     private void Start()
     {
         // Initialize particle set and constraint set.
-        (ps, dist) = GenerateLattice(latticeParticleCount);
+        (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
     }
 
 
@@ -351,18 +530,23 @@ public class XPBDSim : MonoBehaviour
     {
         if (Input.GetMouseButtonUp(0))
         {
-            selectedParticle = -1;
+            grabbedParticle = -1;
             return;
         }
 
-        if (selectedParticle != -1)
+        if (grabbedParticle != -1)
         {
-            BeginDrag(selectedParticle);
-            DragUpdate(selectedParticle);
+            BeginDrag(grabbedParticle);
+            DragUpdate(grabbedParticle);
             return;
         }
 
         if (Input.GetMouseButtonDown(0))
+        {
+            grabbedParticle = SelectParticle();
+        }
+
+        if (Input.GetMouseButtonDown(1))
         {
             selectedParticle = SelectParticle();
         }
@@ -373,26 +557,28 @@ public class XPBDSim : MonoBehaviour
     {
         float dt = Time.fixedDeltaTime;
 
-        // Reset lambda
-        for (int i = 0; i < dist.constraints.Length; i++)
-        {
-            dist.constraints[i].lambda = 0f;
-        }
+        // 1. Reset lambda
+        dist.ResetLambda();
+        dense.ResetLambda();
 
-        // 1. Apply external forces
+        // 2. Apply external forces
         ApplyForces(ps, dt);
 
-        // 2. Predict positions
+        // 3. Predict positions
         PredictPositions(ps, dt);
 
-        // 3. Solve constraints
+        // 4. Build spatial grid
+        grid.BuildGrid(ps);
+
+        // 5. Solve constraints
         for (int i = 0; i < solverIterations; i++)
         {
-            dist.SolveOnce(ps, dt);
+            dist.SolveOnce(ps, dt, grid);
+            dense.SolveOnce(ps, dt, grid);
             SolveFloorCollision(ps);
         }
 
-        // 4. Update velocities
+        // 6. Update velocities
         UpdateVelocities(ps, dt);
     }
 
@@ -406,15 +592,32 @@ public class XPBDSim : MonoBehaviour
 
         for (int i = 0; i < ps.currentPosition.Length; i++)
         {
+            Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
             Gizmos.DrawSphere(ps.currentPosition[i], .08f);
         }
-        
+
         for (int i = 0; i < dist.constraints.Length; i++)
         {
             int from = dist.constraints[i].i;
             int to = dist.constraints[i].j;
+            Gizmos.color = new(1f, 1f, 1f, .5f);
             Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
         }
 
+        if (grabbedParticle != -1)
+        {
+            Gizmos.color = new(0f, 0f, 1f, .5f);
+            Gizmos.DrawWireSphere(ps.currentPosition[grabbedParticle], dense.h);
+        }
+
+        if (selectedParticle != -1)
+        {
+            var js = grid.GetNeighbors(ps, selectedParticle);
+            foreach (int j in js)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawLine(ps.currentPosition[selectedParticle], ps.currentPosition[j]);
+            }
+        }
     }
 }
