@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
+using Unity.Collections;
 using UnityEditor.Rendering.Universal.ShaderGUI;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -23,17 +24,19 @@ public class XPBDSim : MonoBehaviour
     public float invMass;
 
     [Header("Distance Constraint Settings")]
+    public bool distOn = true;
     [Range(0f, 1f)]
     public float distCompliance;
-    
+
     [Header("Density Constraint Settings")]
-    public float cellSize = .5f;
-    public float restDensity;
+    public bool denseOn = true;
     public float denseCompliance;
 
     #endregion
 
     const float EPS = 1e-6f;
+    const int MAX_NEIGHBORS = 64;
+    const int MAX_PARTICLES = 1000;
 
     ParticleSet ps;
     SpacialHash grid;
@@ -48,6 +51,7 @@ public class XPBDSim : MonoBehaviour
         public Vector3[] previousPosition;
         public Vector3[] velocity;
         public float[] invMass;
+        public float[] mass;
 
         public int count;
 
@@ -58,84 +62,94 @@ public class XPBDSim : MonoBehaviour
             this.previousPosition = new Vector3[count];
             this.velocity = new Vector3[count];
             this.invMass = new float[count];
+            this.mass = new float[count];
         }
     }
 
     class SpacialHash
     {
         float cellSize;
-        Dictionary<long, List<int>> buckets;
+        NativeParallelMultiHashMap<long, int> buckets;
+        int[] neighborBuffer;
 
         public SpacialHash(float cellSize)
         {
             this.cellSize = cellSize;
-            this.buckets = new();
+            this.buckets = new(MAX_PARTICLES * 2, Allocator.Persistent);
+            this.neighborBuffer = new int[MAX_NEIGHBORS]; // Array of neighbor ints to be reused for GetNeighbors
         }
 
-        public Vector3Int CalcCellCoord(Vector3 position)
+        ~SpacialHash()
+        {
+            this.buckets.Dispose();
+        }
+
+        public (int, int, int) CalcCellCoord(Vector3 position)
             {
-                return new Vector3Int(
+                return (
                     Mathf.FloorToInt(position.x / cellSize),
                     Mathf.FloorToInt(position.y / cellSize),
                     Mathf.FloorToInt(position.z / cellSize)
                     );
             }
 
-        public long HashCoord(Vector3Int cellCoord)
+        public long HashCoord(int x_coord, int y_coord, int z_coord)
         {
             const int SHIFT = 20;
 
-            long x = (long)(cellCoord.x + (1 << SHIFT));
-            long y = (long)(cellCoord.y + (1 << SHIFT));
-            long z = (long)(cellCoord.z + (1 << SHIFT));
+            long x = (long)(x_coord + (1 << SHIFT));
+            long y = (long)(y_coord + (1 << SHIFT));
+            long z = (long)(z_coord + (1 << SHIFT));
 
             return (x << 42) | (y << 21) | z;
         }
 
+        // Rebuilds grid housing particles
         public void BuildGrid(ParticleSet ps)
         {
             buckets.Clear();
 
             for (int i = 0; i < ps.count; i++)
             {
-                Vector3Int cellCoord = CalcCellCoord(ps.currentPosition[i]);
-                long key = HashCoord(cellCoord);
-                if (!buckets.TryGetValue(key, out var bucket))
-                {
-                    bucket = new List<int>(8); // 8 seems like a good starting value for bucket size
-                    buckets[key] = bucket;
-                }
-                bucket.Add(i);
+                (int x, int y, int z) = CalcCellCoord(ps.currentPosition[i]);
+                long key = HashCoord(x, y, z);
+                buckets.Add(key, i);
             }
         }
 
-        public List<int> GetNeighbors(ParticleSet ps, int i)
+        // Returns the indexes of neighbors to particle i along with the amount of neighbors
+        public (int[], int) GetNeighbors(ParticleSet ps, int i)
         {
-            Vector3Int baseCell = CalcCellCoord(ps.currentPosition[i]);
-            List<int> js = new();
+            (int base_x, int base_y, int base_z) = CalcCellCoord(ps.currentPosition[i]);
+            int neighborCount = 0;
             for (int dx = -1; dx <= 1; dx++)
                 for (int dy = -1; dy <= 1; dy++)
                     for (int dz = -1; dz <= 1; dz++)
                     {
-                        Vector3Int c = new(
-                            baseCell.x + dx,
-                            baseCell.y + dy,
-                            baseCell.z + dz
-                            );
+                        long key = HashCoord(base_x + dx, base_y + dy, base_z + dz);
+                        NativeParallelMultiHashMapIterator<long> iter;
+                        int j;
 
-                        long key = HashCoord(c);
-
-                        if (!buckets.TryGetValue(key, out var bucket)) continue;
-
-                        for (int b = 0; b < bucket.Count; b++)
+                        // Iterate through all indexes stored in buckets[key]
+                        if (buckets.TryGetFirstValue(key, out j, out iter))
                         {
-                            int j = bucket[b];
-                            if (j == i) continue;
-                            // For each neighbor j of particle i
-                            js.Add(j);
+                            do
+                            {
+                                if (neighborCount >= this.neighborBuffer.Length)
+                                {
+                                    Console.WriteLine($"MAX NEIGHBORS REACHED.");
+                                    break;
+                                }
+                                if (j != i)
+                                {
+                                    // For each neighbor j of particle i
+                                    this.neighborBuffer[neighborCount] = j;
+                                    neighborCount++;
+                                }
+                            } while (buckets.TryGetNextValue(out j, ref iter));
                         }
                     }
-            return js;
+            return (this.neighborBuffer, neighborCount);
         }
 
     }
@@ -248,22 +262,29 @@ public class XPBDSim : MonoBehaviour
             EnsureCapacity(ps.count);
             Array.Clear(this.deltaX, 0, ps.count);
 
+            int neighborsCount = 0;
+
             float alpha = this.compliance / (dt * dt);
 
             for (int i = 0; i < ps.count; i++)
             {
                 if (ps.invMass[i] <= 0) continue;
 
-                int[] js = grid.GetNeighbors(ps, i).ToArray();
+                int[] js;
+                int jCount;
+
+                (js, jCount) = grid.GetNeighbors(ps, i);
 
                 float density = 0f;
                 Vector3 gradi = Vector3.zero;
                 float denom = 0f;
 
-                foreach (int j in js)
+                for (int iter = 0; iter < jCount; iter++)
                 {
+                    int j = js[iter];
+
                     if (ps.invMass[j] <= 0) continue;
-                    float mj = 1f / ps.invMass[j];
+                    float mj = ps.mass[j];
 
                     Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
 
@@ -285,17 +306,25 @@ public class XPBDSim : MonoBehaviour
 
                 deltaX[i] += ps.invMass[i] * gradi * deltaLambda;
 
-                foreach (int j in js)
+                for (int iter = 0; iter < jCount; iter++)
                 {
+                    int j = js[iter];
+
                     if (ps.invMass[j] <= 0) continue;
 
-                    float mj = 1 / ps.invMass[j];
+                    float mj = ps.mass[j];
                     Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
                     Vector3 gradj = -mj * GradPoly6(distVec, this.h);
 
                     deltaX[j] += ps.invMass[j] * gradj * deltaLambda;
                 }
+                neighborsCount += jCount;
+
             }
+
+            float avgNeighbors = neighborsCount / ps.count;
+
+            print(avgNeighbors);
 
             // Jacobi structure
             for (int i = 0; i < ps.count; i++)
@@ -313,9 +342,13 @@ public class XPBDSim : MonoBehaviour
     static float Poly6(float r2, float h)
     {
         float h2 = h * h;
-        if (r2 < 0 || h2 < r2) return 0;
+        if (h2 < r2) return 0;
 
-        return 315 / (64 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 3);
+        float h4 = h2 * h2;
+
+        float term = h2 - r2;
+
+        return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
     }
 
     // Gradient of Poly6
@@ -323,31 +356,65 @@ public class XPBDSim : MonoBehaviour
     {
         float r2 = rVec.sqrMagnitude;
         float h2 = h * h;
-
+        
         if (r2 <= 0 || h2 < r2) return Vector3.zero;
 
-        return -945 / (32 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 2) * rVec;
+        float h4 = h2 * h2;
+        float term = h2 - r2;
+
+        return -945 / (32 * Mathf.PI * h4 * h4 * h) * term * term * rVec;
     }
 
 
-    int calcIndex(int i, int j, int k, int n)
+    int CalcIndex(int i, int j, int k, int n)
     {
         return n * (n * i + j) + k;
+    }
+
+    float CalcRestDensity(ParticleSet ps, SpacialHash grid, float h)
+    {
+        int i = (int)Math.Floor(ps.count / 2f);
+        float density = 0f;
+
+        int[] js;
+        int jCount;
+        (js, jCount) = grid.GetNeighbors(ps, i);
+
+        for (int iter = 0; iter < jCount; iter++)
+        {
+            int j = js[iter];
+
+            if (ps.invMass[j] <= 0) continue;
+            float mj = 1f / ps.invMass[j];
+
+            Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
+
+            density += mj * Poly6(distVec.sqrMagnitude, h);
+        }
+
+        return density;
     }
 
     (ParticleSet, SpacialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
     {
         float length = latticeLength;
         float invMass = this.invMass;
+        float mass = 1f / invMass;
 
         int particleCount = n * n * n;
         float offset = length / (n - 1);
 
         ParticleSet lattice = new(particleCount);
-        SpacialHash grid = new SpacialHash(cellSize);
+
+        float h = offset * 1.25f;
+
+        SpacialHash grid = new SpacialHash(h);
 
         List<DistanceConstraint> dist = new();
-        DensityConstraintSolver dense = new(restDensity, offset * 1.5f, denseCompliance);
+
+        
+        float restDensity = CalcRestDensity(lattice, grid, h);
+        DensityConstraintSolver dense = new(restDensity, h, denseCompliance);
 
         for (int i = 0; i < n; i++)
         {
@@ -356,7 +423,7 @@ public class XPBDSim : MonoBehaviour
                 for(int k = 0; k < n; k++)
                 {
                     // Particles
-                    int curr = calcIndex(i, j, k, n);
+                    int curr = CalcIndex(i, j, k, n);
                     lattice.currentPosition[curr] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
                     lattice.currentPosition[curr] += latticeOrigin;
 
@@ -364,45 +431,46 @@ public class XPBDSim : MonoBehaviour
                     lattice.previousPosition[curr] = lattice.currentPosition[curr];
                     lattice.velocity[curr] = new(0, 0, 0);
                     lattice.invMass[curr] = invMass;
+                    lattice.mass[curr] = mass;
 
                     // Constraints
                     if (i + 1 < n)
                     {
-                        int iPlus = calcIndex(i + 1, j, k, n);
+                        int iPlus = CalcIndex(i + 1, j, k, n);
                         dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance, 0f));
 
                         if (j + 1 < n)
                         {
-                            int jPlus = calcIndex(i, j + 1, k, n);
+                            int jPlus = CalcIndex(i, j + 1, k, n);
                             dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int ijPlus = calcIndex(i + 1, j + 1, k, n);
+                            int ijPlus = CalcIndex(i + 1, j + 1, k, n);
                             dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
 
                     }
                     if (j + 1 < n)
                     {
-                        int jPlus = calcIndex(i, j + 1, k, n);
+                        int jPlus = CalcIndex(i, j + 1, k, n);
                         dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance, 0f));
 
                         if (k + 1 < n)
                         {
-                            int kPlus = calcIndex(i, j, k + 1, n);
+                            int kPlus = CalcIndex(i, j, k + 1, n);
                             dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int jkPlus = calcIndex(i, j + 1, k + 1, n);
+                            int jkPlus = CalcIndex(i, j + 1, k + 1, n);
                             dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
                     }
                     if (k + 1 < n)
                     {
-                        int kPlus = calcIndex(i, j, k + 1, n);
+                        int kPlus = CalcIndex(i, j, k + 1, n);
                         dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance, 0f));
 
                         if (i + 1 < n)
                         {
-                            int iPlus = calcIndex(i + 1, j, k, n);
+                            int iPlus = CalcIndex(i + 1, j, k, n);
                             dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int kiPlus = calcIndex(i + 1, j, k + 1, n);
+                            int kiPlus = CalcIndex(i + 1, j, k + 1, n);
                             dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
                         }
                     }
@@ -410,6 +478,8 @@ public class XPBDSim : MonoBehaviour
             }
         }
         DistanceConstraintSet dcs = new(dist.ToArray());
+
+        print("GENERATED LATTICE!!!");
 
         return (lattice, grid, dcs, dense);
     }
@@ -521,6 +591,7 @@ public class XPBDSim : MonoBehaviour
 
     private void Start()
     {
+        print("START");
         // Initialize particle set and constraint set.
         (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
     }
@@ -558,8 +629,8 @@ public class XPBDSim : MonoBehaviour
         float dt = Time.fixedDeltaTime;
 
         // 1. Reset lambda
-        dist.ResetLambda();
-        dense.ResetLambda();
+        if (distOn) dist.ResetLambda();
+        if (denseOn) dense.ResetLambda();
 
         // 2. Apply external forces
         ApplyForces(ps, dt);
@@ -568,13 +639,13 @@ public class XPBDSim : MonoBehaviour
         PredictPositions(ps, dt);
 
         // 4. Build spatial grid
-        grid.BuildGrid(ps);
+        if (denseOn) grid.BuildGrid(ps);
 
         // 5. Solve constraints
         for (int i = 0; i < solverIterations; i++)
         {
-            dist.SolveOnce(ps, dt, grid);
-            dense.SolveOnce(ps, dt, grid);
+            if (distOn) dist.SolveOnce(ps, dt, grid);
+            if (denseOn) dense.SolveOnce(ps, dt, grid);
             SolveFloorCollision(ps);
         }
 
@@ -612,9 +683,12 @@ public class XPBDSim : MonoBehaviour
 
         if (selectedParticle != -1)
         {
-            var js = grid.GetNeighbors(ps, selectedParticle);
-            foreach (int j in js)
+            int[] js;
+            int jCount;
+            (js, jCount) = grid.GetNeighbors(ps, selectedParticle);
+            for (int iter = 0; iter < jCount; iter++)
             {
+                int j = js[iter];
                 Gizmos.color = Color.red;
                 Gizmos.DrawLine(ps.currentPosition[selectedParticle], ps.currentPosition[j]);
             }

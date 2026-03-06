@@ -290,16 +290,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00dc09bc49c2d642b24c4d2e36265f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  solverIterations: 3
+  solverIterations: 6
   gravity: {x: 0, y: -9.8, z: 0}
   latticeOrigin: {x: 0, y: 3, z: 0}
-  latticeParticleCount: 4
+  latticeParticleCount: 5
   latticeLength: 3
   invMass: 1
-  distCompliance: 0.02
+  distOn: 0
+  distCompliance: 0.007
+  denseOn: 1
   cellSize: 0.5
-  restDensity: 0.025
-  denseCompliance: 0.0009
+  denseCompliance: 0.00001
 --- !u!1 &2113227063
 GameObject:
   m_ObjectHideFlags: 0
