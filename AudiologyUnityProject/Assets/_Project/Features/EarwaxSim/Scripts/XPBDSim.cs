@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO.Pipes;
-using Unity.Collections;
-using UnityEditor.Rendering.Universal.ShaderGUI;
+using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
-using UnityEngine.XR.Interaction.Toolkit.AffordanceSystem.Receiver.Primitives;
 
 public class XPBDSim : MonoBehaviour
 {
@@ -32,6 +28,10 @@ public class XPBDSim : MonoBehaviour
     public bool denseOn = true;
     public float denseCompliance;
 
+    [Header("Collision Constraint Settings")]
+    public bool collOn = true;
+    public float collCompliance;
+
     #endregion
 
     const float EPS = 1e-6f;
@@ -39,9 +39,10 @@ public class XPBDSim : MonoBehaviour
     const int MAX_PARTICLES = 1000;
 
     ParticleSet ps;
-    SpacialHash grid;
+    SpatialHash grid;
     DistanceConstraintSet dist;
     DensityConstraintSolver dense;
+    CollisionConstraintSolver coll;
 
 
     // Classes/Structs:
@@ -66,22 +67,19 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    class SpacialHash
+    class SpatialHash
     {
         float cellSize;
-        NativeParallelMultiHashMap<long, int> buckets;
+        Dictionary<long, int> bucketHeads;
+        int[] next;
         int[] neighborBuffer;
 
-        public SpacialHash(float cellSize)
+        public SpatialHash(float cellSize, int particleCount)
         {
             this.cellSize = cellSize;
-            this.buckets = new(MAX_PARTICLES * 2, Allocator.Persistent);
+            this.bucketHeads = new(particleCount);
+            this.next = new int[particleCount];
             this.neighborBuffer = new int[MAX_NEIGHBORS]; // Array of neighbor ints to be reused for GetNeighbors
-        }
-
-        ~SpacialHash()
-        {
-            this.buckets.Dispose();
         }
 
         public (int, int, int) CalcCellCoord(Vector3 position)
@@ -107,46 +105,79 @@ public class XPBDSim : MonoBehaviour
         // Rebuilds grid housing particles
         public void BuildGrid(ParticleSet ps)
         {
-            buckets.Clear();
+            bucketHeads.Clear();
 
             for (int i = 0; i < ps.count; i++)
             {
                 (int x, int y, int z) = CalcCellCoord(ps.currentPosition[i]);
                 long key = HashCoord(x, y, z);
-                buckets.Add(key, i);
+                if (!this.bucketHeads.TryGetValue(key, out int oldHead))
+                {
+                    this.bucketHeads[key] = i;
+                    this.next[i] = -1;
+                }
+                else
+                {
+                    this.next[i] = oldHead;
+                    this.bucketHeads[key] = i;
+                }
             }
         }
 
         // Returns the indexes of neighbors to particle i along with the amount of neighbors
-        public (int[], int) GetNeighbors(ParticleSet ps, int i)
+        public (int[], int) GetNeighbors(ParticleSet ps, int i, float h)
         {
             (int base_x, int base_y, int base_z) = CalcCellCoord(ps.currentPosition[i]);
             int neighborCount = 0;
+            Vector3 distVec = Vector3.zero;
+            float r2 = 0f;
+            float h2 = h * h;
             for (int dx = -1; dx <= 1; dx++)
                 for (int dy = -1; dy <= 1; dy++)
                     for (int dz = -1; dz <= 1; dz++)
                     {
-                        long key = HashCoord(base_x + dx, base_y + dy, base_z + dz);
-                        NativeParallelMultiHashMapIterator<long> iter;
-                        int j;
+                        // If too many neighbors for buffer
+                        if (neighborCount >= this.neighborBuffer.Length)
+                            return (this.neighborBuffer, neighborCount);
 
-                        // Iterate through all indexes stored in buckets[key]
-                        if (buckets.TryGetFirstValue(key, out j, out iter))
+                        long key = HashCoord(base_x + dx, base_y + dy, base_z + dz);
+
+                        // If no particles in cell
+                        if (!this.bucketHeads.TryGetValue(key, out int j))
                         {
-                            do
+                            continue;
+                        }
+
+                        // For first index in bucket
+                        if (j != i)
+                        {
+                            distVec = ps.currentPosition[i] - ps.currentPosition[j];
+                            r2 = distVec.sqrMagnitude;
+                            if (r2 <= h2)
                             {
-                                if (neighborCount >= this.neighborBuffer.Length)
+                                this.neighborBuffer[neighborCount] = j;
+                                neighborCount++;
+                            }
+                        }
+
+                        while (next[j] != -1)
+                        {
+                            // If too many neighbors for buffer
+                            if (neighborCount >= this.neighborBuffer.Length)
+                                return (this.neighborBuffer, neighborCount);
+
+                            j = next[j];
+
+                            if (j != i)
+                            {
+                                distVec = ps.currentPosition[i] - ps.currentPosition[j];
+                                r2 = distVec.sqrMagnitude;
+                                if (r2 <= h2)
                                 {
-                                    Console.WriteLine($"MAX NEIGHBORS REACHED.");
-                                    break;
-                                }
-                                if (j != i)
-                                {
-                                    // For each neighbor j of particle i
                                     this.neighborBuffer[neighborCount] = j;
                                     neighborCount++;
                                 }
-                            } while (buckets.TryGetNextValue(out j, ref iter));
+                            }
                         }
                     }
             return (this.neighborBuffer, neighborCount);
@@ -154,10 +185,34 @@ public class XPBDSim : MonoBehaviour
 
     }
 
+
+    interface ICollisionShape
+    {
+        (float, Vector3) getCollisionInfo(Vector3 particlePos);
+    }
+
+    class PlaneCollider : ICollisionShape
+    {
+        Vector3 p0;
+        Vector3 normal;
+
+        public PlaneCollider(Vector3 p0, Vector3 planeNormal)
+        {
+            this.p0 = p0;
+            this.normal = planeNormal.normalized;
+        }
+
+        public (float, Vector3) getCollisionInfo(Vector3 particlePos)
+        {
+            return (Vector3.Dot(this.normal, (particlePos - this.p0)), this.normal);
+        }
+    }
+
+
     interface IConstraintSolver
     {
         void ResetLambda();
-        void SolveOnce(ParticleSet ps, float dt, SpacialHash grid);
+        void SolveOnce(ParticleSet ps, float dt, SpatialHash grid);
     }
 
     struct DistanceConstraint
@@ -194,7 +249,7 @@ public class XPBDSim : MonoBehaviour
             }
         }
 
-        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
+        public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
             for (int index = 0; index < this.constraints.Length; index++)
             {
@@ -232,14 +287,24 @@ public class XPBDSim : MonoBehaviour
         public float restDensity;
         public float h;
         public float compliance;
-        private Vector3[] deltaX; // Used for Jacobi structure
+
         private float[] lambda;
+        private Vector3[] deltaX; // Used for Jacobi structure
+        private Vector3[] gradBuffer;
+
+        // Cached values for better performance
+        private float h2;
+        private float poly6Coef;
+        private float poly6GradCoef;
 
         public DensityConstraintSolver(float restDensity, float h, float compliance)
         {
             this.restDensity = restDensity;
             this.h = h;
+            this.h2 = h * h;
             this.compliance = compliance;
+            this.poly6Coef = (float)(315f / (64f * Mathf.PI * Math.Pow(h, 9)));
+            this.poly6GradCoef = (float)(945f / (32f * Mathf.PI * Math.Pow(h, 9)));
         }
 
         private void EnsureCapacity(int count)
@@ -249,6 +314,9 @@ public class XPBDSim : MonoBehaviour
 
             if (this.lambda == null || this.lambda.Length != count)
                 this.lambda = new float[count];
+
+            if (this.gradBuffer == null || this.gradBuffer.Length < MAX_NEIGHBORS)
+                this.gradBuffer = new Vector3[MAX_NEIGHBORS];
         }
 
         public void ResetLambda()
@@ -257,12 +325,10 @@ public class XPBDSim : MonoBehaviour
             Array.Clear(this.lambda, 0, this.lambda.Length);
         }
 
-        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
+        public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
             EnsureCapacity(ps.count);
             Array.Clear(this.deltaX, 0, ps.count);
-
-            int neighborsCount = 0;
 
             float alpha = this.compliance / (dt * dt);
 
@@ -273,7 +339,7 @@ public class XPBDSim : MonoBehaviour
                 int[] js;
                 int jCount;
 
-                (js, jCount) = grid.GetNeighbors(ps, i);
+                (js, jCount) = grid.GetNeighbors(ps, i, this.h);
 
                 float density = 0f;
                 Vector3 gradi = Vector3.zero;
@@ -287,12 +353,13 @@ public class XPBDSim : MonoBehaviour
                     float mj = ps.mass[j];
 
                     Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
+                    float term = (this.h2 - distVec.sqrMagnitude);
 
-                    density += mj * Poly6(distVec.sqrMagnitude, this.h);
-                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
-                    gradi -= gradj;
+                    density += mj * this.poly6Coef * term * term * term; // Poly-6 kernel smoothing function
+                    this.gradBuffer[iter] = mj * this.poly6GradCoef * term * term * distVec; // Gradient of Poly-6
 
-                    denom += gradj.sqrMagnitude * ps.invMass[j];
+                    gradi -= this.gradBuffer[iter];
+                    denom += this.gradBuffer[iter].sqrMagnitude * ps.invMass[j];
                 }
 
                 float c = density - this.restDensity;
@@ -304,7 +371,7 @@ public class XPBDSim : MonoBehaviour
                 float deltaLambda = (-c - alpha * this.lambda[i]) / (denom + alpha);
                 this.lambda[i] += deltaLambda;
 
-                deltaX[i] += ps.invMass[i] * gradi * deltaLambda;
+                this.deltaX[i] += ps.invMass[i] * gradi * deltaLambda;
 
                 for (int iter = 0; iter < jCount; iter++)
                 {
@@ -312,19 +379,10 @@ public class XPBDSim : MonoBehaviour
 
                     if (ps.invMass[j] <= 0) continue;
 
-                    float mj = ps.mass[j];
-                    Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
-                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
-
-                    deltaX[j] += ps.invMass[j] * gradj * deltaLambda;
+                    this.deltaX[j] += ps.invMass[j] * this.gradBuffer[iter] * deltaLambda;
                 }
-                neighborsCount += jCount;
 
             }
-
-            float avgNeighbors = neighborsCount / ps.count;
-
-            print(avgNeighbors);
 
             // Jacobi structure
             for (int i = 0; i < ps.count; i++)
@@ -335,6 +393,51 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    class CollisionConstraintSolver : IConstraintSolver
+    {
+        public List<ICollisionShape> shapes;
+        public float compliance;
+
+        public CollisionConstraintSolver(float compliance)
+        {
+            this.shapes = new(1);
+            this.compliance = compliance;
+        }
+
+        public void ResetLambda()
+        {
+
+        }
+
+        public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
+        {
+            // NOTE: Currently this does not have lambda. Eventually, lambda may be implemented.
+            float alpha = this.compliance / (dt * dt);
+
+            for (int i = 0; i < ps.count; i++)
+            {
+                if (ps.invMass[i] == 0) continue;
+
+                foreach (ICollisionShape shape in shapes)
+                {
+                    // Calculate C and gradient of C
+                    (float c, Vector3 collisionNormal) = shape.getCollisionInfo(ps.currentPosition[i]);
+                    // As long as C is not negative, we assume there is no correction to be made
+                    if (c >= 0) continue;
+
+                    // Check if denom is close to 0
+                    float denom = (ps.invMass[i] + alpha);
+                    if (denom <= EPS) continue;
+
+                    // Calculate delta lambda
+                    float deltaLambda = -c / denom;
+
+                    // Update position
+                    ps.currentPosition[i] += ps.invMass[i] * collisionNormal * deltaLambda;
+                }
+            }
+        }
+    }
     
     // Functions
 
@@ -351,18 +454,14 @@ public class XPBDSim : MonoBehaviour
         return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
     }
 
-    // Gradient of Poly6
-    static Vector3 GradPoly6(Vector3 rVec, float h)
+    // Calculate the signed distance to a plane at p0 with a normal of planeNormal from a particle
+    float SDFPlane(Vector3 p0, Vector3 planeNormal, Vector3 particlePos)
     {
-        float r2 = rVec.sqrMagnitude;
-        float h2 = h * h;
-        
-        if (r2 <= 0 || h2 < r2) return Vector3.zero;
+        float signedDistance = 0f;
 
-        float h4 = h2 * h2;
-        float term = h2 - r2;
+        signedDistance = Vector3.Dot(planeNormal, (particlePos - p0));
 
-        return -945 / (32 * Mathf.PI * h4 * h4 * h) * term * term * rVec;
+        return signedDistance;
     }
 
 
@@ -371,14 +470,15 @@ public class XPBDSim : MonoBehaviour
         return n * (n * i + j) + k;
     }
 
-    float CalcRestDensity(ParticleSet ps, SpacialHash grid, float h)
+    float CalcRestDensity(ParticleSet ps, SpatialHash grid, float h)
     {
-        int i = (int)Math.Floor(ps.count / 2f);
+        int n = latticeParticleCount;
+        int i = CalcIndex(n/2, n/2, n/2, n);
         float density = 0f;
 
         int[] js;
         int jCount;
-        (js, jCount) = grid.GetNeighbors(ps, i);
+        (js, jCount) = grid.GetNeighbors(ps, i, h);
 
         for (int iter = 0; iter < jCount; iter++)
         {
@@ -395,7 +495,7 @@ public class XPBDSim : MonoBehaviour
         return density;
     }
 
-    (ParticleSet, SpacialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
+    (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
     {
         float length = latticeLength;
         float invMass = this.invMass;
@@ -408,13 +508,9 @@ public class XPBDSim : MonoBehaviour
 
         float h = offset * 1.25f;
 
-        SpacialHash grid = new SpacialHash(h);
+        
 
         List<DistanceConstraint> dist = new();
-
-        
-        float restDensity = CalcRestDensity(lattice, grid, h);
-        DensityConstraintSolver dense = new(restDensity, h, denseCompliance);
 
         for (int i = 0; i < n; i++)
         {
@@ -477,11 +573,28 @@ public class XPBDSim : MonoBehaviour
                 }
             }
         }
+
         DistanceConstraintSet dcs = new(dist.ToArray());
+
+        SpatialHash grid = new SpatialHash(h, particleCount);
+
+        grid.BuildGrid(lattice);
+
+        float restDensity = CalcRestDensity(lattice, grid, h);
+
+        DensityConstraintSolver dense = new(restDensity, h, denseCompliance);
 
         print("GENERATED LATTICE!!!");
 
         return (lattice, grid, dcs, dense);
+    }
+
+    CollisionConstraintSolver CreateFloor()
+    {
+        CollisionConstraintSolver coll = new CollisionConstraintSolver(collCompliance);
+        PlaneCollider floor = new(Vector3.zero, Vector3.up);
+        coll.shapes.Add(floor);
+        return coll;
     }
 
     void ApplyForces(ParticleSet ps, float dt)
@@ -512,7 +625,6 @@ public class XPBDSim : MonoBehaviour
             if (ps.currentPosition[i].y < floorValue)
             {
                 ps.currentPosition[i].y = floorValue;
-                ps.velocity[i].y = 0;
             }
         }
     }
@@ -594,6 +706,7 @@ public class XPBDSim : MonoBehaviour
         print("START");
         // Initialize particle set and constraint set.
         (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
+        coll = CreateFloor();
     }
 
 
@@ -638,22 +751,23 @@ public class XPBDSim : MonoBehaviour
         // 3. Predict positions
         PredictPositions(ps, dt);
 
-        // 4. Build spatial grid
+        // 4. Build spatial grid NOTE: Unsure if grid should be built per frame or per iteration
         if (denseOn) grid.BuildGrid(ps);
 
         // 5. Solve constraints
         for (int i = 0; i < solverIterations; i++)
         {
+            //if (denseOn) grid.BuildGrid(ps);
             if (distOn) dist.SolveOnce(ps, dt, grid);
             if (denseOn) dense.SolveOnce(ps, dt, grid);
-            SolveFloorCollision(ps);
+            if (collOn) coll.SolveOnce(ps, dt, grid);
         }
 
         // 6. Update velocities
         UpdateVelocities(ps, dt);
     }
 
-    
+
 
     // Draws particles and constraints for debugging.
     private void OnDrawGizmos()
@@ -661,11 +775,11 @@ public class XPBDSim : MonoBehaviour
         if (ps == null) return;
         if (ps.currentPosition == null) return;
 
-        for (int i = 0; i < ps.currentPosition.Length; i++)
-        {
-            Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
-            Gizmos.DrawSphere(ps.currentPosition[i], .08f);
-        }
+        //for (int i = 0; i < ps.currentPosition.Length; i++)
+        //{
+        //    Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
+        //    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+        //}
 
         for (int i = 0; i < dist.constraints.Length; i++)
         {
@@ -685,7 +799,7 @@ public class XPBDSim : MonoBehaviour
         {
             int[] js;
             int jCount;
-            (js, jCount) = grid.GetNeighbors(ps, selectedParticle);
+            (js, jCount) = grid.GetNeighbors(ps, selectedParticle, dense.h);
             for (int iter = 0; iter < jCount; iter++)
             {
                 int j = js[iter];
