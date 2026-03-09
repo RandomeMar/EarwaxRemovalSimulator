@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class XPBDSim : MonoBehaviour
 {
@@ -31,6 +32,7 @@ public class XPBDSim : MonoBehaviour
     [Header("Collision Constraint Settings")]
     public bool collOn = true;
     public float collCompliance;
+    public Vector3 roomDimensions = new Vector3(4f, 4f, 4f);
 
     #endregion
 
@@ -185,30 +187,174 @@ public class XPBDSim : MonoBehaviour
 
     }
 
-
+    // Interface for all collision shapes
     interface ICollisionShape
     {
-        (float, Vector3) getCollisionInfo(Vector3 particlePos);
+        (float, Vector3) GetCollisionInfo(Vector3 particlePos);
     }
 
-    class PlaneCollider : ICollisionShape
+    class PlaneShape : ICollisionShape
     {
-        Vector3 p0;
-        Vector3 normal;
+        public Vector3 p0;
+        public Vector3 normal;
 
-        public PlaneCollider(Vector3 p0, Vector3 planeNormal)
+        public PlaneShape(Vector3 p0, Vector3 planeNormal)
         {
             this.p0 = p0;
             this.normal = planeNormal.normalized;
         }
 
-        public (float, Vector3) getCollisionInfo(Vector3 particlePos)
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
         {
             return (Vector3.Dot(this.normal, (particlePos - this.p0)), this.normal);
         }
     }
 
+    class SphereShape : ICollisionShape
+    {
+        public Vector3 center;
+        public float radius;
 
+        public SphereShape(Vector3 center, float radius)
+        {
+            this.center = center;
+            this.radius = radius;
+        }
+
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            Vector3 distVec = particlePos - this.center;
+            return (distVec.magnitude - radius, distVec.normalized);
+        }
+    }
+
+    class CapsuleShape : ICollisionShape
+    {
+        public Vector3 a;
+        public Vector3 b;
+        public float radius;
+
+        // Cached values
+        private Vector3 ba;
+        private float baSqrMag;
+
+        public CapsuleShape(Vector3 a, Vector3 b, float radius)
+        {
+            this.a = a;
+            this.b = b;
+            this.ba = b - a;
+            this.baSqrMag = Vector3.Dot(this.ba, this.ba);
+            this.radius = radius;
+        }
+
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            float t = Vector3.Dot((particlePos - this.a), ba) / this.baSqrMag;
+            t = Math.Clamp(t, 0f, 1f); // 0 = a, 1 = b
+
+            Vector3 q = this.a + t * this.ba; // Position of closest point on line segment a to b
+
+            Vector3 normal = (particlePos - q);
+            float signedDistance = normal.magnitude - this.radius;
+
+            return (signedDistance, normal.normalized);
+        }
+    }
+    
+    class BoxShape : ICollisionShape
+    {
+        public Vector3 center;
+        public Vector3 b; // half-extents
+        // TODO: May want to implement rotation for boxes
+
+        public BoxShape(Vector3 center, Vector3 b)
+        {
+            this.center = center;
+            this.b = b;
+        }
+
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            Vector3 pLocal = particlePos - this.center;
+
+            Vector3 sign = new(
+                pLocal.x >= 0f ? 1f : -1f,
+                pLocal.y >= 0f ? 1f : -1f,
+                pLocal.z >= 0f ? 1f : -1f
+                );
+
+            Vector3 q = new Vector3(
+                Math.Abs(pLocal.x),
+                Math.Abs(pLocal.y),
+                Math.Abs(pLocal.z)
+                ) - this.b;
+
+            Vector3 outside = new(
+                Math.Max(q.x, 0f),
+                Math.Max(q.y, 0f),
+                Math.Max(q.z, 0f)
+                );
+
+            // Calculate signed distance
+            float outsideDist = outside.magnitude;
+            float insideDist = Math.Min(Math.Max(q.x, Math.Max(q.y, q.z)), 0f);
+            float signedDistance = outsideDist + insideDist;
+
+            // If particle is outside the box
+            if (outside.sqrMagnitude > EPS)
+            {
+                Vector3 outsideNorm = Vector3.Scale(outside.normalized, sign);
+                return (signedDistance, outsideNorm);
+            }
+
+            // If particle is inside the box, return the normal of the nearest face
+            if (q.x > q.y && q.x > q.z) return (signedDistance, new Vector3(sign.x, 0f, 0f));
+            else if (q.y > q.z) return (signedDistance, new Vector3(0f, sign.y, 0f));
+            else return (signedDistance, new Vector3(0f, 0f, sign.z));
+        }
+    }
+
+    //class UnionShape : ICollisionShape
+    //{
+    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+    //    {
+
+    //    }
+    //}
+
+    //class IntersectShape : ICollisionShape
+    //{
+    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+    //    {
+
+    //    }
+    //}
+
+    //class DifferenceShape : ICollisionShape
+    //{
+    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+    //    {
+
+    //    }
+    //}
+
+    class InverseShape : ICollisionShape
+    {
+        public ICollisionShape shape;
+
+        public InverseShape(ICollisionShape shape)
+        {
+            this.shape = shape;
+        }
+
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            (float signedDistance, Vector3 normal) = shape.GetCollisionInfo(particlePos);
+            return (-signedDistance, -normal);
+        }
+    }
+
+    // Interface for all consstraint solvers
     interface IConstraintSolver
     {
         void ResetLambda();
@@ -362,7 +508,7 @@ public class XPBDSim : MonoBehaviour
                     denom += this.gradBuffer[iter].sqrMagnitude * ps.invMass[j];
                 }
 
-                float c = density - this.restDensity;
+                float c = Mathf.Max(density / this.restDensity - 1f, 0f); // This makes it so density only pushes, no pulling
                 denom += gradi.sqrMagnitude * ps.invMass[i];
 
                 // If the denominator is close to 0: continue
@@ -421,7 +567,7 @@ public class XPBDSim : MonoBehaviour
                 foreach (ICollisionShape shape in shapes)
                 {
                     // Calculate C and gradient of C
-                    (float c, Vector3 collisionNormal) = shape.getCollisionInfo(ps.currentPosition[i]);
+                    (float c, Vector3 collisionNormal) = shape.GetCollisionInfo(ps.currentPosition[i]);
                     // As long as C is not negative, we assume there is no correction to be made
                     if (c >= 0) continue;
 
@@ -453,17 +599,6 @@ public class XPBDSim : MonoBehaviour
 
         return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
     }
-
-    // Calculate the signed distance to a plane at p0 with a normal of planeNormal from a particle
-    float SDFPlane(Vector3 p0, Vector3 planeNormal, Vector3 particlePos)
-    {
-        float signedDistance = 0f;
-
-        signedDistance = Vector3.Dot(planeNormal, (particlePos - p0));
-
-        return signedDistance;
-    }
-
 
     int CalcIndex(int i, int j, int k, int n)
     {
@@ -589,11 +724,18 @@ public class XPBDSim : MonoBehaviour
         return (lattice, grid, dcs, dense);
     }
 
-    CollisionConstraintSolver CreateFloor()
+    CollisionConstraintSolver CreateBasicRoom()
     {
         CollisionConstraintSolver coll = new CollisionConstraintSolver(collCompliance);
-        PlaneCollider floor = new(Vector3.zero, Vector3.up);
-        coll.shapes.Add(floor);
+
+        BoxShape roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions);
+        InverseShape room = new(roomArea);
+        coll.shapes.Add(room);
+
+        //SphereShape sphereRoomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions.y);
+        //InverseShape sphereRoom = new(sphereRoomArea);
+        //coll.shapes.Add(sphereRoom);
+
         return coll;
     }
 
@@ -635,14 +777,16 @@ public class XPBDSim : MonoBehaviour
         {
             if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
             ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
+            //ps.velocity[i] *= .98f; // Velocity damping
         }
     }
 
+    // Mouse interaction functions
+    #region
     private int grabbedParticle = -1;
     Plane dragPlane;
     private int selectedParticle = -1;
-
-    // Mouse interaction functions
+    
     int SelectParticle()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -699,14 +843,14 @@ public class XPBDSim : MonoBehaviour
             ps.velocity[selectedIndex] = Vector3.zero;
         }
     }
-
+    #endregion
 
     private void Start()
     {
         print("START");
         // Initialize particle set and constraint set.
         (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
-        coll = CreateFloor();
+        coll = CreateBasicRoom();
     }
 
 
@@ -757,7 +901,6 @@ public class XPBDSim : MonoBehaviour
         // 5. Solve constraints
         for (int i = 0; i < solverIterations; i++)
         {
-            //if (denseOn) grid.BuildGrid(ps);
             if (distOn) dist.SolveOnce(ps, dt, grid);
             if (denseOn) dense.SolveOnce(ps, dt, grid);
             if (collOn) coll.SolveOnce(ps, dt, grid);
@@ -775,26 +918,45 @@ public class XPBDSim : MonoBehaviour
         if (ps == null) return;
         if (ps.currentPosition == null) return;
 
-        //for (int i = 0; i < ps.currentPosition.Length; i++)
-        //{
-        //    Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
-        //    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
-        //}
+        for (int i = 0; i < ps.currentPosition.Length; i++)
+        {
+            Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
+            Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+        }
 
+        Gizmos.color = new(1f, 1f, 1f, .5f);
         for (int i = 0; i < dist.constraints.Length; i++)
         {
             int from = dist.constraints[i].i;
             int to = dist.constraints[i].j;
-            Gizmos.color = new(1f, 1f, 1f, .5f);
             Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
         }
 
+        Gizmos.color = Color.orange;
+
+        // Draw room bounds
+        Gizmos.DrawWireCube(new Vector3(0f, roomDimensions.y, 0f), roomDimensions * 2);
+
+        // Draw colliders
+        foreach (ICollisionShape shape in coll.shapes)
+        {
+            if (shape is SphereShape sphere) Gizmos.DrawWireSphere(sphere.center, sphere.radius);
+            else if (shape is PlaneShape plane) Gizmos.DrawSphere(plane.p0, .1f);
+            if (shape is CapsuleShape capsule)
+            {
+                Gizmos.DrawWireSphere(capsule.a, capsule.radius);
+                Gizmos.DrawWireSphere(capsule.b, capsule.radius);
+            }
+            if (shape is BoxShape box) Gizmos.DrawWireCube(box.center, box.b * 2f);
+        }
+
+        Gizmos.color = new(0f, 0f, 1f, .5f);
         if (grabbedParticle != -1)
         {
-            Gizmos.color = new(0f, 0f, 1f, .5f);
             Gizmos.DrawWireSphere(ps.currentPosition[grabbedParticle], dense.h);
         }
 
+        Gizmos.color = Color.red;
         if (selectedParticle != -1)
         {
             int[] js;
@@ -803,7 +965,6 @@ public class XPBDSim : MonoBehaviour
             for (int iter = 0; iter < jCount; iter++)
             {
                 int j = js[iter];
-                Gizmos.color = Color.red;
                 Gizmos.DrawLine(ps.currentPosition[selectedParticle], ps.currentPosition[j]);
             }
         }

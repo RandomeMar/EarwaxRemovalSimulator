@@ -290,18 +290,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00dc09bc49c2d642b24c4d2e36265f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  solverIterations: 6
+  solverIterations: 10
   gravity: {x: 0, y: -9.8, z: 0}
   latticeOrigin: {x: 0, y: 3, z: 0}
-  latticeParticleCount: 10
-  latticeLength: 3
-  invMass: 1
+  latticeParticleCount: 7
+  latticeLength: 2.3
+  invMass: 0.566
   distOn: 1
-  distCompliance: 0.0007
-  denseOn: 0
+  distCompliance: 0.007
+  denseOn: 1
   denseCompliance: 0.007
   collOn: 1
-  collCompliance: 0
+  collCompliance: 0.0001
+  roomDimensions: {x: 5, y: 3, z: 5}
 --- !u!1 &2113227063
 GameObject:
   m_ObjectHideFlags: 0
