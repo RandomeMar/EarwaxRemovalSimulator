@@ -22,6 +22,8 @@ public class XPBDSim : MonoBehaviour
 
     [Header("Distance Constraint Settings")]
     public bool distOn = true;
+    public float yieldStrainMult = 2f;
+    public float plasticFlow = 1f;
     [Range(0f, 1f)]
     public float distCompliance;
 
@@ -368,13 +370,13 @@ public class XPBDSim : MonoBehaviour
         public float compliance;
         public float lambda;
 
-        public DistanceConstraint(int i, int j, float restLength, float compliance, float lambda)
+        public DistanceConstraint(int i, int j, float restLength, float compliance)
         {
             this.i = i;
             this.j = j;
             this.restLength = restLength;
             this.compliance = compliance;
-            this.lambda = lambda;
+            this.lambda = 0f;
         }
     }
 
@@ -382,9 +384,15 @@ public class XPBDSim : MonoBehaviour
     {
         public DistanceConstraint[] constraints;
 
-        public DistanceConstraintSet(DistanceConstraint[] constraints)
+        // For plastic deformation
+        public float yieldStrain;
+        public float plasticFlow;
+
+        public DistanceConstraintSet(DistanceConstraint[] constraints, float yieldStrain, float plasticFlow)
         {
             this.constraints = constraints;
+            this.yieldStrain = yieldStrain;
+            this.plasticFlow = plasticFlow;
         }
 
         public void ResetLambda()
@@ -424,6 +432,22 @@ public class XPBDSim : MonoBehaviour
 
                 ps.currentPosition[i] += ps.invMass[i] * n * deltaLambda;
                 ps.currentPosition[j] -= ps.invMass[j] * n * deltaLambda;
+            }
+        }
+
+        public void UpdateRestLengths(ParticleSet ps)
+        {
+            for (int index = 0; index < this.constraints.Length; index++)
+            {
+                DistanceConstraint constraint = this.constraints[index];
+                float L = Vector3.Distance(ps.currentPosition[constraint.i], ps.currentPosition[constraint.j]);
+                float strain = (L - constraint.restLength) / constraint.restLength;
+
+                if (Mathf.Abs(strain) <= this.yieldStrain) continue;
+
+                float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.restLength;
+
+                this.constraints[index].restLength += deltaRestLen;
             }
         }
     }
@@ -668,48 +692,48 @@ public class XPBDSim : MonoBehaviour
                     if (i + 1 < n)
                     {
                         int iPlus = CalcIndex(i + 1, j, k, n);
-                        dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance));
 
                         if (j + 1 < n)
                         {
                             int jPlus = CalcIndex(i, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance));
                             int ijPlus = CalcIndex(i + 1, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance));
                         }
 
                     }
                     if (j + 1 < n)
                     {
                         int jPlus = CalcIndex(i, j + 1, k, n);
-                        dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance));
 
                         if (k + 1 < n)
                         {
                             int kPlus = CalcIndex(i, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance));
                             int jkPlus = CalcIndex(i, j + 1, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance));
                         }
                     }
                     if (k + 1 < n)
                     {
                         int kPlus = CalcIndex(i, j, k + 1, n);
-                        dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance, 0f));
+                        dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance));
 
                         if (i + 1 < n)
                         {
                             int iPlus = CalcIndex(i + 1, j, k, n);
-                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance));
                             int kiPlus = CalcIndex(i + 1, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance));
                         }
                     }
                 }
             }
         }
 
-        DistanceConstraintSet dcs = new(dist.ToArray());
+        DistanceConstraintSet dcs = new(dist.ToArray(), offset * yieldStrainMult, plasticFlow);
 
         SpatialHash grid = new SpatialHash(h, particleCount);
 
@@ -905,6 +929,8 @@ public class XPBDSim : MonoBehaviour
             if (denseOn) dense.SolveOnce(ps, dt, grid);
             if (collOn) coll.SolveOnce(ps, dt, grid);
         }
+
+        if (distOn) dist.UpdateRestLengths(ps);
 
         // 6. Update velocities
         UpdateVelocities(ps, dt);

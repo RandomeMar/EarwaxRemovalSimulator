@@ -293,16 +293,18 @@ MonoBehaviour:
   solverIterations: 10
   gravity: {x: 0, y: -9.8, z: 0}
   latticeOrigin: {x: 0, y: 3, z: 0}
-  latticeParticleCount: 7
+  latticeParticleCount: 6
   latticeLength: 2.3
   invMass: 0.566
   distOn: 1
-  distCompliance: 0.007
+  yieldStrainMult: 1.1
+  plasticFlow: 0.5
+  distCompliance: 0.04
   denseOn: 1
   denseCompliance: 0.007
   collOn: 1
   collCompliance: 0.0001
-  roomDimensions: {x: 5, y: 3, z: 5}
+  roomDimensions: {x: 3, y: 3, z: 2}
 --- !u!1 &2113227063
 GameObject:
   m_ObjectHideFlags: 0
