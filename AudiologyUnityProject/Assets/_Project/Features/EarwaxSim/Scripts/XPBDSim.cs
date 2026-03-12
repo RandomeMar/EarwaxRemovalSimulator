@@ -1,52 +1,83 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.InputSystem;
 
 public class XPBDSim : MonoBehaviour
 {
-    #region
-    [Range(1, 30)]
+    #region Public Parameters
+    [Header("Solver Settings")]
+    [Min(1f)]
     public int solverIterations;
     public Vector3 gravity = new Vector3(0, -9.8f, 0);
+    [Range(0, 1)]
+    public float globalDamping = 1f; // 0 to 1
 
     [Header("Lattice Settings")]
     public Vector3 latticeOrigin = Vector3.zero;
-    [Range(2, 30)]
+    [Min(2f)]
     public int latticeParticleCount = 3;
-    [Range(.5f, 30f)]
+    [Min(.01f)]
     public float latticeLength = 2.0f;
-    [Range(0f, 1f)]
-    public float invMass;
+
+    [Header("Material Settings")]
+    [Min(0f)]
+    public float materialDensity;
+    [Min(0f)]
+    public float baseBondCompliance;
 
     [Header("Distance Constraint Settings")]
     public bool distOn = true;
     public float yieldStrainMult = 2f;
     public float plasticFlow = 1f;
-    [Range(0f, 1f)]
-    public float distCompliance;
+    
+
+    [Header("Visco-elasticity Settings")]
+    [Min(0f)]
+    public float adaptRate;
+    [Min(0f)]
+    public float recRate;
 
     [Header("Density Constraint Settings")]
     public bool denseOn = true;
+    [Min(0f)]
     public float denseCompliance;
+    [Min(1f)]
+    public float hMult = 1.25f;
 
     [Header("Collision Constraint Settings")]
     public bool collOn = true;
+    [Min(0f)]
     public float collCompliance;
     public Vector3 roomDimensions = new Vector3(4f, 4f, 4f);
 
+    [Header("Tool Settings")]
+    public Vector3 toolSpawn = Vector3.zero;
+    [Min(0f)]
+    public float toolRadius = .5f;
+    [Min(0f)]
+    public float toolSpeed = 3f;
     #endregion
 
+    #region Constants
     const float EPS = 1e-6f;
     const int MAX_NEIGHBORS = 64;
     const int MAX_PARTICLES = 1000;
+    #endregion
 
+    #region Private Input Values
+    private PlayerInput playerInput;
+    private InputAction moveToolAction;
+    private Vector3 moveDir;
+    #endregion
+
+    #region Solver Objects
     ParticleSet ps;
     SpatialHash grid;
     DistanceConstraintSet dist;
     DensityConstraintSolver dense;
     CollisionConstraintSolver coll;
+    #endregion
 
 
     // Classes/Structs:
@@ -189,7 +220,7 @@ public class XPBDSim : MonoBehaviour
 
     }
 
-    // Interface for all collision shapes
+    #region Collision Shapes
     interface ICollisionShape
     {
         (float, Vector3) GetCollisionInfo(Vector3 particlePos);
@@ -355,8 +386,9 @@ public class XPBDSim : MonoBehaviour
             return (-signedDistance, -normal);
         }
     }
+    #endregion
 
-    // Interface for all consstraint solvers
+    #region Constraint Solvers
     interface IConstraintSolver
     {
         void ResetLambda();
@@ -366,6 +398,7 @@ public class XPBDSim : MonoBehaviour
     struct DistanceConstraint
     {
         public int i, j;
+        public float origRestLength;
         public float restLength;
         public float compliance;
         public float lambda;
@@ -374,6 +407,7 @@ public class XPBDSim : MonoBehaviour
         {
             this.i = i;
             this.j = j;
+            this.origRestLength = restLength;
             this.restLength = restLength;
             this.compliance = compliance;
             this.lambda = 0f;
@@ -388,11 +422,17 @@ public class XPBDSim : MonoBehaviour
         public float yieldStrain;
         public float plasticFlow;
 
-        public DistanceConstraintSet(DistanceConstraint[] constraints, float yieldStrain, float plasticFlow)
+        // For visco-elasticity
+        public float adaptRate;
+        public float recRate;
+
+        public DistanceConstraintSet(DistanceConstraint[] constraints, float yieldStrain, float plasticFlow, float adaptRate, float recRate)
         {
             this.constraints = constraints;
             this.yieldStrain = yieldStrain;
             this.plasticFlow = plasticFlow;
+            this.adaptRate = adaptRate;
+            this.recRate = recRate;
         }
 
         public void ResetLambda()
@@ -435,19 +475,30 @@ public class XPBDSim : MonoBehaviour
             }
         }
 
-        public void UpdateRestLengths(ParticleSet ps)
+        public void UpdateRestLengths(ParticleSet ps, float dt)
         {
             for (int index = 0; index < this.constraints.Length; index++)
             {
                 DistanceConstraint constraint = this.constraints[index];
-                float L = Vector3.Distance(ps.currentPosition[constraint.i], ps.currentPosition[constraint.j]);
-                float strain = (L - constraint.restLength) / constraint.restLength;
+                float currLength = Vector3.Distance(ps.currentPosition[constraint.i], ps.currentPosition[constraint.j]);
 
-                if (Mathf.Abs(strain) <= this.yieldStrain) continue;
+                // Makes rest length closer to the current length of the constraint
+                constraint.restLength += this.adaptRate * (currLength - constraint.restLength) * dt;
 
-                float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.restLength;
+                // Makes rest length closer to the original rest length of the constraint
+                constraint.restLength += this.recRate * (constraint.origRestLength - constraint.restLength) * dt;
 
-                this.constraints[index].restLength += deltaRestLen;
+                this.constraints[index].restLength = constraint.restLength;
+
+
+                //// Plastic deformation stuff
+                //float strain = (currLength - constraint.origRestLength) / constraint.origRestLength;
+
+                //if (Mathf.Abs(strain) <= this.yieldStrain) continue;
+
+                //float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.origRestLength;
+
+                //this.constraints[index].origRestLength += deltaRestLen;
             }
         }
     }
@@ -608,7 +659,9 @@ public class XPBDSim : MonoBehaviour
             }
         }
     }
-    
+    #endregion
+
+
     // Functions
 
     // Smoothing kernel for calculating density
@@ -654,21 +707,21 @@ public class XPBDSim : MonoBehaviour
         return density;
     }
 
-    (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
+    (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice()
     {
-        float length = latticeLength;
-        float invMass = this.invMass;
-        float mass = 1f / invMass;
-
+        int n = latticeParticleCount;
         int particleCount = n * n * n;
-        float offset = length / (n - 1);
+        float length = latticeLength;
+        float spacing = length / (n - 1);
+        float h = spacing * hMult;
 
-        ParticleSet lattice = new(particleCount);
-
-        float h = offset * 1.25f;
-
+        float totalVolume = length * length * length;
+        float totalMass = materialDensity * totalVolume;
+        float particleMass = totalMass / particleCount;
+        float invMass = 1f / particleMass;
+        float bondCompliance = baseBondCompliance * spacing;
         
-
+        ParticleSet lattice = new(particleCount);
         List<DistanceConstraint> dist = new();
 
         for (int i = 0; i < n; i++)
@@ -679,61 +732,61 @@ public class XPBDSim : MonoBehaviour
                 {
                     // Particles
                     int curr = CalcIndex(i, j, k, n);
-                    lattice.currentPosition[curr] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
+                    lattice.currentPosition[curr] = new(-length / 2 + i * spacing, -length / 2 + j * spacing, -length / 2 + k * spacing);
                     lattice.currentPosition[curr] += latticeOrigin;
 
 
                     lattice.previousPosition[curr] = lattice.currentPosition[curr];
                     lattice.velocity[curr] = new(0, 0, 0);
                     lattice.invMass[curr] = invMass;
-                    lattice.mass[curr] = mass;
+                    lattice.mass[curr] = particleMass;
 
                     // Constraints
                     if (i + 1 < n)
                     {
                         int iPlus = CalcIndex(i + 1, j, k, n);
-                        dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance));
+                        dist.Add(new DistanceConstraint(curr, iPlus, spacing, bondCompliance));
 
                         if (j + 1 < n)
                         {
                             int jPlus = CalcIndex(i, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                             int ijPlus = CalcIndex(i + 1, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                         }
 
                     }
                     if (j + 1 < n)
                     {
                         int jPlus = CalcIndex(i, j + 1, k, n);
-                        dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance));
+                        dist.Add(new DistanceConstraint(curr, jPlus, spacing, bondCompliance));
 
                         if (k + 1 < n)
                         {
                             int kPlus = CalcIndex(i, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                             int jkPlus = CalcIndex(i, j + 1, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                         }
                     }
                     if (k + 1 < n)
                     {
                         int kPlus = CalcIndex(i, j, k + 1, n);
-                        dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance));
+                        dist.Add(new DistanceConstraint(curr, kPlus, spacing, bondCompliance));
 
                         if (i + 1 < n)
                         {
                             int iPlus = CalcIndex(i + 1, j, k, n);
-                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                             int kiPlus = CalcIndex(i + 1, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance));
+                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
                         }
                     }
                 }
             }
         }
 
-        DistanceConstraintSet dcs = new(dist.ToArray(), offset * yieldStrainMult, plasticFlow);
+        DistanceConstraintSet dcs = new(dist.ToArray(), spacing * yieldStrainMult, plasticFlow, adaptRate, recRate);
 
         SpatialHash grid = new SpatialHash(h, particleCount);
 
@@ -763,6 +816,12 @@ public class XPBDSim : MonoBehaviour
         return coll;
     }
 
+    void AddTool(CollisionConstraintSolver coll, Vector3 center, float radius)
+    {
+        SphereShape tool = new(center, radius);
+        coll.shapes.Add(tool);
+    }
+
     void ApplyForces(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
@@ -782,26 +841,14 @@ public class XPBDSim : MonoBehaviour
         }
     }
     
-    void SolveFloorCollision(ParticleSet ps)
-    {
-        float floorValue = 0;
-
-        for (int i = 0; i < ps.currentPosition.Length; i++)
-        {
-            if (ps.currentPosition[i].y < floorValue)
-            {
-                ps.currentPosition[i].y = floorValue;
-            }
-        }
-    }
-    
     void UpdateVelocities(ParticleSet ps, float dt)
     {
         for (int i = 0; i < ps.velocity.Length; i++)
         {
             if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
             ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
-            //ps.velocity[i] *= .98f; // Velocity damping
+
+            ps.velocity[i] *= globalDamping; // Velocity damping
         }
     }
 
@@ -869,17 +916,27 @@ public class XPBDSim : MonoBehaviour
     }
     #endregion
 
+    private void Awake()
+    {
+        playerInput = GetComponent<PlayerInput>();
+        moveToolAction = playerInput.actions.FindAction("MoveTool");
+    }
+
     private void Start()
     {
         print("START");
         // Initialize particle set and constraint set.
-        (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
+        (ps, grid, dist, dense) = GenerateLattice();
         coll = CreateBasicRoom();
+        AddTool(coll, toolSpawn, toolRadius);
     }
-
 
     private void Update()
     {
+        // WASD input
+        moveDir = moveToolAction.ReadValue<Vector3>();
+
+        // Mouse manipulation
         if (Input.GetMouseButtonUp(0))
         {
             grabbedParticle = -1;
@@ -909,6 +966,12 @@ public class XPBDSim : MonoBehaviour
     {
         float dt = Time.fixedDeltaTime;
 
+        // Move ball tool
+        foreach (ICollisionShape shape in coll.shapes)
+        {
+            if (shape is SphereShape tool) tool.center += moveDir * toolSpeed * dt;
+        }
+
         // 1. Reset lambda
         if (distOn) dist.ResetLambda();
         if (denseOn) dense.ResetLambda();
@@ -930,7 +993,7 @@ public class XPBDSim : MonoBehaviour
             if (collOn) coll.SolveOnce(ps, dt, grid);
         }
 
-        if (distOn) dist.UpdateRestLengths(ps);
+        if (distOn) dist.UpdateRestLengths(ps, dt);
 
         // 6. Update velocities
         UpdateVelocities(ps, dt);
@@ -944,11 +1007,11 @@ public class XPBDSim : MonoBehaviour
         if (ps == null) return;
         if (ps.currentPosition == null) return;
 
-        for (int i = 0; i < ps.currentPosition.Length; i++)
-        {
-            Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
-            Gizmos.DrawSphere(ps.currentPosition[i], .08f);
-        }
+        //for (int i = 0; i < ps.currentPosition.Length; i++)
+        //{
+        //    Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
+        //    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+        //}
 
         Gizmos.color = new(1f, 1f, 1f, .5f);
         for (int i = 0; i < dist.constraints.Length; i++)
