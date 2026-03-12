@@ -3,9 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// Owns the full XPBD loop
 public class XPBDSim : MonoBehaviour
 {
     #region Public Parameters
+    [Header("Gizmo Debug Settings")]
+    public bool drawParticles = true;
+    public bool drawDist = true;
+
     [Header("Solver Settings")]
     [Min(1f)]
     public int solverIterations;
@@ -77,10 +82,14 @@ public class XPBDSim : MonoBehaviour
     DistanceConstraintSet dist;
     DensityConstraintSolver dense;
     CollisionConstraintSolver coll;
+
+    BoxShape roomArea;
     #endregion
 
 
     // Classes/Structs:
+
+    // Contains particle positions, velocities, and mass values
     class ParticleSet
     {
         public Vector3[] currentPosition;
@@ -102,6 +111,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Dict used to store particles in a 3D grid
     class SpatialHash
     {
         float cellSize;
@@ -221,11 +231,14 @@ public class XPBDSim : MonoBehaviour
     }
 
     #region Collision Shapes
+
+    // Interface for all collision shapes
     interface ICollisionShape
     {
         (float, Vector3) GetCollisionInfo(Vector3 particlePos);
     }
 
+    // Defines plane collision shape
     class PlaneShape : ICollisionShape
     {
         public Vector3 p0;
@@ -243,6 +256,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Defines sphere collision shape
     class SphereShape : ICollisionShape
     {
         public Vector3 center;
@@ -261,6 +275,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Defines capsule collision shape
     class CapsuleShape : ICollisionShape
     {
         public Vector3 a;
@@ -293,7 +308,8 @@ public class XPBDSim : MonoBehaviour
             return (signedDistance, normal.normalized);
         }
     }
-    
+
+    // Defines box collision shape
     class BoxShape : ICollisionShape
     {
         public Vector3 center;
@@ -347,30 +363,34 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    //class UnionShape : ICollisionShape
-    //{
-    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
-    //    {
+    // Unions two collision shapes UNFINISHED
+    class UnionShape : ICollisionShape
+    {
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            return (0f, Vector3.zero);
+        }
+    }
 
-    //    }
-    //}
+    // Intersects two collision shapes UNFINISHED
+    class IntersectShape : ICollisionShape
+    {
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            return (0f, Vector3.zero);
+        }
+    }
 
-    //class IntersectShape : ICollisionShape
-    //{
-    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
-    //    {
+    // Differences two collision shapes UNFINISHED
+    class DifferenceShape : ICollisionShape
+    {
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            return (0f, Vector3.zero);
+        }
+    }
 
-    //    }
-    //}
-
-    //class DifferenceShape : ICollisionShape
-    //{
-    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
-    //    {
-
-    //    }
-    //}
-
+    // Inverses a collision shape
     class InverseShape : ICollisionShape
     {
         public ICollisionShape shape;
@@ -389,12 +409,15 @@ public class XPBDSim : MonoBehaviour
     #endregion
 
     #region Constraint Solvers
+
+    // Interface for all constraint solvers
     interface IConstraintSolver
     {
         void ResetLambda();
         void SolveOnce(ParticleSet ps, float dt, SpatialHash grid);
     }
 
+    // Single distance constraint between two particles
     struct DistanceConstraint
     {
         public int i, j;
@@ -414,6 +437,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Solves distance constraints
     class DistanceConstraintSet : IConstraintSolver
     {
         public DistanceConstraint[] constraints;
@@ -503,6 +527,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Prevents particles from getting too close together
     class DensityConstraintSolver : IConstraintSolver
     {
         public float restDensity;
@@ -614,6 +639,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
+    // Solves collisions between particles and collision shapes
     class CollisionConstraintSolver : IConstraintSolver
     {
         public List<ICollisionShape> shapes;
@@ -664,7 +690,7 @@ public class XPBDSim : MonoBehaviour
 
     // Functions
 
-    // Smoothing kernel for calculating density
+    // Smoothing kernel for calculating density DEPRECIATED
     static float Poly6(float r2, float h)
     {
         float h2 = h * h;
@@ -805,7 +831,7 @@ public class XPBDSim : MonoBehaviour
     {
         CollisionConstraintSolver coll = new CollisionConstraintSolver(collCompliance);
 
-        BoxShape roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions);
+        roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions);
         InverseShape room = new(roomArea);
         coll.shapes.Add(room);
 
@@ -820,6 +846,14 @@ public class XPBDSim : MonoBehaviour
     {
         SphereShape tool = new(center, radius);
         coll.shapes.Add(tool);
+    }
+
+    // Creates lattice, room, and sphere tool
+    void BuildSimulation()
+    {
+        (ps, grid, dist, dense) = GenerateLattice();
+        coll = CreateBasicRoom();
+        AddTool(coll, toolSpawn, toolRadius);
     }
 
     void ApplyForces(ParticleSet ps, float dt)
@@ -852,8 +886,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    // Mouse interaction functions
-    #region
+    #region Mouse Interaction Functions
     private int grabbedParticle = -1;
     Plane dragPlane;
     private int selectedParticle = -1;
@@ -916,21 +949,30 @@ public class XPBDSim : MonoBehaviour
     }
     #endregion
 
+    // Monobehaviour methods
+
+    // Rebuilds the sim anytime parameters are changed in the editor
+    private void OnValidate()
+    {
+        if (Application.isPlaying) return;
+        BuildSimulation();
+    }
+
+    // Called when the script instance is first initialized
     private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
         moveToolAction = playerInput.actions.FindAction("MoveTool");
     }
 
+    // Called before the first frame
     private void Start()
     {
         print("START");
-        // Initialize particle set and constraint set.
-        (ps, grid, dist, dense) = GenerateLattice();
-        coll = CreateBasicRoom();
-        AddTool(coll, toolSpawn, toolRadius);
+        BuildSimulation();
     }
 
+    // User input loop
     private void Update()
     {
         // WASD input
@@ -961,7 +1003,7 @@ public class XPBDSim : MonoBehaviour
         }
     }
 
-    // Sim Loop
+    // Sim physics Loop
     private void FixedUpdate()
     {
         float dt = Time.fixedDeltaTime;
@@ -999,28 +1041,32 @@ public class XPBDSim : MonoBehaviour
         UpdateVelocities(ps, dt);
     }
 
-
-
     // Draws particles and constraints for debugging.
     private void OnDrawGizmos()
     {
         if (ps == null) return;
         if (ps.currentPosition == null) return;
 
-        //for (int i = 0; i < ps.currentPosition.Length; i++)
-        //{
-        //    Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
-        //    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
-        //}
-
-        Gizmos.color = new(1f, 1f, 1f, .5f);
-        for (int i = 0; i < dist.constraints.Length; i++)
+        if (drawParticles)
         {
-            int from = dist.constraints[i].i;
-            int to = dist.constraints[i].j;
-            Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
+            for (int i = 0; i < ps.currentPosition.Length; i++)
+            {
+                Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
+                Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+            }
         }
-
+        
+        if (drawDist)
+        {
+            Gizmos.color = new(1f, 1f, 1f, .5f);
+            for (int i = 0; i < dist.constraints.Length; i++)
+            {
+                int from = dist.constraints[i].i;
+                int to = dist.constraints[i].j;
+                Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
+            }
+        }
+        
         Gizmos.color = Color.orange;
 
         // Draw room bounds

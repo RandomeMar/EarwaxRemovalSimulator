@@ -291,14 +291,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00dc09bc49c2d642b24c4d2e36265f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  drawParticles: 1
+  drawDist: 1
   solverIterations: 4
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 0.98
-  latticeOrigin: {x: 0, y: 2, z: 0}
+  latticeOrigin: {x: 0, y: 2.78, z: 0}
   latticeParticleCount: 7
   latticeLength: 3
   materialDensity: 10
-  baseBondCompliance: 0.0005
+  baseBondCompliance: 0.001
   distOn: 1
   yieldStrainMult: 1.1
   plasticFlow: 0
