@@ -295,23 +295,24 @@ MonoBehaviour:
   drawDist: 1
   solverIterations: 4
   gravity: {x: 0, y: -9.8, z: 0}
-  globalDamping: 0.98
+  globalDamping: 1
   latticeOrigin: {x: 0, y: 2.78, z: 0}
-  latticeParticleCount: 7
+  latticeParticleCount: 8
   latticeLength: 3
-  materialDensity: 10
+  materialDensity: 5
   baseBondCompliance: 0.001
+  dynamicFriction: 1
   distOn: 1
   yieldStrainMult: 1.1
   plasticFlow: 0
-  adaptRate: 9
-  recRate: 0.75
+  adaptRate: 10
+  recoveryRate: 1
   denseOn: 1
   denseCompliance: 0.05
   hMult: 1.25
   collOn: 1
   collCompliance: 0
-  roomDimensions: {x: 3, y: 3, z: 2}
+  roomDimensions: {x: 7, y: 7, z: 7}
   toolSpawn: {x: -7, y: 0, z: 0}
   toolRadius: 1.5
   toolSpeed: 5
