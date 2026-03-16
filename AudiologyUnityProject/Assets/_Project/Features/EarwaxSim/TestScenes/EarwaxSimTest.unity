@@ -300,11 +300,12 @@ MonoBehaviour:
   latticeParticleCount: 8
   latticeLength: 3
   materialDensity: 5
-  baseBondCompliance: 0.001
+  baseBondCompliance: 0.007
   dynamicFriction: 1
   distOn: 1
   yieldStrainMult: 1.1
   plasticFlow: 0
+  breakStrainMult: 4
   adaptRate: 10
   recoveryRate: 1
   denseOn: 1

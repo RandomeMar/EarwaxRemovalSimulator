@@ -39,6 +39,7 @@ public class XPBDSim : MonoBehaviour
     public bool distOn = true;
     public float yieldStrainMult = 2f;
     public float plasticFlow = 1f;
+    public float breakStrainMult = 4f;
     
     [Header("Visco-elasticity Settings")]
     [Min(0f)]
@@ -445,6 +446,7 @@ public class XPBDSim : MonoBehaviour
         public float restLength;
         public float compliance;
         public float lambda;
+        public bool active;
 
         public DistanceConstraint(int i, int j, float restLength, float compliance)
         {
@@ -454,6 +456,8 @@ public class XPBDSim : MonoBehaviour
             this.restLength = restLength;
             this.compliance = compliance;
             this.lambda = 0f;
+
+            this.active = true;
         }
     }
 
@@ -465,16 +469,19 @@ public class XPBDSim : MonoBehaviour
         // For plastic deformation
         public float yieldStrain;
         public float plasticFlow;
+        public float breakStrain;
 
         // For visco-elasticity
         public float adaptRate;
         public float recRate;
 
-        public DistanceConstraintSet(DistanceConstraint[] constraints, float yieldStrain, float plasticFlow, float adaptRate, float recRate)
+        public DistanceConstraintSet(DistanceConstraint[] constraints, float yieldStrain, float plasticFlow, float breakStrain, float adaptRate, float recRate)
         {
             this.constraints = constraints;
             this.yieldStrain = yieldStrain;
             this.plasticFlow = plasticFlow;
+            this.breakStrain = breakStrain;
+
             this.adaptRate = adaptRate;
             this.recRate = recRate;
         }
@@ -492,6 +499,9 @@ public class XPBDSim : MonoBehaviour
             for (int index = 0; index < this.constraints.Length; index++)
             {
                 DistanceConstraint constraint = this.constraints[index];
+
+                if (!constraint.active) continue;
+
                 int i = constraint.i;
                 int j = constraint.j;
                 Vector3 d = ps.currentPosition[i] - ps.currentPosition[j]; // Vector from j to i
@@ -524,6 +534,9 @@ public class XPBDSim : MonoBehaviour
             for (int index = 0; index < this.constraints.Length; index++)
             {
                 DistanceConstraint constraint = this.constraints[index];
+
+                if (!constraint.active) continue;
+
                 float currLength = Vector3.Distance(ps.currentPosition[constraint.i], ps.currentPosition[constraint.j]);
 
                 // Makes rest length closer to the current length of the constraint
@@ -533,6 +546,15 @@ public class XPBDSim : MonoBehaviour
                 constraint.restLength += this.recRate * (constraint.origRestLength - constraint.restLength) * dt;
 
                 this.constraints[index].restLength = constraint.restLength;
+
+
+                float strain = (currLength - constraint.origRestLength) / constraint.origRestLength;
+
+                if (strain >= breakStrain)
+                {
+                    this.constraints[index].active = false;
+                }
+
 
 
                 //// Plastic deformation stuff
@@ -854,7 +876,7 @@ public class XPBDSim : MonoBehaviour
             }
         }
 
-        DistanceConstraintSet dcs = new(dist.ToArray(), spacing * yieldStrainMult, plasticFlow, adaptRate, recoveryRate);
+        DistanceConstraintSet dcs = new(dist.ToArray(), spacing * yieldStrainMult, plasticFlow, spacing * breakStrainMult, adaptRate, recoveryRate);
 
         SpatialHash grid = new SpatialHash(h, particleCount);
 
@@ -1103,6 +1125,7 @@ public class XPBDSim : MonoBehaviour
             Gizmos.color = new(1f, 1f, 1f, .5f);
             for (int i = 0; i < dist.constraints.Length; i++)
             {
+                if (!dist.constraints[i].active) continue;
                 int from = dist.constraints[i].i;
                 int to = dist.constraints[i].j;
                 Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
