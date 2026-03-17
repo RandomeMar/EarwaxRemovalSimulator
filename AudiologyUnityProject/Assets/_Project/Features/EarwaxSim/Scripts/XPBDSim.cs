@@ -305,7 +305,7 @@ public class XPBDSim : MonoBehaviour
         public override (float, Vector3) GetCollisionInfo(Vector3 particlePos)
         {
             float t = Vector3.Dot((particlePos - this.a), ba) / this.baSqrMag;
-            t = Math.Clamp(t, 0f, 1f); // 0 = a, 1 = b
+            t = Mathf.Clamp(t, 0f, 1f); // 0 = a, 1 = b
 
             Vector3 q = this.a + t * this.ba; // Position of closest point on line segment a to b
 
@@ -340,20 +340,20 @@ public class XPBDSim : MonoBehaviour
                 );
 
             Vector3 q = new Vector3(
-                Math.Abs(pLocal.x),
-                Math.Abs(pLocal.y),
-                Math.Abs(pLocal.z)
+                Mathf.Abs(pLocal.x),
+                Mathf.Abs(pLocal.y),
+                Mathf.Abs(pLocal.z)
                 ) - this.b;
 
             Vector3 outside = new(
-                Math.Max(q.x, 0f),
-                Math.Max(q.y, 0f),
-                Math.Max(q.z, 0f)
+                Mathf.Max(q.x, 0f),
+                Mathf.Max(q.y, 0f),
+                Mathf.Max(q.z, 0f)
                 );
 
             // Calculate signed distance
             float outsideDist = outside.magnitude;
-            float insideDist = Math.Min(Math.Max(q.x, Math.Max(q.y, q.z)), 0f);
+            float insideDist = Mathf.Min(Mathf.Max(q.x, Mathf.Max(q.y, q.z)), 0f);
             float signedDistance = outsideDist + insideDist;
 
             // If particle is outside the box
@@ -548,6 +548,7 @@ public class XPBDSim : MonoBehaviour
                 this.constraints[index].restLength = constraint.restLength;
 
 
+                // ------ Plastic Deformation ------
                 float strain = (currLength - constraint.origRestLength) / constraint.origRestLength;
 
                 if (strain >= breakStrain)
@@ -555,16 +556,11 @@ public class XPBDSim : MonoBehaviour
                     this.constraints[index].active = false;
                 }
 
+                if (Mathf.Abs(strain) <= this.yieldStrain) continue;
 
+                float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.origRestLength;
 
-                //// Plastic deformation stuff
-                //float strain = (currLength - constraint.origRestLength) / constraint.origRestLength;
-
-                //if (Mathf.Abs(strain) <= this.yieldStrain) continue;
-
-                //float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.origRestLength;
-
-                //this.constraints[index].origRestLength += deltaRestLen;
+                this.constraints[index].origRestLength += deltaRestLen;
             }
         }
     }
@@ -591,8 +587,8 @@ public class XPBDSim : MonoBehaviour
             this.h = h;
             this.h2 = h * h;
             this.compliance = compliance;
-            this.poly6Coef = (float)(315f / (64f * Mathf.PI * Math.Pow(h, 9)));
-            this.poly6GradCoef = (float)(945f / (32f * Mathf.PI * Math.Pow(h, 9)));
+            this.poly6Coef = (float)(315f / (64f * Mathf.PI * Mathf.Pow(h, 9)));
+            this.poly6GradCoef = (float)(945f / (32f * Mathf.PI * Mathf.Pow(h, 9)));
         }
 
         private void EnsureCapacity(int count)
@@ -891,10 +887,8 @@ public class XPBDSim : MonoBehaviour
         return (lattice, grid, dcs, dense);
     }
 
-    CollisionConstraintSolver CreateBasicRoom()
+    void CreateBasicRoom(CollisionConstraintSolver coll)
     {
-        CollisionConstraintSolver coll = new CollisionConstraintSolver(collCompliance);
-
         BoxShape roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions, dynamicFriction);
         InverseShape room = new(roomArea, dynamicFriction);
         coll.shapes.Add(room);
@@ -902,8 +896,6 @@ public class XPBDSim : MonoBehaviour
         //SphereShape sphereRoomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomDimensions.y);
         //InverseShape sphereRoom = new(sphereRoomArea);
         //coll.shapes.Add(sphereRoom);
-
-        return coll;
     }
 
     void AddTool(CollisionConstraintSolver coll, Vector3 center, float radius)
@@ -916,8 +908,9 @@ public class XPBDSim : MonoBehaviour
     void BuildSimulation()
     {
         (ps, grid, dist, dense) = GenerateLattice();
-        coll = CreateBasicRoom();
+        coll = new CollisionConstraintSolver(collCompliance);
         AddTool(coll, toolSpawn, toolRadius);
+        CreateBasicRoom(coll); // Make sure the room is the last collision shape added to coll. The last added collision shape has priority over the others
     }
 
     void ApplyForces(ParticleSet ps, float dt)
@@ -1142,12 +1135,12 @@ public class XPBDSim : MonoBehaviour
         {
             if (shape is SphereShape sphere) Gizmos.DrawWireSphere(sphere.center, sphere.radius);
             else if (shape is PlaneShape plane) Gizmos.DrawSphere(plane.p0, .1f);
-            if (shape is CapsuleShape capsule)
+            else if (shape is CapsuleShape capsule)
             {
                 Gizmos.DrawWireSphere(capsule.a, capsule.radius);
                 Gizmos.DrawWireSphere(capsule.b, capsule.radius);
             }
-            if (shape is BoxShape box) Gizmos.DrawWireCube(box.center, box.b * 2f);
+            else if (shape is BoxShape box) Gizmos.DrawWireCube(box.center, box.b * 2f);
         }
 
         Gizmos.color = new(0f, 0f, 1f, .5f);
