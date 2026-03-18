@@ -69,3 +69,21 @@ In order to improve the accuracy of XPBD, we solve constraints more than once pe
 - Constraints use $-\nabla C$ to find the direction of the correction.
 - $\Delta \lambda$ acts as the magnitude of the correction.
 - $\lambda$ acts as memory for the solver. It allows for incremental changes every solver iteration.
+
+## Physics Frame Sequence
+Every physics frame, these actions will be taken in this order:
+
+### 1. Reset Lambdas
+Set the lambda value of all constraints to 0.
+
+### 2. Apply External Forces
+Update particle velocities by any external forces. In our case, the only external force we need to worry about is gravity updating velocities downward.
+
+### 3. Predict Positions
+This step changes the position of particles based on their velocities. It is important to note at this step particles are ignoring constraints. This means particles will move through floors and walls freely.
+
+### 4. Solve Constraints
+In XPBD, this is the main step. This is where constraints detect any violations that occured as a result of predicting positions in the previous step. This is where constraints will be solved for each solver iteration. This is where position corrections will be applied.
+
+### 5. Update Velocities
+Lastly, particle velocities are updated based on the change in the particles position from the beginning of the frame to the end of it.

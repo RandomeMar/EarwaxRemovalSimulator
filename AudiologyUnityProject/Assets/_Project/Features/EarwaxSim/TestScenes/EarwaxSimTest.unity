@@ -314,6 +314,7 @@ MonoBehaviour:
   collOn: 1
   collCompliance: 0
   roomDimensions: {x: 7, y: 7, z: 7}
+  roomRotation: {x: 0, y: 0, z: 0}
   toolSpawn: {x: -7, y: 0, z: 0}
   toolRadius: 1
   toolSpeed: 5
@@ -502,7 +503,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!64 &2132594629
 MeshCollider:
   m_ObjectHideFlags: 0
