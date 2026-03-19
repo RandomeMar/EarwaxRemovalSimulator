@@ -300,13 +300,13 @@ MonoBehaviour:
   latticeParticleCount: 8
   latticeLength: 3
   materialDensity: 5
-  baseBondCompliance: 0.002
-  dynamicFriction: 1
+  baseBondCompliance: 0.008
+  dynamicFriction: 0.5
   distOn: 1
   yieldStrainMult: 1.1
   plasticFlow: 0
-  breakStrainMult: 2
-  adaptRate: 5
+  breakStrainMult: 4
+  adaptRate: 10
   recoveryRate: 1
   denseOn: 1
   denseCompliance: 0.05
@@ -315,7 +315,7 @@ MonoBehaviour:
   collCompliance: 0
   roomDimensions: {x: 7, y: 7, z: 7}
   roomRotation: {x: 0, y: 0, z: 0}
-  toolSpawn: {x: -7, y: 0, z: 0}
+  toolSpawn: {x: -6.76, y: 0, z: 0}
   toolRadius: 1
   toolSpeed: 5
 --- !u!114 &1039142608
@@ -503,7 +503,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!64 &2132594629
 MeshCollider:
   m_ObjectHideFlags: 0

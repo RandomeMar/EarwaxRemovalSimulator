@@ -95,8 +95,7 @@ public class XPBDSim : MonoBehaviour
     CollisionConstraintSolver coll;
     #endregion
 
-
-    // Classes/Structs:
+    // ------ Classes/Structs ------
 
     // Contains particle positions, velocities, and mass values
     class ParticleSet
@@ -240,7 +239,6 @@ public class XPBDSim : MonoBehaviour
     }
 
     #region Collision Shapes
-
     // Collision shapes only define shape
     interface ICollisionShape
     {
@@ -440,7 +438,7 @@ public class XPBDSim : MonoBehaviour
     }
 
 
-    // Unions two collision shapes UNFINISHED
+    // Unions two collision shapes
     class UnionShape : ICollisionShape
     {
         public ICollisionShape a;
@@ -469,73 +467,138 @@ public class XPBDSim : MonoBehaviour
             }
         }
 
-        private Vector3 EstimateNormal(Vector3 particlePos)
-        {
-            float CombinedDistance(Vector3 p)
-            {
-                float d1 = this.a.GetSignedDistance(p);
-                float d2 = this.b.GetSignedDistance(p);
-                return Mathf.Min(d1, d2); // union
-            }
-
-            float e = .001f;
-
-            // This estimates the gradient of the union at positon particlePos
-            float dx = CombinedDistance(particlePos + new Vector3(e, 0, 0))
-                - CombinedDistance(particlePos - new Vector3(e, 0, 0));
-
-            float dy = CombinedDistance(particlePos + new Vector3(0, e, 0))
-                - CombinedDistance(particlePos - new Vector3(0, e, 0));
-
-            float dz = CombinedDistance(particlePos + new Vector3(0, 0, e))
-                - CombinedDistance(particlePos - new Vector3(0, 0, e));
-
-            return new Vector3(dx, dy, dz).normalized;
-        }
-
         public float GetSignedDistance(Vector3 particlePos)
         {
             float aDist = this.a.GetSignedDistance(particlePos);
             float bDist = this.b.GetSignedDistance(particlePos);
             return Mathf.Min(aDist, bDist);
         }
+
+        private Vector3 EstimateNormal(Vector3 particlePos)
+        {
+            float e = .001f;
+
+            // This estimates the gradient of the union at positon particlePos
+            float dx = this.GetSignedDistance(particlePos + new Vector3(e, 0, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(e, 0, 0));
+
+            float dy = this.GetSignedDistance(particlePos + new Vector3(0, e, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(0, e, 0));
+
+            float dz = this.GetSignedDistance(particlePos + new Vector3(0, 0, e))
+                - this.GetSignedDistance(particlePos - new Vector3(0, 0, e));
+
+            return new Vector3(dx, dy, dz).normalized;
+        }
     }
 
     // Intersects two collision shapes UNFINISHED
     class IntersectShape : ICollisionShape
     {
-        public IntersectShape()
-        {
+        public ICollisionShape a;
+        public ICollisionShape b;
 
+        public IntersectShape(ICollisionShape a, ICollisionShape b)
+        {
+            this.a = a;
+            this.b = b;
         }
 
         public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
         {
-            return (0f, Vector3.zero);
+            (float aDist, Vector3 aNorm) = this.a.GetCollisionInfo(particlePos);
+            (float bDist, Vector3 bNorm) = this.b.GetCollisionInfo(particlePos);
+
+            if (Mathf.Abs(aDist - bDist) > SEAM_EPS)
+            {
+                if (aDist > bDist) return (aDist, aNorm);
+                else return (bDist, bNorm);
+            }
+            else
+            {
+                float d = Mathf.Min(aDist, bDist);
+                return (d, this.EstimateNormal(particlePos));
+            }
         }
 
         public float GetSignedDistance(Vector3 particlePos)
         {
-            return 0f;
+            float aDist = this.a.GetSignedDistance(particlePos);
+            float bDist = this.b.GetSignedDistance(particlePos);
+            return Mathf.Max(aDist, bDist);
+        }
+
+        private Vector3 EstimateNormal(Vector3 particlePos)
+        {
+            float e = .001f;
+
+            // This estimates the gradient of the intersection at positon particlePos
+            float dx = this.GetSignedDistance(particlePos + new Vector3(e, 0, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(e, 0, 0));
+
+            float dy = this.GetSignedDistance(particlePos + new Vector3(0, e, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(0, e, 0));
+
+            float dz = this.GetSignedDistance(particlePos + new Vector3(0, 0, e))
+                - this.GetSignedDistance(particlePos - new Vector3(0, 0, e));
+
+            return new Vector3(dx, dy, dz).normalized;
         }
     }
 
-    // Differences two collision shapes UNFINISHED
+    // Differences two collision shapes
     class DifferenceShape : ICollisionShape
     {
-        public DifferenceShape()
-        {
+        public ICollisionShape a;
+        public ICollisionShape b;
 
+        public DifferenceShape(ICollisionShape a, ICollisionShape b)
+        {
+            this.a = a;
+            this.b = b;
         }
 
         public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
         {
-            return (0f, Vector3.zero);
+            (float aDist, Vector3 aNorm) = this.a.GetCollisionInfo(particlePos);
+            (float bDist, Vector3 bNorm) = this.b.GetCollisionInfo(particlePos);
+            bDist *= -1f;
+            bNorm *= -1f;
+
+            if (Mathf.Abs(aDist - bDist) > SEAM_EPS)
+            {
+                if (aDist > bDist) return (aDist, aNorm);
+                else return (bDist, bNorm);
+            }
+            else
+            {
+                float d = Mathf.Min(aDist, bDist);
+                return (d, this.EstimateNormal(particlePos));
+            }
         }
 
         public float GetSignedDistance(Vector3 particlePos)
         {
-            return 0f;
+            float aDist = this.a.GetSignedDistance(particlePos);
+            float bDist = this.b.GetSignedDistance(particlePos);
+            return Mathf.Max(aDist, -bDist);
+        }
+
+        private Vector3 EstimateNormal(Vector3 particlePos)
+        {
+            float e = .001f;
+
+            // This estimates the gradient of the difference at positon particlePos
+            float dx = this.GetSignedDistance(particlePos + new Vector3(e, 0, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(e, 0, 0));
+
+            float dy = this.GetSignedDistance(particlePos + new Vector3(0, e, 0))
+                - this.GetSignedDistance(particlePos - new Vector3(0, e, 0));
+
+            float dz = this.GetSignedDistance(particlePos + new Vector3(0, 0, e))
+                - this.GetSignedDistance(particlePos - new Vector3(0, 0, e));
+
+            return new Vector3(dx, dy, dz).normalized;
         }
     }
 
@@ -881,7 +944,7 @@ public class XPBDSim : MonoBehaviour
     #endregion
 
 
-    // Functions
+    // ------ Functions ------
 
     // Smoothing kernel for calculating density DEPRECIATED
     static float Poly6(float r2, float h)
@@ -1022,17 +1085,17 @@ public class XPBDSim : MonoBehaviour
 
     void CreateBasicRoom(CollisionConstraintSolver coll)
     {
-        //roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomRotation, roomDimensions);
-        //InverseShape room = new(roomArea);
-        //CollisionObject roomObj = new(room, dynamicFriction);
-        //coll.objects.Add(roomObj);
-
-        SphereShape s1 = new(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-        SphereShape s2 = new(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-        UnionShape union = new UnionShape(s1, s2);
-        InverseShape room = new(union);
+        roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomRotation, roomDimensions);
+        InverseShape room = new(roomArea);
         CollisionObject roomObj = new(room, dynamicFriction);
         coll.objects.Add(roomObj);
+
+        //SphereShape s1 = new(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
+        //SphereShape s2 = new(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
+        //DifferenceShape diff = new(s1, s2);
+        //InverseShape room = new(diff);
+        //CollisionObject roomObj = new(room, dynamicFriction);
+        //coll.objects.Add(roomObj);
 
     }
 
@@ -1273,9 +1336,9 @@ public class XPBDSim : MonoBehaviour
             Gizmos.matrix = Matrix4x4.identity;
         }
 
-        // TEMP Draw ball room
-        Gizmos.DrawWireSphere(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-        Gizmos.DrawWireSphere(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
+        //// TEMP Draw ball room
+        //Gizmos.DrawWireSphere(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
+        //Gizmos.DrawWireSphere(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
 
 
         // Draw colliders
