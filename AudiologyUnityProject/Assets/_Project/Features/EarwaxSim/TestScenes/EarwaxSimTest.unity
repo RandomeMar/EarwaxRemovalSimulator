@@ -299,15 +299,15 @@ MonoBehaviour:
   latticeOrigin: {x: 0, y: 2.78, z: 0}
   latticeParticleCount: 8
   latticeLength: 3
-  materialDensity: 5
-  baseBondCompliance: 0.008
-  dynamicFriction: 0.5
+  materialDensity: 9
+  baseBondCompliance: 0.0001
+  dynamicFriction: 1
   distOn: 1
-  yieldStrainMult: 1.1
-  plasticFlow: 0
-  breakStrainMult: 4
-  adaptRate: 10
-  recoveryRate: 1
+  yieldStrain: 0.5
+  plasticFlow: 1
+  breakStrain: 1
+  adaptRate: 2
+  recoveryRate: 0.3
   denseOn: 1
   denseCompliance: 0.05
   hMult: 1.25
@@ -315,9 +315,13 @@ MonoBehaviour:
   collCompliance: 0
   roomDimensions: {x: 7, y: 7, z: 7}
   roomRotation: {x: 0, y: 0, z: 0}
-  toolSpawn: {x: -6.76, y: 0, z: 0}
-  toolRadius: 1
+  toolSpawn: {x: 0, y: 0, z: 0}
+  toolRadius: 1.5
   toolSpeed: 5
+  viewerPosition: {x: 0, y: 1, z: 0}
+  viewerSize: {x: 5, y: 5}
+  viewerResolution: {x: 30, y: 30}
+  viewerParticleSize: 0.06
 --- !u!114 &1039142608
 MonoBehaviour:
   m_ObjectHideFlags: 0
