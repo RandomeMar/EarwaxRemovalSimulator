@@ -296,30 +296,33 @@ MonoBehaviour:
   solverIterations: 4
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 1
-  latticeOrigin: {x: 0, y: 2.78, z: 0}
+  latticeOrigin: {x: 0, y: 1.43, z: 0}
   latticeParticleCount: 8
   latticeLength: 3
   materialDensity: 9
-  baseBondCompliance: 0.0001
+  baseBondCompliance: 0.0007
   dynamicFriction: 1
   distOn: 1
   yieldStrain: 0.5
   plasticFlow: 1
-  breakStrain: 1
-  adaptRate: 2
+  breakStrain: 0.75
+  adaptRate: 4
   recoveryRate: 0.3
   denseOn: 1
   denseCompliance: 0.05
   hMult: 1.25
   collOn: 1
   collCompliance: 0
-  roomDimensions: {x: 7, y: 7, z: 7}
+  roomDimensions: {x: 5, y: 2, z: 2.18}
   roomRotation: {x: 0, y: 0, z: 0}
-  toolSpawn: {x: 0, y: 0, z: 0}
+  toolSpawn: {x: -4.59, y: 0, z: 0}
   toolRadius: 1.5
   toolSpeed: 5
-  viewerPosition: {x: 0, y: 1, z: 0}
-  viewerSize: {x: 5, y: 5}
+  torPosition: {x: -3.45, y: 0, z: 0}
+  rMajor: 1.57
+  rMinor: 0.66
+  viewerPosition: {x: 0, y: 2, z: 0}
+  viewerSize: {x: 10, y: 6}
   viewerResolution: {x: 30, y: 30}
   viewerParticleSize: 0.06
 --- !u!114 &1039142608

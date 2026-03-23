@@ -71,6 +71,11 @@ namespace EarwaxSim
         [Min(0f)]
         public float toolSpeed = 3f;
 
+        [Header("Torus Tool Settings")]
+        public Vector3 torPosition;
+        public float rMajor;
+        public float rMinor;
+
         [Header("Viewing Slice Settings")]
         public Vector3 viewerPosition = Vector3.zero;
         public Vector2 viewerSize;
@@ -85,6 +90,7 @@ namespace EarwaxSim
 
         private BoxShape roomArea;
         private SphereShape toolShape;
+        private TorusShape torusTool;
 
         private ViewingSlice viewer;
         #endregion
@@ -260,12 +266,22 @@ namespace EarwaxSim
             coll.objects.Add(toolObj);
         }
 
+        void AddTorusTool(CollisionConstraintSolver coll, Vector3 position, float rMajor, float rMinor, float friction)
+        {
+            torusTool = new(position, Vector3.zero, rMajor, rMinor);
+            CollisionObject toolObj = new(torusTool, friction);
+            coll.objects.Add(toolObj);
+        }
+
         // Creates lattice, room, and sphere tool
         void BuildSimulation()
         {
             (ps, grid, dist, dense) = GenerateLattice();
             coll = new CollisionConstraintSolver(collCompliance);
-            AddTool(coll, toolSpawn, toolRadius);
+
+            //AddTool(coll, toolSpawn, toolRadius);
+            AddTorusTool(coll, torPosition, rMajor, rMinor, dynamicFriction);
+
             CreateBasicRoom(coll); // Make sure the room is the last collision shape added to coll. The last added collision shape has priority over the others
 
             viewer = new(viewerPosition, Quaternion.identity, viewerSize, viewerResolution, viewerParticleSize); // Creates view plane for seeing weird collision shapes
@@ -427,7 +443,8 @@ namespace EarwaxSim
             float dt = Time.fixedDeltaTime;
 
             // Move ball tool
-            toolShape.position += moveDir * toolSpeed * dt;
+            if (toolShape != null) toolShape.position += moveDir * toolSpeed * dt;
+            if (torusTool != null) torusTool.position += moveDir * toolSpeed * dt;
 
 
             // 1. Reset lambda
@@ -498,7 +515,8 @@ namespace EarwaxSim
             //Gizmos.DrawWireSphere(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
             //Gizmos.DrawWireSphere(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
 
-            viewer.DrawSlice(toolShape);
+            if (toolShape != null) viewer.DrawSlice(toolShape);
+            if (torusTool != null) viewer.DrawSlice(torusTool);
 
             // Draw colliders
             foreach (CollisionObject obj in coll.objects)
@@ -513,6 +531,7 @@ namespace EarwaxSim
                     Gizmos.DrawWireSphere(capsule.b, capsule.radius);
                 }
                 else if (shape is BoxShape box) Gizmos.DrawWireCube(box.center, box.b * 2f);
+                else if (shape is TorusShape torus) Gizmos.DrawWireSphere(torus.position, torus.rMajor);
             }
 
             Gizmos.color = new(0f, 0f, 1f, .5f);
@@ -535,5 +554,4 @@ namespace EarwaxSim
             }
         }
     }
-
 }

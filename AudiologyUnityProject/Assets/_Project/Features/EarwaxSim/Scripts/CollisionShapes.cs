@@ -267,6 +267,58 @@ namespace EarwaxSim
         }
     }
 
+    public class TorusShape : ICollisionShape
+    {
+        public Vector3 position;
+        public Quaternion rotation;
+        public float rMajor;
+        public float rMinor;
+
+
+        public TorusShape(Vector3 position, Vector3 rotation, float rMajor, float rMinor)
+        {
+            this.position = position;
+            this.rotation = Quaternion.Euler(rotation);
+            this.rMajor = rMajor;
+            this.rMinor = rMinor;
+        }
+
+        public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
+        {
+            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
+
+            float radial = Mathf.Sqrt(pLocal.x * pLocal.x + pLocal.z * pLocal.z); // Magnitude of particles position on the x, z plane
+            Vector2 q = new(radial - this.rMajor, pLocal.y); // Assuming the closest point on the major axis to pLocal is at (0, 0), this vector points from it to the particle.
+
+            float signedDistance = q.magnitude - this.rMinor;
+
+            Vector3 collNormal;
+            if (radial > Constants.EPS)
+            {
+                Vector3 ringCenter = new(
+                    this.rMajor * pLocal.x / radial,
+                    0f,
+                    this.rMajor * pLocal.z / radial
+                    ); // This vector is the point on the major axis that pLocal is closest to
+
+                collNormal = pLocal - ringCenter;
+
+                collNormal = collNormal.sqrMagnitude > Constants.EPS ? collNormal.normalized : Vector3.up;
+            }
+            else collNormal = Vector3.up;
+
+            return (signedDistance, this.rotation * collNormal);
+        }
+
+        public float GetSignedDistance(Vector3 particlePos)
+        {
+            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
+
+            Vector2 q = new(new Vector2(pLocal.x, pLocal.z).magnitude - this.rMajor, pLocal.y);
+            return q.magnitude - this.rMinor;
+        }
+    }
+
 
     // ------ Boolean Operations ------
 
