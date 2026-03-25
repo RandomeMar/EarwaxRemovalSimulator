@@ -38,6 +38,13 @@ namespace EarwaxSim
         [Min(0f)]
         public float dynamicFriction;
 
+        [Header("Adhesion Constraint Settings")]
+        public bool adhesOn;
+        [Min(0f)]
+        public float adhesCompliance;
+        [Min(0f)]
+        public float adhesBreakDist;
+
         [Header("Distance Constraint Settings")]
         public bool distOn = true;
         public float yieldStrain = .5f;
@@ -98,9 +105,13 @@ namespace EarwaxSim
         #region Solver Objects
         ParticleSet ps;
         SpatialHash grid;
+        AdhesionAnchor[] anchors;
+
+        // Solvers
         DistanceConstraintSet dist;
         DensityConstraintSolver dense;
         CollisionConstraintSolver coll;
+        AdhesionConstraintSolver adhes;
         #endregion
 
 
@@ -277,7 +288,13 @@ namespace EarwaxSim
         void BuildSimulation()
         {
             (ps, grid, dist, dense) = GenerateLattice();
-            coll = new CollisionConstraintSolver(collCompliance);
+
+            anchors = new AdhesionAnchor[ps.count];
+
+            adhes = new AdhesionConstraintSolver(adhesCompliance, adhesBreakDist);
+            adhes.anchors = anchors;
+
+            coll = new CollisionConstraintSolver(collCompliance, anchors);
 
             //AddTool(coll, toolSpawn, toolRadius);
             AddTorusTool(coll, torPosition, rMajor, rMinor, dynamicFriction);
@@ -428,7 +445,10 @@ namespace EarwaxSim
             if (Input.GetMouseButtonDown(0))
             {
                 grabbedParticle = SelectParticle();
-                dragPlane = GetDragPlane(grabbedParticle);
+                if (grabbedParticle != -1)
+                {
+                    dragPlane = GetDragPlane(grabbedParticle);
+                }
             }
 
             if (Input.GetMouseButtonDown(1))
@@ -450,6 +470,7 @@ namespace EarwaxSim
             // 1. Reset lambda
             if (distOn) dist.ResetLambda();
             if (denseOn) dense.ResetLambda();
+            if (adhesOn) adhes.ResetLambda();
 
             // 2. Apply external forces
             ApplyForces(ps, dt);
@@ -466,6 +487,7 @@ namespace EarwaxSim
                 if (distOn) dist.SolveOnce(ps, dt, grid);
                 if (denseOn) dense.SolveOnce(ps, dt, grid);
                 if (collOn) coll.SolveOnce(ps, dt, grid);
+                if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
 
             if (distOn) dist.UpdateRestLengths(ps, dt);
@@ -482,10 +504,24 @@ namespace EarwaxSim
 
             if (drawParticles)
             {
+                Gizmos.color = Color.black;
                 for (int i = 0; i < ps.currentPosition.Length; i++)
                 {
-                    Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
                     Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+
+                    if (adhesOn && anchors[i].isActive)
+                    {
+                        Gizmos.color = Color.green;
+
+                        Vector3 anchorPos = anchors[i].owner.GetWorldPos(anchors[i].localPos);
+
+                        Gizmos.DrawSphere(anchorPos, .05f);
+
+                        Gizmos.DrawLine(
+                            ps.currentPosition[i],
+                            anchorPos);
+                        Gizmos.color = Color.black;
+                    }
                 }
             }
 
@@ -506,7 +542,7 @@ namespace EarwaxSim
             // Draw room bounds
             if (roomArea != null)
             {
-                Gizmos.matrix = Matrix4x4.TRS(roomArea.center, roomArea.rotation, Vector3.one);
+                Gizmos.matrix = Matrix4x4.TRS(roomArea.position, roomArea.rotation, Vector3.one);
                 Gizmos.DrawWireCube(Vector3.zero, roomDimensions * 2);
                 Gizmos.matrix = Matrix4x4.identity;
             }
@@ -521,7 +557,7 @@ namespace EarwaxSim
             // Draw colliders
             foreach (CollisionObject obj in coll.objects)
             {
-                ICollisionShape shape = obj.shape;
+                CollisionShape shape = obj.shape;
 
                 if (shape is SphereShape sphere) Gizmos.DrawWireSphere(sphere.position, sphere.radius);
                 else if (shape is PlaneShape plane) Gizmos.DrawSphere(plane.position, .1f);
@@ -530,7 +566,7 @@ namespace EarwaxSim
                     Gizmos.DrawWireSphere(capsule.a, capsule.radius);
                     Gizmos.DrawWireSphere(capsule.b, capsule.radius);
                 }
-                else if (shape is BoxShape box) Gizmos.DrawWireCube(box.center, box.b * 2f);
+                else if (shape is BoxShape box) Gizmos.DrawWireCube(box.position, box.b * 2f);
                 else if (shape is TorusShape torus) Gizmos.DrawWireSphere(torus.position, torus.rMajor);
             }
 

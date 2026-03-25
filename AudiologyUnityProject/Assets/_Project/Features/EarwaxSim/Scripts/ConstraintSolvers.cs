@@ -261,10 +261,13 @@ namespace EarwaxSim
         public List<CollisionObject> objects;
         public float compliance;
 
-        public CollisionConstraintSolver(float compliance)
+        public AdhesionAnchor[] anchors; // For adhesion constraint
+
+        public CollisionConstraintSolver(float compliance, AdhesionAnchor[] anchors)
         {
             this.objects = new(1);
             this.compliance = compliance;
+            this.anchors = anchors;
         }
 
         public void ResetLambda()
@@ -283,10 +286,12 @@ namespace EarwaxSim
 
                 foreach (CollisionObject obj in this.objects)
                 {
-                    // Calculate C and gradient of C
-                    (float c, Vector3 collisionNormal) = obj.GetCollisionInfo(ps.currentPosition[i]);
+                    CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i]);
+                    float c = collisionInfo.signedDistance;
+                    Vector3 collNorm = collisionInfo.collNormal;
+
                     // As long as C is not negative, we assume there is no correction to be made
-                    if (c >= 0) continue;
+                    if (collisionInfo.signedDistance >= 0) continue;
 
                     // Check if denom is close to 0
                     float denom = (ps.invMass[i] + alpha);
@@ -296,15 +301,20 @@ namespace EarwaxSim
                     float deltaLambda = -c / denom;
 
                     // Calculate normal correction
-                    Vector3 normalCorrection = ps.invMass[i] * collisionNormal * deltaLambda;
+                    Vector3 normalCorrection = ps.invMass[i] * collNorm * deltaLambda;
 
                     // Update position
                     ps.currentPosition[i] += normalCorrection;
 
+                    // Set anchor to active and add local position and owner shape to the struct array
+                    this.anchors[i].isActive = true;
+                    this.anchors[i].localPos = collisionInfo.owner.GetLocalPos(ps.currentPosition[i]);
+                    this.anchors[i].owner = collisionInfo.owner;
+
 
                     // ------ Friction ------
                     Vector3 dx = ps.currentPosition[i] - ps.previousPosition[i];
-                    Vector3 dxNormal = Vector3.Dot(dx, collisionNormal) * collisionNormal;
+                    Vector3 dxNormal = Vector3.Dot(dx, collNorm) * collNorm;
                     Vector3 dxTangent = dx - dxNormal;
 
                     float tangLength = dxTangent.magnitude;
@@ -320,6 +330,75 @@ namespace EarwaxSim
                         ps.currentPosition[i] += frictionCorrection;
                     }
                 }
+            }
+        }
+    }
+
+    public struct AdhesionAnchor
+    {
+        public Vector3 localPos;
+        public CollisionShape owner;
+        public bool isActive;
+    }
+
+    // TODO: Figure out how to connect the AdhesionAnchor array from the adhesion solver to the collision solver
+    public class AdhesionConstraintSolver : IConstraintSolver
+    {
+        public float compliance;
+        public float breakDist;
+
+        public float[] lambdas;
+        public AdhesionAnchor[] anchors;
+
+        public AdhesionConstraintSolver(float compliance, float breakDist)
+        {
+            this.compliance = compliance;
+            this.breakDist = breakDist;
+        }
+
+        private void EnsureCapacity(int count)
+        {
+            if (this.anchors == null || this.anchors.Length != count)
+                this.anchors = new AdhesionAnchor[count];
+
+            if (this.lambdas == null || this.lambdas.Length != count)
+                this.lambdas = new float[count];
+        }
+
+        public void ResetLambda()
+        {
+            if (this.lambdas == null) return;
+            Array.Clear(this.lambdas, 0, this.lambdas.Length);
+        }
+
+        public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
+        {
+            this.EnsureCapacity(ps.count);
+
+            float alpha = this.compliance / (dt * dt);
+
+            for (int i = 0; i < ps.count; i++)
+            {
+                if (ps.invMass[i] <= Constants.EPS) continue;
+                if (!anchors[i].isActive) continue;
+
+                Vector3 anchorPos = this.anchors[i].owner.GetWorldPos(this.anchors[i].localPos);
+
+                Vector3 distVec = ps.currentPosition[i] - anchorPos;
+                float c = distVec.magnitude;
+
+                if (c > breakDist)
+                {
+                    this.anchors[i].isActive = false;
+                    continue;
+                }
+
+                float denom = ps.invMass[i] + alpha;
+
+                float deltaLambda = (-c - alpha * lambdas[i]) / denom;
+
+                this.lambdas[i] += deltaLambda;
+                ps.currentPosition[i] += ps.invMass[i] * distVec.normalized * deltaLambda;
             }
         }
     }
