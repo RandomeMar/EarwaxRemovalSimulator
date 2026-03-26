@@ -261,13 +261,13 @@ namespace EarwaxSim
         public List<CollisionObject> objects;
         public float compliance;
 
-        public AdhesionAnchor[] anchors; // For adhesion constraint
+        public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
 
-        public CollisionConstraintSolver(float compliance, AdhesionAnchor[] anchors)
+        public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
             this.objects = new(1);
             this.compliance = compliance;
-            this.anchors = anchors;
+            this.adhesConstraints = adhesConstraints;
         }
 
         public void ResetLambda()
@@ -306,10 +306,14 @@ namespace EarwaxSim
                     // Update position
                     ps.currentPosition[i] += normalCorrection;
 
-                    // Set anchor to active and add local position and owner shape to the struct array
-                    this.anchors[i].isActive = true;
-                    this.anchors[i].localPos = collisionInfo.owner.GetLocalPos(ps.currentPosition[i]);
-                    this.anchors[i].owner = collisionInfo.owner;
+                    // Set adhesion anchor to active and add local position and owner shape to the struct array
+                    AdhesionConstraint adhesConst = new(
+                        collisionInfo.owner.GetLocalPos(ps.currentPosition[i]),
+                        collisionInfo.owner,
+                        obj.adhesCompliance,
+                        obj.adhesBreakDist);
+                    
+                    this.adhesConstraints[i] = adhesConst;
 
 
                     // ------ Friction ------
@@ -334,32 +338,44 @@ namespace EarwaxSim
         }
     }
 
-    public struct AdhesionAnchor
+    public struct AdhesionConstraint
     {
-        public Vector3 localPos;
-        public CollisionShape owner;
+        public Vector3 localAnchorPos;
         public bool isActive;
-    }
-
-    // TODO: Figure out how to connect the AdhesionAnchor array from the adhesion solver to the collision solver
-    public class AdhesionConstraintSolver : IConstraintSolver
-    {
+        public CollisionShape shape;
         public float compliance;
         public float breakDist;
 
-        public float[] lambdas;
-        public AdhesionAnchor[] anchors;
-
-        public AdhesionConstraintSolver(float compliance, float breakDist)
+        public AdhesionConstraint(Vector3 localAnchorPos, CollisionShape shape, float compliance, float breakDist)
         {
+            this.localAnchorPos = localAnchorPos;
+            this.isActive = true;
+            this.shape = shape;
             this.compliance = compliance;
             this.breakDist = breakDist;
         }
 
+        public Vector3 GetWorldAnchorPos()
+        {
+            return this.shape.GetWorldPos(this.localAnchorPos);
+        }
+
+    }
+
+    public class AdhesionConstraintSolver : IConstraintSolver
+    {
+        public float[] lambdas;
+        public AdhesionConstraint[] constraints;
+
+        public AdhesionConstraintSolver(AdhesionConstraint[] constraints)
+        {
+            this.constraints = constraints;
+        }
+
         private void EnsureCapacity(int count)
         {
-            if (this.anchors == null || this.anchors.Length != count)
-                this.anchors = new AdhesionAnchor[count];
+            if (this.constraints == null || this.constraints.Length != count)
+                this.constraints = new AdhesionConstraint[count];
 
             if (this.lambdas == null || this.lambdas.Length != count)
                 this.lambdas = new float[count];
@@ -375,23 +391,23 @@ namespace EarwaxSim
         {
             this.EnsureCapacity(ps.count);
 
-            float alpha = this.compliance / (dt * dt);
-
             for (int i = 0; i < ps.count; i++)
             {
                 if (ps.invMass[i] <= Constants.EPS) continue;
-                if (!anchors[i].isActive) continue;
-
-                Vector3 anchorPos = this.anchors[i].owner.GetWorldPos(this.anchors[i].localPos);
+                if (!constraints[i].isActive) continue;
+                
+                Vector3 anchorPos = this.constraints[i].GetWorldAnchorPos();
 
                 Vector3 distVec = ps.currentPosition[i] - anchorPos;
                 float c = distVec.magnitude;
 
-                if (c > breakDist)
+                if (c > constraints[i].breakDist)
                 {
-                    this.anchors[i].isActive = false;
+                    this.constraints[i].isActive = false;
                     continue;
                 }
+
+                float alpha = constraints[i].compliance / (dt * dt);
 
                 float denom = ps.invMass[i] + alpha;
 

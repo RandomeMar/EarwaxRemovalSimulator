@@ -34,16 +34,8 @@ namespace EarwaxSim
         [Min(0f)]
         public float baseBondCompliance;
 
-        [Header("Friction Settings")]
-        [Min(0f)]
-        public float dynamicFriction;
-
         [Header("Adhesion Constraint Settings")]
         public bool adhesOn;
-        [Min(0f)]
-        public float adhesCompliance;
-        [Min(0f)]
-        public float adhesBreakDist;
 
         [Header("Distance Constraint Settings")]
         public bool distOn = true;
@@ -68,8 +60,15 @@ namespace EarwaxSim
         public bool collOn = true;
         [Min(0f)]
         public float collCompliance;
+
+        [Header("Room Settings")]
         public Vector3 roomDimensions = new Vector3(4f, 4f, 4f);
         public Vector3 roomRotation = Vector3.zero;
+        public float roomFriction;
+        [Min(0f)]
+        public float roomAdhesComp;
+        [Min(0f)]
+        public float roomAdhesBreakDist;
 
         [Header("Tool Settings")]
         public Vector3 toolSpawn = Vector3.zero;
@@ -82,6 +81,11 @@ namespace EarwaxSim
         public Vector3 torPosition;
         public float rMajor;
         public float rMinor;
+        public float toolFriction;
+        [Min(0f)]
+        public float toolAdhesComp;
+        [Min(0f)]
+        public float toolAdhesBreakDist;
 
         [Header("Viewing Slice Settings")]
         public Vector3 viewerPosition = Vector3.zero;
@@ -105,7 +109,7 @@ namespace EarwaxSim
         #region Solver Objects
         ParticleSet ps;
         SpatialHash grid;
-        AdhesionAnchor[] anchors;
+        AdhesionConstraint[] anchors;
 
         // Solvers
         DistanceConstraintSet dist;
@@ -258,7 +262,7 @@ namespace EarwaxSim
         {
             roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomRotation, roomDimensions);
             InverseShape room = new(roomArea, Vector3.zero, Vector3.zero);
-            CollisionObject roomObj = new(room, dynamicFriction);
+            CollisionObject roomObj = new(room, roomFriction, roomAdhesComp, roomAdhesBreakDist);
             coll.objects.Add(roomObj);
 
             //SphereShape s1 = new(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
@@ -273,14 +277,14 @@ namespace EarwaxSim
         void AddTool(CollisionConstraintSolver coll, Vector3 center, float radius)
         {
             toolShape = new(center, Vector3.zero, radius);
-            CollisionObject toolObj = new(toolShape, dynamicFriction);
+            CollisionObject toolObj = new(toolShape, toolFriction, toolAdhesComp, toolAdhesBreakDist);
             coll.objects.Add(toolObj);
         }
 
-        void AddTorusTool(CollisionConstraintSolver coll, Vector3 position, float rMajor, float rMinor, float friction)
+        void AddTorusTool(CollisionConstraintSolver coll, Vector3 position, float rMajor, float rMinor)
         {
             torusTool = new(position, Vector3.zero, rMajor, rMinor);
-            CollisionObject toolObj = new(torusTool, friction);
+            CollisionObject toolObj = new(torusTool, toolFriction, toolAdhesComp, toolAdhesBreakDist);
             coll.objects.Add(toolObj);
         }
 
@@ -289,15 +293,12 @@ namespace EarwaxSim
         {
             (ps, grid, dist, dense) = GenerateLattice();
 
-            anchors = new AdhesionAnchor[ps.count];
-
-            adhes = new AdhesionConstraintSolver(adhesCompliance, adhesBreakDist);
-            adhes.anchors = anchors;
-
+            anchors = new AdhesionConstraint[ps.count];
+            adhes = new AdhesionConstraintSolver(anchors);
             coll = new CollisionConstraintSolver(collCompliance, anchors);
 
             //AddTool(coll, toolSpawn, toolRadius);
-            AddTorusTool(coll, torPosition, rMajor, rMinor, dynamicFriction);
+            AddTorusTool(coll, torPosition, rMajor, rMinor);
 
             CreateBasicRoom(coll); // Make sure the room is the last collision shape added to coll. The last added collision shape has priority over the others
 
@@ -513,7 +514,7 @@ namespace EarwaxSim
                     {
                         Gizmos.color = Color.green;
 
-                        Vector3 anchorPos = anchors[i].owner.GetWorldPos(anchors[i].localPos);
+                        Vector3 anchorPos = anchors[i].shape.GetWorldPos(anchors[i].localAnchorPos);
 
                         Gizmos.DrawSphere(anchorPos, .05f);
 

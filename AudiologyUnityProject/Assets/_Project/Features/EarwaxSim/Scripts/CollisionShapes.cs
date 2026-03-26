@@ -9,17 +9,38 @@ namespace EarwaxSim
     public class CollisionObject
     {
         public CollisionShape shape;
-        public float dynamicFriction;
 
-        public CollisionObject(CollisionShape shape, float dynamicFriction)
+        public float dynamicFriction;
+        public float adhesCompliance;
+        public float adhesBreakDist;
+
+        public CollisionObject(CollisionShape shape, float dynamicFriction, float adhesCompliance, float adhesBreakDist)
         {
             this.shape = shape;
+
             this.dynamicFriction = dynamicFriction;
+            this.adhesCompliance = adhesCompliance;
+            this.adhesBreakDist = adhesBreakDist;
         }
 
         public CollisionInfo GetCollisionInfo(Vector3 particlePos)
         {
             return this.shape.GetCollisionInfo(particlePos);
+        }
+    }
+
+    // Houses info returned from a collision query
+    public struct CollisionInfo
+    {
+        public float signedDistance;
+        public Vector3 collNormal;
+        public CollisionShape owner;
+
+        public CollisionInfo(float signedDistance, Vector3 collNormal, CollisionShape owner)
+        {
+            this.signedDistance = signedDistance;
+            this.collNormal = collNormal;
+            this.owner = owner;
         }
     }
 
@@ -72,25 +93,6 @@ namespace EarwaxSim
         }
     }
 
-
-    
-
-
-
-
-    public struct CollisionInfo
-    {
-        public float signedDistance;
-        public Vector3 collNormal;
-        public CollisionShape owner;
-
-        public CollisionInfo(float signedDistance, Vector3 collNormal, CollisionShape owner)
-        {
-            this.signedDistance = signedDistance;
-            this.collNormal = collNormal;
-            this.owner = owner;
-        }
-    }
 
     // ------ Collision Shapes ------
 
