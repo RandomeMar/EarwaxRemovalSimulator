@@ -129,33 +129,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 834cef32405223645b6259a329d18a95, type: 3}
   m_PrefabInstance: {fileID: 917092627}
   m_PrefabAsset: {fileID: 0}
---- !u!54 &38561598
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 38561596}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 5
-  m_AngularDamping: 5
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 0
-  m_IsKinematic: 1
-  m_Interpolate: 1
-  m_Constraints: 0
-  m_CollisionDetection: 1
 --- !u!64 &38561599
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -171,7 +144,7 @@ MeshCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
@@ -192,6 +165,49 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   vibrationAmplitude: 1
   vibrationFrequency: 20
+--- !u!114 &38561603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 38561596}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bd7f49a1a1f23745957c6e352da8f40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ComputePenCollisionTest
+  earMesh: {fileID: 1046802270}
+  cam: {fileID: 0}
+  scrollSpeed: 0.1
+  rotateSensitivity: 0.3
+  collisionRadius: 0.05
+  solverIterations: 4
+  skinWidth: 0.005
+  showDebugRays: 1
+  logToConsole: 1
+--- !u!114 &38561604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 38561596}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46a4712596b05e647be89556292e1518, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MouseCollisionTest
+  earMesh: {fileID: 1046802270}
+  cam: {fileID: 0}
+  scrollSpeed: 0.1
+  rotateSensitivity: 0.3
+  collisionRadius: 0.02
+  rayMaxDist: 0.5
+  rayDirCount: 26
+  solverIterations: 4
+  showDebugRays: 1
+  logToConsole: 1
 --- !u!1 &182516906
 GameObject:
   m_ObjectHideFlags: 0
@@ -625,6 +641,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inverse3: {fileID: 1182126804}
+  useMouse: 0
+  mouseCursor: {fileID: 1474147808}
+  mouseCursorRadius: 0.006
 --- !u!4 &359473792
 Transform:
   m_ObjectHideFlags: 0
@@ -1067,7 +1086,10 @@ PrefabInstance:
       addedObject: {fileID: 38561599}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 834cef32405223645b6259a329d18a95, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 38561598}
+      addedObject: {fileID: 38561603}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 834cef32405223645b6259a329d18a95, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 38561604}
   m_SourcePrefab: {fileID: 100100000, guid: 834cef32405223645b6259a329d18a95, type: 3}
 --- !u!1 &964873429
 GameObject:
@@ -1324,7 +1346,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_TagString
-      value: Ear Canal
+      value: Player
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1333,6 +1355,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1046802267}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1046802274}
   m_SourcePrefab: {fileID: 100100000, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
 --- !u!1 &1046802266 stripped
 GameObject:
@@ -1361,6 +1386,31 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2530471358248572896, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
+--- !u!4 &1046802270 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
+  m_PrefabInstance: {fileID: 1046802265}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1046802274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1046802266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1aaa09d70d511c1469cba478d3beeae5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EarCollision
+  stiffness: 300
+  damping: 1
+  cursorCollider: {fileID: 38561599}
+  skinWidth: 0.002
+  applyVisualDepenetration: 1
+  solverIterations: 4
+  showDebugRays: 1
+  logToConsole: 1
 --- !u!1 &1094733109
 GameObject:
   m_ObjectHideFlags: 0
@@ -2079,6 +2129,7 @@ GameObject:
   - component: {fileID: 1474147808}
   - component: {fileID: 1474147810}
   - component: {fileID: 1474147809}
+  - component: {fileID: 1474147811}
   m_Layer: 0
   m_Name: Cursor
   m_TagString: Player
@@ -2138,6 +2189,32 @@ MonoBehaviour:
   modelParent: {fileID: 0}
   model: {fileID: 2119409725}
   positionSmoothness: 0.1
+--- !u!114 &1474147811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474147807}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 686e2620f42a29e44a43260632a7b997, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MouseCursorController
+  cursorTransform: {fileID: 1474147808}
+  cam: {fileID: 2113227065}
+  inverse3: {fileID: 1182126804}
+  target: {fileID: 1046802270}
+  sensitivity: 0.001
+  scrollStep: 0.09
+  minOffset: -1
+  maxOffset: 1
+  rotateSensitivity: 0.3
+  solverIterations: 3
+  cursorCollisionRadius: 0.005
+  raycastMaxDistance: 0.1
+  rayDirectionCount: 26
+  debugMode: 1
 --- !u!1 &1533672360
 GameObject:
   m_ObjectHideFlags: 0
