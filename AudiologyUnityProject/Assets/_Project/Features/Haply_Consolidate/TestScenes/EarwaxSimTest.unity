@@ -181,7 +181,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.05
+  collisionRadius: 0.01
   solverIterations: 4
   skinWidth: 0.005
   showDebugRays: 1
@@ -202,7 +202,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.02
+  collisionRadius: 0.01
   rayMaxDist: 0.5
   rayDirCount: 26
   solverIterations: 4
@@ -1344,7 +1344,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1046802266}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aaa09d70d511c1469cba478d3beeae5, type: 3}
   m_Name: 
@@ -1733,7 +1733,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1322528379
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2019,7 +2019,7 @@ Transform:
   m_GameObject: {fileID: 1474147807}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.6427877, z: -0, w: -0.7660444}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.003189988, y: 0.1981648, z: -0.04748655}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2406,7 +2406,7 @@ Transform:
   m_GameObject: {fileID: 1690755787}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.3017, y: 5.5782, z: 0.0671}
+  m_LocalPosition: {x: -0.306, y: 5.3822, z: 0.1368}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

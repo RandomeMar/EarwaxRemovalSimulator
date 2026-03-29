@@ -12,7 +12,7 @@ public class DespawnTrigger : MonoBehaviour
         {
             value++;
             Destroy(other.gameObject);
-            CerumenText.text = $"Cerumen removed: {value}";
+            CerumenText.text = $"Cerumen removed: {value} %";
             spawnSphereScript.Spawner(1);
         }
     }

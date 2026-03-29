@@ -137,7 +137,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!81 &116561051
 AudioListener:
   m_ObjectHideFlags: 0
@@ -205,13 +205,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 116561050}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.7090594, z: -0, w: 0.70514876}
-  m_LocalPosition: {x: -2.17, y: 5.58, z: 0.21}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: 0.165, y: 5.58, z: 0.02}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 90.317, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 270, z: 0}
 --- !u!114 &116561054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -525,15 +525,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 834cef32405223645b6259a329d18a95, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.9659259
+      value: 0.96923095
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 834cef32405223645b6259a329d18a95, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.258819
+      value: 0.2461532
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 834cef32405223645b6259a329d18a95, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: -30
+      value: -28.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 834cef32405223645b6259a329d18a95, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -608,10 +608,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MouseCollisionTest
   earMesh: {fileID: 1405890820}
-  cam: {fileID: 0}
+  cam: {fileID: 116561052}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.08
+  collisionRadius: 0.01
   rayMaxDist: 0.5
   rayDirCount: 26
   solverIterations: 3
@@ -633,7 +633,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.05
+  collisionRadius: 0.01
   solverIterations: 4
   skinWidth: 0.005
   showDebugRays: 1
@@ -664,7 +664,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.02
+  collisionRadius: 0.01
   rayMaxDist: 0.5
   rayDirCount: 26
   solverIterations: 4
@@ -686,7 +686,7 @@ MonoBehaviour:
   cam: {fileID: 0}
   scrollSpeed: 0.1
   rotateSensitivity: 0.3
-  collisionRadius: 0.05
+  collisionRadius: 0.01
   solverIterations: 4
   skinWidth: 0.005
   showDebugRays: 1
