@@ -29,6 +29,12 @@ public class EarCollision : MonoBehaviour
     private Vector3 _lastPushDir;
     private float _lastPushDist;
 
+    // Thread-safe cached transforms (updated on main thread, read from haptic thread)
+    private Vector3 _cachedCursorPos;
+    private Quaternion _cachedCursorRot;
+    private Vector3 _cachedEarPos;
+    private Quaternion _cachedEarRot;
+
     private void Awake()
     {
         _meshCollider = GetComponent<MeshCollider>();
@@ -63,28 +69,36 @@ public class EarCollision : MonoBehaviour
     }
 
 
-    public Vector3 CalculateForce(Vector3 cursorPosition, Vector3 cursorVelocity, float cursorRadius)
+    private void Update()
     {
         if (_meshCollider == null || cursorCollider == null)
-            return Vector3.zero;
+            return;
 
-        // ComputePenetration uses the collider transforms as they are right now
+        // Cache transforms for the haptic thread
+        _cachedCursorPos = cursorCollider.transform.position;
+        _cachedCursorRot = cursorCollider.transform.rotation;
+        _cachedEarPos = transform.position;
+        _cachedEarRot = transform.rotation;
+
+        // Run ComputePenetration on main thread (it accesses the physics engine)
         bool penetrating = Physics.ComputePenetration(
-            cursorCollider, cursorCollider.transform.position, cursorCollider.transform.rotation,
-            _meshCollider, transform.position, transform.rotation,
+            cursorCollider, _cachedCursorPos, _cachedCursorRot,
+            _meshCollider, _cachedEarPos, _cachedEarRot,
             out Vector3 direction, out float distance
         );
 
-        // Cache for debug / visual depenetration
         _isPenetrating = penetrating;
         _lastPushDir = direction;
         _lastPushDist = distance;
+    }
 
-        if (!penetrating)
+    public Vector3 CalculateForce(Vector3 cursorPosition, Vector3 cursorVelocity, float cursorRadius)
+    {
+        if (!_isPenetrating)
             return Vector3.zero;
 
-        // Spring-damper force ,push cursor out of the mesh
-        Vector3 force = direction * distance * stiffness - cursorVelocity * damping;
+        // Spring-damper force using cached penetration direction/distance
+        Vector3 force = _lastPushDir * _lastPushDist * stiffness - cursorVelocity * damping;
         return force;
     }
 
