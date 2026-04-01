@@ -1,32 +1,19 @@
 using System.Collections.Generic;
+using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 
 namespace EarwaxSim
 {
-    // Object with a defined shape and material properties like friction. Stored inside collision constraint.
-    public class CollisionObject
-    {
-        public CollisionShape shape;
+    // ------ Structs ------
 
+    // Material properties used by collision objects
+    public struct MaterialProperties
+    {
         public float dynamicFriction;
         public float adhesCompliance;
         public float adhesBreakDist;
-
-        public CollisionObject(CollisionShape shape, float dynamicFriction, float adhesCompliance, float adhesBreakDist)
-        {
-            this.shape = shape;
-
-            this.dynamicFriction = dynamicFriction;
-            this.adhesCompliance = adhesCompliance;
-            this.adhesBreakDist = adhesBreakDist;
-        }
-
-        public CollisionInfo GetCollisionInfo(Vector3 particlePos)
-        {
-            return this.shape.GetCollisionInfo(particlePos);
-        }
     }
 
     // Houses info returned from a collision query
@@ -44,7 +31,10 @@ namespace EarwaxSim
         }
     }
 
-    // Used for viewing collision shapes
+
+    // ------ Collision Shape Viewers ------
+    
+    // Used for viewing a 2d slice of a collision shape
     public class ViewingSlice
     {
         public Vector3 position;
@@ -60,7 +50,6 @@ namespace EarwaxSim
             this.rotation = rotation;
             this.size = size;
             this.resolution = resolution;
-
             this.particleSize = particleSize;
         }
 
@@ -93,6 +82,55 @@ namespace EarwaxSim
         }
     }
 
+    // Used for viewing the 3d volume of a collision shape
+    public class ViewingLattice
+    {
+        public Vector3 size;
+        public Vector3Int resolution;
+
+        public float particleSize;
+
+        public ViewingLattice(Vector3 size, Vector3Int resolution, float particleSize)
+        {
+            this.size = size;
+            this.resolution = resolution;
+            this.particleSize = particleSize;
+        }
+
+        public void DrawLattice(CollisionObjectBase obj)
+        {
+            float xSpacing = this.size.x / (this.resolution.x - 1); // Length / (n - 1)
+            float ySpacing = this.size.y / (this.resolution.y - 1);
+            float zSpacing = this.size.z / (this.resolution.z - 1);
+
+            float xStart = -this.size.x / 2;
+            float yStart = -this.size.y / 2;
+            float zStart = -this.size.z / 2;
+
+            Gizmos.color = new(1f, 0f, 0f, .9f);
+
+            Gizmos.DrawWireCube(obj.transform.position, this.size);
+
+            for (int x = 0; x < this.resolution.x; x++)
+            {
+                for (int y = 0; y < this.resolution.y; y++)
+                {
+                    for (int z = 0; z < this.resolution.z; z++)
+                    {
+                        Vector3 localPos = new(xStart + xSpacing * x, yStart + ySpacing * y, zStart + zSpacing * z);
+                        Vector3 globalPos = obj.transform.TransformPoint(localPos);
+
+                        // Send that coordinate to the GetSignedDistance function
+                        float sd = obj.GetSignedDistance(globalPos);
+
+                        // Draw lattice particle
+                        if (sd <= 0f) Gizmos.DrawCube(globalPos, Vector3.one * this.particleSize);
+                    }
+                }
+            }
+        }
+    }
+
 
     // ------ Collision Shapes ------
 
@@ -101,12 +139,14 @@ namespace EarwaxSim
     {
         public Vector3 position;
         public Quaternion rotation;
+        public CollisionObjectBase owner;
         public CollisionShape parent;
+        
 
-        protected CollisionShape(Vector3 position, Vector3 rotation)
+        protected CollisionShape(Vector3 position, Quaternion rotation)
         {
             this.position = position;
-            this.rotation = Quaternion.Euler(rotation);
+            this.rotation = rotation;
         }
 
         public Vector3 GetLocalPos(Vector3 worldPos)
@@ -121,7 +161,7 @@ namespace EarwaxSim
                 curr = curr.parent;
             }
 
-            Vector3 localPos = worldPos;
+            Vector3 localPos = this.owner.transform.InverseTransformPoint(worldPos);
 
             // Traverse the tree down from the root
             while (stack.Count > 0)
@@ -137,31 +177,32 @@ namespace EarwaxSim
         public Vector3 GetWorldPos(Vector3 localPos)
         {
             CollisionShape curr = this;
-            Vector3 worldPos = localPos;
+            Vector3 ownerLocalPos = localPos;
 
             // Traverse the tree up to the root
             while (curr != null)
             {
-                worldPos = curr.rotation * worldPos + curr.position;
+                ownerLocalPos = curr.rotation * ownerLocalPos + curr.position;
                 curr = curr.parent;
             }
 
-            return worldPos;
+            return 
+               this.owner.transform.TransformPoint(ownerLocalPos);
         }
 
         public Vector3 GetWorldDir(Vector3 localDir)
         {
             CollisionShape curr = this;
-            Vector3 worldDir = localDir;
+            Vector3 ownerLocalDir = localDir;
 
             // Traverse the tree up to the root
             while (curr != null)
             {
-                worldDir = curr.rotation * worldDir;
+                ownerLocalDir = curr.rotation * ownerLocalDir;
                 curr = curr.parent;
             }
 
-            return worldDir;
+            return this.owner.transform.TransformDirection(ownerLocalDir);
         }
 
         public CollisionInfo GetCollisionInfo(Vector3 particlePos)
@@ -174,8 +215,21 @@ namespace EarwaxSim
             return localHit;
         }
 
+        public float GetSignedDistance(Vector3 particlePos)
+        {
+            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position); // Convert particle position to local space
+            return this.GetSignedDistanceLocal(pLocal);
+        }
+
+        public virtual void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
+        {
+            this.owner = owner;
+            this.parent = parent;
+            return;
+        }
+
         protected abstract CollisionInfo GetCollisionInfoLocal(Vector3 pLocal);
-        public abstract float GetSignedDistance(Vector3 particlePos);
+        protected abstract float GetSignedDistanceLocal(Vector3 particlePos);
     }
 
     // Defines plane collision shape
@@ -184,9 +238,13 @@ namespace EarwaxSim
         public Vector3 normal;
 
 
-        public PlaneShape(Vector3 position, Vector3 rotation) : base(position, rotation) 
+        public PlaneShape(Vector3 position, Quaternion rotation) : base(position, rotation) 
         {
             this.normal = Vector3.up;
+        }
+
+        public PlaneShape(Vector3 position, Vector3 rotationEuler) : this(position, Quaternion.Euler(rotationEuler))
+        {
         }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
@@ -195,9 +253,8 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = this.GetLocalPos(particlePos);
             return Vector3.Dot(this.normal, pLocal);
         }
     }
@@ -207,9 +264,12 @@ namespace EarwaxSim
     {
         public float radius;
 
-        public SphereShape(Vector3 position, Vector3 rotation, float radius) : base(position, rotation)
+        public SphereShape(Vector3 position, Quaternion rotation, float radius) : base(position, rotation)
         {
             this.radius = radius;
+        }
+        public SphereShape(Vector3 position, Vector3 rotationEuler, float radius) : this(position, Quaternion.Euler(rotationEuler), radius)
+        {
         }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
@@ -221,64 +281,17 @@ namespace EarwaxSim
             return new CollisionInfo(distVec.magnitude - this.radius, distVec, this);
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = this.GetLocalPos(particlePos);
-
             Vector3 distVec = pLocal - Vector3.zero;
             return distVec.magnitude - radius;
         }
     }
 
-    //// Defines capsule collision shape NOTE: Rotation and position have not been implemented yet
-    //// WARNING: DOES NOT WORK RIGHT NOW
-    //public class CapsuleShapeOld : ICollisionShape
-    //{
-    //    public Vector3 a;
-    //    public Vector3 b;
-    //    public float radius;
-
-    //    // Cached values
-    //    private Vector3 ba;
-    //    private float baSqrMag;
-
-    //    public CapsuleShapeOld(Vector3 a, Vector3 b, float radius)
-    //    {
-    //        this.a = a;
-    //        this.b = b;
-    //        this.ba = b - a;
-    //        this.baSqrMag = Vector3.Dot(this.ba, this.ba);
-    //        this.radius = radius;
-    //    }
-
-    //    public (float, Vector3) GetCollisionInfo(Vector3 particlePos)
-    //    {
-    //        float t = Vector3.Dot((particlePos - this.a), ba) / this.baSqrMag;
-    //        t = Mathf.Clamp(t, 0f, 1f); // 0 = a, 1 = b
-
-    //        Vector3 q = this.a + t * this.ba; // Position of closest point on line segment a to b
-
-    //        Vector3 normal = (particlePos - q);
-    //        float signedDistance = normal.magnitude - this.radius;
-
-    //        return (signedDistance, normal.normalized);
-    //    }
-
-    //    public float GetSignedDistance(Vector3 particlePos)
-    //    {
-    //        float t = Vector3.Dot((particlePos - this.a), ba) / this.baSqrMag;
-    //        t = Mathf.Clamp(t, 0f, 1f); // 0 = a, 1 = b
-
-    //        Vector3 q = this.a + t * this.ba; // Position of closest point on line segment a to b
-
-    //        Vector3 normal = (particlePos - q);
-    //        return normal.magnitude - this.radius;
-    //    }
-    //}
-
+    // Defines capsule collision shape
     public class CapsuleShape : CollisionShape
     {
-        public float spineLength;
+        public float height;
         public float radius;
 
         public Vector3 a;
@@ -288,16 +301,17 @@ namespace EarwaxSim
         private Vector3 ba;
         private float baSqrMag;
 
-        public CapsuleShape(Vector3 position, Vector3 rotation, float spineLength, float radius) : base(position, rotation)
+        public CapsuleShape(Vector3 position, Quaternion rotation, float height, float radius) : base(position, rotation)
         {
-            this.spineLength = spineLength;
+            this.height = height;
             this.radius = radius;
 
-            this.a = new Vector3(0f, spineLength / 2f, 0f);
-            this.b = new Vector3(0f, -spineLength / 2f, 0f);
+            this.a = new Vector3(0f, height / 2f - radius, 0f);
+            this.b = new Vector3(0f, -height / 2f + radius, 0f);
             this.ba = b - a;
             this.baSqrMag = Vector3.Dot(this.ba, this.ba);
         }
+        public CapsuleShape(Vector3 position, Vector3 rotationEuler, float height, float radius) : this(position, Quaternion.Euler(rotationEuler), height, radius) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -317,10 +331,8 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
-
             float t = Vector3.Dot((pLocal - this.a), ba) / this.baSqrMag;
             t = Mathf.Clamp(t, 0f, 1f); // 0 = a, 1 = b
 
@@ -337,10 +349,11 @@ namespace EarwaxSim
         public Vector3 b; // half-extents
 
 
-        public BoxShape(Vector3 center, Vector3 rotation, Vector3 b) : base(center, rotation)
+        public BoxShape(Vector3 center, Quaternion rotation, Vector3 b) : base(center, rotation)
         {
             this.b = b;
         }
+        public BoxShape(Vector3 center, Vector3 rotationEuler, Vector3 b) : this(center, Quaternion.Euler(rotationEuler), b) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -382,10 +395,8 @@ namespace EarwaxSim
             return new CollisionInfo(signedDistance, collNormal, this);
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = this.GetLocalPos(particlePos);
-
             Vector3 q = new Vector3(
                 Mathf.Abs(pLocal.x),
                 Mathf.Abs(pLocal.y),
@@ -404,17 +415,19 @@ namespace EarwaxSim
         }
     }
 
+    // Defines torus collision shape
     public class TorusShape : CollisionShape
     {
         public float rMajor;
         public float rMinor;
 
 
-        public TorusShape(Vector3 position, Vector3 rotation, float rMajor, float rMinor) : base(position, rotation)
+        public TorusShape(Vector3 position, Quaternion rotation, float rMajor, float rMinor) : base(position, rotation)
         {
             this.rMajor = rMajor;
             this.rMinor = rMinor;
         }
+        public TorusShape(Vector3 position, Vector3 rotationEuler, float rMajor, float rMinor) : this(position, Quaternion.Euler(rotationEuler), rMajor, rMinor) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -441,10 +454,8 @@ namespace EarwaxSim
             return new CollisionInfo(signedDistance, collNormal, this);
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = this.GetLocalPos(particlePos);
-
             Vector2 q = new(new Vector2(pLocal.x, pLocal.z).magnitude - this.rMajor, pLocal.y);
             return q.magnitude - this.rMinor;
         }
@@ -453,9 +464,10 @@ namespace EarwaxSim
 
     // ------ Boolean Operations ------
 
+    // Class defining boolean operations performed on collision shapes
     public abstract class BooleanShape : CollisionShape
     {
-        protected BooleanShape(Vector3 position, Vector3 rotation) : base(position, rotation)
+        protected BooleanShape(Vector3 position, Quaternion rotation) : base(position, rotation)
         {
         }
 
@@ -475,6 +487,8 @@ namespace EarwaxSim
 
             return new Vector3(dx, dy, dz).normalized;
         }
+
+        protected abstract void AssignParents();
     }
 
     // Unions two collision shapes
@@ -483,13 +497,13 @@ namespace EarwaxSim
         public CollisionShape a;
         public CollisionShape b;
 
-        public UnionShape(CollisionShape a, CollisionShape b, Vector3 position, Vector3 rotation) : base(position, rotation)
+        public UnionShape(Vector3 position, Quaternion rotation, CollisionShape a, CollisionShape b) : base(position, rotation)
         {
-            this.position = position;
-            this.rotation = Quaternion.Euler(rotation);
             this.a = a;
             this.b = b;
+            this.AssignParents();
         }
+        public UnionShape(Vector3 position, Vector3 rotationEuler, CollisionShape a, CollisionShape b) : this(position, Quaternion.Euler(rotationEuler), a, b) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -509,13 +523,25 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
-
             float aDist = this.a.GetSignedDistance(pLocal);
             float bDist = this.b.GetSignedDistance(pLocal);
             return Mathf.Min(aDist, bDist);
+        }
+
+        public override void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
+        {
+            base.RecurseSetup(owner, parent);
+            a.RecurseSetup(owner, this);
+            b.RecurseSetup(owner, this);
+            return;
+        }
+
+        protected override void AssignParents()
+        {
+            this.a.parent = this;
+            this.b.parent = this;
         }
     }
 
@@ -525,11 +551,13 @@ namespace EarwaxSim
         public CollisionShape a;
         public CollisionShape b;
 
-        public IntersectShape(CollisionShape a, CollisionShape b, Vector3 position, Vector3 rotation) : base(position, rotation)
+        public IntersectShape(Vector3 position, Quaternion rotation, CollisionShape a, CollisionShape b) : base(position, rotation)
         {
             this.a = a;
             this.b = b;
+            this.AssignParents();
         }
+        public IntersectShape(Vector3 position, Vector3 rotationEuler, CollisionShape a, CollisionShape b) : this(position, Quaternion.Euler(rotationEuler), a, b) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -549,13 +577,25 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
-
             float aDist = this.a.GetSignedDistance(pLocal);
             float bDist = this.b.GetSignedDistance(pLocal);
             return Mathf.Max(aDist, bDist);
+        }
+
+        public override void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
+        {
+            base.RecurseSetup(owner, parent);
+            a.RecurseSetup(owner, this);
+            b.RecurseSetup(owner, this);
+            return;
+        }
+
+        protected override void AssignParents()
+        {
+            this.a.parent = this;
+            this.b.parent = this;
         }
     }
 
@@ -565,11 +605,13 @@ namespace EarwaxSim
         public CollisionShape a;
         public CollisionShape b;
 
-        public DifferenceShape(CollisionShape a, CollisionShape b, Vector3 position, Vector3 rotation) : base(position, rotation)
+        public DifferenceShape(Vector3 position, Quaternion rotation, CollisionShape a, CollisionShape b) : base(position, rotation)
         {
             this.a = a;
             this.b = b;
+            this.AssignParents();
         }
+        public DifferenceShape(Vector3 position, Vector3 rotationEuler, CollisionShape a, CollisionShape b) : this(position, Quaternion.Euler(rotationEuler), a, b) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -591,13 +633,25 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
-
             float aDist = this.a.GetSignedDistance(pLocal);
             float bDist = this.b.GetSignedDistance(pLocal);
             return Mathf.Max(aDist, -bDist);
+        }
+
+        public override void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
+        {
+            base.RecurseSetup(owner, parent);
+            a.RecurseSetup(owner, this);
+            b.RecurseSetup(owner, this);
+            return;
+        }
+
+        protected override void AssignParents()
+        {
+            this.a.parent = this;
+            this.b.parent = this;
         }
     }
 
@@ -606,10 +660,12 @@ namespace EarwaxSim
     {
         public CollisionShape shape;
 
-        public InverseShape(CollisionShape shape, Vector3 position, Vector3 rotation) : base(position, rotation)
+        public InverseShape(Vector3 position, Quaternion rotation, CollisionShape shape) : base(position, rotation)
         {
             this.shape = shape;
+            this.AssignParents();
         }
+        public InverseShape(Vector3 position, Vector3 rotationEuler, CollisionShape shape) : this(position, Quaternion.Euler(rotationEuler), shape) { }
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
@@ -619,10 +675,75 @@ namespace EarwaxSim
             return collisionInfo;
         }
 
-        public override float GetSignedDistance(Vector3 particlePos)
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position);
             return -shape.GetSignedDistance(pLocal);
         }
+
+        public override void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
+        {
+            base.RecurseSetup(owner, parent);
+            shape.RecurseSetup(owner, this);
+            return;
+        }
+
+        protected override void AssignParents()
+        {
+            this.shape.parent = this;
+        }
     }
+
+
+    // ------ Collision Objects (DEPRICATED) -------
+
+    //// Object with a defined shape, position, rotation, and material properties like friction. Stored inside collision constraint.
+    //public class CollisionObject : CollisionShape
+    //{
+    //    public CollisionShape shape;
+
+    //    public MaterialProperties matProps;
+
+    //    public CollisionObject(Vector3 position, Quaternion rotation, CollisionShape shape, MaterialProperties matProps) : base(position, rotation)
+    //    {
+    //        this.shape = shape;
+    //        this.shape.parent = this;
+
+    //        this.matProps = matProps;
+    //    }
+
+
+    //    protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
+    //    {
+    //        return this.shape.GetCollisionInfo(pLocal);
+    //    }
+
+    //    protected override float GetSignedDistanceLocal(Vector3 pLocal)
+    //    {
+    //        return this.shape.GetSignedDistance(pLocal);
+    //    }
+    //}
+
+    //// Collision object that is infuenced by particles
+    //public class DynamicCollisionObject : CollisionObject
+    //{
+    //    public Vector3 previousPosition;
+    //    public Vector3 targetPosition;
+
+    //    public Vector3 velocity;
+    //    public float invMass;
+
+    //    public DynamicCollisionObject(Vector3 position, Quaternion rotation, CollisionShape shape, MaterialProperties matProps, float invMass) : base(position, rotation, shape, matProps)
+    //    {
+    //        this.invMass = invMass;
+    //        this.previousPosition = this.position;
+    //        this.velocity = Vector3.zero;
+    //    }
+
+    //    public void PredictPosition()
+    //    {
+    //        this.position = this.targetPosition;
+    //    }
+    //}
+
+
 }

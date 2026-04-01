@@ -10,9 +10,16 @@ namespace EarwaxSim
     public class XPBDSim : MonoBehaviour
     {
         #region Public Parameters
+        [Header("Collision Objects")]
+        public GameObject curette;
+        public GameObject torusTool;
+        public GameObject room;
+
         [Header("Gizmo Debug Settings")]
         public bool drawParticles = true;
         public bool drawDist = true;
+        public bool drawAdhes = true;
+        public bool drawTool = true;
 
         [Header("Solver Settings")]
         [Min(1f)]
@@ -60,50 +67,15 @@ namespace EarwaxSim
         public bool collOn = true;
         [Min(0f)]
         public float collCompliance;
-
-        [Header("Room Settings")]
-        public Vector3 roomDimensions = new Vector3(4f, 4f, 4f);
-        public Vector3 roomRotation = Vector3.zero;
-        public float roomFriction;
-        [Min(0f)]
-        public float roomAdhesComp;
-        [Min(0f)]
-        public float roomAdhesBreakDist;
-
-        [Header("Tool Settings")]
-        public Vector3 toolSpawn = Vector3.zero;
-        [Min(0f)]
-        public float toolRadius = .5f;
-        [Min(0f)]
-        public float toolSpeed = 3f;
-
-        [Header("Torus Tool Settings")]
-        public Vector3 torPosition;
-        public float rMajor;
-        public float rMinor;
-        public float toolFriction;
-        [Min(0f)]
-        public float toolAdhesComp;
-        [Min(0f)]
-        public float toolAdhesBreakDist;
-
-        [Header("Viewing Slice Settings")]
-        public Vector3 viewerPosition = Vector3.zero;
-        public Vector2 viewerSize;
-        public Vector2Int viewerResolution;
-        public float viewerParticleSize;
         #endregion
 
         #region Private Input Values
-        private PlayerInput playerInput;
-        private InputAction moveToolAction;
-        private Vector3 moveDir;
+        // Collision Object Components
+        private TorusToolObject torusToolObj;
+        private CollisionObjectBase curetteObj; // TODO: Implement curette stuff
+        private CollisionObjectBase roomObj;
 
-        private BoxShape roomArea;
-        private SphereShape toolShape;
-        private TorusShape torusTool;
-
-        private ViewingSlice viewer;
+        private ViewingLattice torusToolViewer;
         #endregion
 
         #region Solver Objects
@@ -258,36 +230,6 @@ namespace EarwaxSim
             return (lattice, grid, dcs, dense);
         }
 
-        void CreateBasicRoom(CollisionConstraintSolver coll)
-        {
-            roomArea = new(new Vector3(0f, roomDimensions.y, 0f), roomRotation, roomDimensions);
-            InverseShape room = new(roomArea, Vector3.zero, Vector3.zero);
-            CollisionObject roomObj = new(room, roomFriction, roomAdhesComp, roomAdhesBreakDist);
-            coll.objects.Add(roomObj);
-
-            //SphereShape s1 = new(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-            //SphereShape s2 = new(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-            //DifferenceShape diff = new(s1, s2);
-            //InverseShape room = new(diff);
-            //CollisionObject roomObj = new(room, dynamicFriction);
-            //coll.objects.Add(roomObj);
-
-        }
-
-        void AddTool(CollisionConstraintSolver coll, Vector3 center, float radius)
-        {
-            toolShape = new(center, Vector3.zero, radius);
-            CollisionObject toolObj = new(toolShape, toolFriction, toolAdhesComp, toolAdhesBreakDist);
-            coll.objects.Add(toolObj);
-        }
-
-        void AddTorusTool(CollisionConstraintSolver coll, Vector3 position, float rMajor, float rMinor)
-        {
-            torusTool = new(position, Vector3.zero, rMajor, rMinor);
-            CollisionObject toolObj = new(torusTool, toolFriction, toolAdhesComp, toolAdhesBreakDist);
-            coll.objects.Add(toolObj);
-        }
-
         // Creates lattice, room, and sphere tool
         void BuildSimulation()
         {
@@ -297,12 +239,9 @@ namespace EarwaxSim
             adhes = new AdhesionConstraintSolver(anchors);
             coll = new CollisionConstraintSolver(collCompliance, anchors);
 
-            //AddTool(coll, toolSpawn, toolRadius);
-            AddTorusTool(coll, torPosition, rMajor, rMinor);
-
-            CreateBasicRoom(coll); // Make sure the room is the last collision shape added to coll. The last added collision shape has priority over the others
-
-            viewer = new(viewerPosition, Quaternion.identity, viewerSize, viewerResolution, viewerParticleSize); // Creates view plane for seeing weird collision shapes
+            // TODO: Add curette tool
+            coll.objects.Add(torusToolObj);
+            coll.objects.Add(roomObj);
         }
 
 
@@ -413,8 +352,22 @@ namespace EarwaxSim
         // Called when the script instance is first initialized
         private void Awake()
         {
-            playerInput = GetComponent<PlayerInput>();
-            moveToolAction = playerInput.actions.FindAction("MoveTool");
+            if (curette != null)
+            {
+                curetteObj = curette.GetComponent<CollisionObjectBase>();
+            }
+            if (torusTool != null)
+            {
+                torusToolObj = torusTool.GetComponent<TorusToolObject>();
+                torusToolViewer = new(
+                    torusToolObj.viewSize,
+                    torusToolObj.viewResolution,
+                    torusToolObj.viewParticleSize);
+            }
+            if (room != null)
+            {
+                roomObj = room.GetComponent<CollisionObjectBase>();
+            }
         }
 
         // Called before the first frame
@@ -422,14 +375,12 @@ namespace EarwaxSim
         {
             print("START");
             BuildSimulation();
+
         }
 
         // User input loop
         private void Update()
         {
-            // WASD input
-            moveDir = moveToolAction.ReadValue<Vector3>();
-
             // Mouse manipulation
             if (Input.GetMouseButtonUp(0))
             {
@@ -464,9 +415,11 @@ namespace EarwaxSim
             float dt = Time.fixedDeltaTime;
 
             // Move ball tool
-            if (toolShape != null) toolShape.position += moveDir * toolSpeed * dt;
-            if (torusTool != null) torusTool.position += moveDir * toolSpeed * dt;
-
+            if (torusToolObj != null)
+            {
+                torusToolObj.previousPosition = torusToolObj.transform.position;
+                torusToolObj.MoveTarget(dt);
+            }
 
             // 1. Reset lambda
             if (distOn) dist.ResetLambda();
@@ -478,6 +431,7 @@ namespace EarwaxSim
 
             // 3. Predict positions
             PredictPositions(ps, dt);
+            torusToolObj.MoveTool(dt);
 
             // 4. Build spatial grid NOTE: Unsure if grid should be built per frame or per iteration
             if (denseOn) grid.BuildGrid(ps);
@@ -495,6 +449,7 @@ namespace EarwaxSim
 
             // 6. Update velocities
             UpdateVelocities(ps, dt);
+
         }
 
         // Draws particles and constraints for debugging.
@@ -503,6 +458,8 @@ namespace EarwaxSim
             if (ps == null) return;
             if (ps.currentPosition == null) return;
 
+            if (torusToolObj != null) torusToolViewer.DrawLattice(torusToolObj);
+
             if (drawParticles)
             {
                 Gizmos.color = Color.black;
@@ -510,7 +467,7 @@ namespace EarwaxSim
                 {
                     Gizmos.DrawSphere(ps.currentPosition[i], .08f);
 
-                    if (adhesOn && anchors[i].isActive)
+                    if (adhesOn && anchors[i].isActive && drawAdhes)
                     {
                         Gizmos.color = Color.green;
 
@@ -538,38 +495,6 @@ namespace EarwaxSim
                 }
             }
 
-            Gizmos.color = Color.orange;
-
-            // Draw room bounds
-            if (roomArea != null)
-            {
-                Gizmos.matrix = Matrix4x4.TRS(roomArea.position, roomArea.rotation, Vector3.one);
-                Gizmos.DrawWireCube(Vector3.zero, roomDimensions * 2);
-                Gizmos.matrix = Matrix4x4.identity;
-            }
-
-            //// TEMP Draw ball room
-            //Gizmos.DrawWireSphere(new Vector3(-roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-            //Gizmos.DrawWireSphere(new Vector3(roomDimensions.x / 2, roomDimensions.y, 0f), roomDimensions.y);
-
-            if (toolShape != null) viewer.DrawSlice(toolShape);
-            if (torusTool != null) viewer.DrawSlice(torusTool);
-
-            // Draw colliders
-            foreach (CollisionObject obj in coll.objects)
-            {
-                CollisionShape shape = obj.shape;
-
-                if (shape is SphereShape sphere) Gizmos.DrawWireSphere(sphere.position, sphere.radius);
-                else if (shape is PlaneShape plane) Gizmos.DrawSphere(plane.position, .1f);
-                else if (shape is CapsuleShape capsule)
-                {
-                    Gizmos.DrawWireSphere(capsule.a, capsule.radius);
-                    Gizmos.DrawWireSphere(capsule.b, capsule.radius);
-                }
-                else if (shape is BoxShape box) Gizmos.DrawWireCube(box.position, box.b * 2f);
-                else if (shape is TorusShape torus) Gizmos.DrawWireSphere(torus.position, torus.rMajor);
-            }
 
             Gizmos.color = new(0f, 0f, 1f, .5f);
             if (grabbedParticle != -1)
