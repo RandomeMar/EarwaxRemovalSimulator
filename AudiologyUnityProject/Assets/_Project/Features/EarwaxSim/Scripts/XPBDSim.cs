@@ -79,7 +79,7 @@ namespace EarwaxSim
         #endregion
 
         #region Solver Objects
-        ParticleSet ps;
+        public ParticleSet ps;
         SpatialHash grid;
         AdhesionConstraint[] anchors;
 
@@ -458,7 +458,7 @@ namespace EarwaxSim
             if (ps == null) return;
             if (ps.currentPosition == null) return;
 
-            if (torusToolObj != null) torusToolViewer.DrawLattice(torusToolObj);
+            if (torusToolObj != null && drawTool) torusToolViewer.DrawLattice(torusToolObj);
 
             if (drawParticles)
             {

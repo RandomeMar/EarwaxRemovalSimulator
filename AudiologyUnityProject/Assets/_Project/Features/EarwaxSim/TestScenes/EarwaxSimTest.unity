@@ -267,10 +267,10 @@ MonoBehaviour:
   invMass: 0
   dynamicFriction: 0.8
   adhesCompliance: 0.01
-  adhesBreakDist: 0
-  previousPosition: {x: 0, y: 3.5, z: 0}
+  adhesBreakDist: 0.6
+  previousPosition: {x: 0, y: 2, z: 0}
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
-  targetPosition: {x: 0, y: 3.5, z: 0}
+  targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
   drawRoom: 1
 --- !u!4 &189487208
@@ -282,7 +282,7 @@ Transform:
   m_GameObject: {fileID: 189487206}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.5, z: 0}
+  m_LocalPosition: {x: 0, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -307,7 +307,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 7, y: 7, z: 7}
+  m_Size: {x: 7, y: 4, z: 7}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &658205864
 GameObject:
@@ -607,7 +607,7 @@ MonoBehaviour:
   latticeLength: 3
   materialDensity: 9
   baseBondCompliance: 0.0003
-  adhesOn: 0
+  adhesOn: 1
   distOn: 1
   yieldStrain: 0.25
   plasticFlow: 1
@@ -619,6 +619,54 @@ MonoBehaviour:
   hMult: 1.25
   collOn: 1
   collCompliance: 0
+--- !u!1 &1105516528
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1105516530}
+  - component: {fileID: 1105516529}
+  m_Layer: 0
+  m_Name: ParticleRenderer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1105516529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105516528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0faca8769684e6045b91f6b7c6861663, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  xpbdSim: {fileID: 1039142605}
+  mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  material: {fileID: 2100000, guid: 152c7b6e904bc4249b8d21e6b9ca6e54, type: 2}
+  particleCount: 512
+--- !u!4 &1105516530
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105516528}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.5, y: 1.5908, z: 2.37449}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1455697835
 GameObject:
   m_ObjectHideFlags: 0
@@ -884,7 +932,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 1ecbc2685af065442a48cd34b0ea8d19, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -941,5 +989,6 @@ SceneRoots:
   - {fileID: 1455697837}
   - {fileID: 1039142606}
   - {fileID: 189487208}
-  - {fileID: 91617113}
   - {fileID: 808136098}
+  - {fileID: 91617113}
+  - {fileID: 1105516530}
