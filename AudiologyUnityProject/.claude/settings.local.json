@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find D:CapstoneCapstone_TeamEarwax-AudiologyAudiologyUnityProjectAssets -type f -name *.cs)",
+      "WebSearch"
+    ]
+  }
+}
