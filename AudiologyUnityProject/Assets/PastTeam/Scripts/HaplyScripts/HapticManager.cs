@@ -6,9 +6,21 @@ using UnityEngine;
 public class HapticManager : MonoBehaviour
 {
     public Inverse3Controller inverse3;
-    
+
+    [Header("Mouse Fallback (no Haply device)")]
+    [Tooltip("Enable to drive the cursor with mouse instead of the Haply device.")]
+    public bool useMouse = false;
+    [Tooltip("The cursor Transform used to read position in mouse mode.")]
+    public Transform mouseCursor;
+    [Tooltip("Simulated cursor radius used in mouse mode (metres).")]
+    public float mouseCursorRadius = 0.006f;
+
     // SAFETY FLAG: Stops the loop instantly if the object is dying
     private bool _isDestroyed = false;
+
+    // Mouse-mode velocity tracking
+    private Vector3 _prevMouseCursorPos;
+
 
     // --- 1. REGISTRATION LISTS ---
     private readonly List<CubeForceFeedback> _cubesReg = new();
@@ -19,6 +31,8 @@ public class HapticManager : MonoBehaviour
     private readonly List<PlaneForceFeedback> _planesReg = new();
     private readonly List<CuretteHapticTrigger> _triggersReg = new();
     private readonly List<CylinderForceFeedback> _cylindersReg = new();
+    private readonly List<EarForceFeedback> _earReg = new();
+    private readonly List<EarCollision> _earCollisionReg = new();
 
     // --- 2. BUFFERS ---
     private const int BUFFER_SIZE = 64;
@@ -30,15 +44,26 @@ public class HapticManager : MonoBehaviour
     private PlaneForceFeedback[] _bufPlanes = new PlaneForceFeedback[BUFFER_SIZE];
     private CuretteHapticTrigger[] _bufTriggers = new CuretteHapticTrigger[BUFFER_SIZE];
     private CylinderForceFeedback[] _bufCylinders = new CylinderForceFeedback[BUFFER_SIZE];
+    private EarForceFeedback[] _bufEars = new EarForceFeedback[BUFFER_SIZE];
+    private EarCollision[] _bufEarCollisions = new EarCollision[BUFFER_SIZE];
 
-    private volatile int _cntCubes, _cntSpheres, _cntZones, _cntTubes, _cntMoving, _cntPlanes, _cntTriggers, _cntCylinders;
+    private volatile int _cntCubes, _cntSpheres, _cntZones, _cntTubes, _cntMoving, _cntPlanes, _cntTriggers, _cntCylinders, _cntEars, _cntEarCollisions;
 
     private void OnEnable()
     {
         _isDestroyed = false;
+
+        if (useMouse)
+        {
+            // Mouse mode: no device needed
+            if (mouseCursor != null)
+                _prevMouseCursorPos = mouseCursor.position;
+            return;
+        }
+
         if (inverse3 == null) inverse3 = FindFirstObjectByType<Inverse3Controller>();
-        
-        if (inverse3 != null) 
+
+        if (inverse3 != null)
         {
             // Unsubscribe first just in case (prevents double-subscription)
             inverse3.DeviceStateChanged -= OnDeviceStateChanged;
@@ -89,6 +114,8 @@ public class HapticManager : MonoBehaviour
     public void RegisterPlane(PlaneForceFeedback x) { if (!_planesReg.Contains(x)) _planesReg.Add(x); }
     public void RegisterCuretteTrigger(CuretteHapticTrigger x) { if (!_triggersReg.Contains(x)) _triggersReg.Add(x); }
     public void RegisterCylinder(CylinderForceFeedback x) { if (!_cylindersReg.Contains(x)) _cylindersReg.Add(x); }
+    public void RegisterEar(EarForceFeedback x) { if (!_earReg.Contains(x)) _earReg.Add(x); }
+    public void RegisterEarCollision(EarCollision x) { if (!_earCollisionReg.Contains(x)) _earCollisionReg.Add(x); }
 
     // --- MAIN THREAD ---
     private void Update()
@@ -103,6 +130,19 @@ public class HapticManager : MonoBehaviour
         _cntPlanes = FillBuffer(_planesReg, _bufPlanes);
         _cntTriggers = FillBuffer(_triggersReg, _bufTriggers);
         _cntCylinders = FillBuffer(_cylindersReg, _bufCylinders);
+        _cntEars = FillBuffer(_earReg, _bufEars);
+        _cntEarCollisions = FillBuffer(_earCollisionReg, _bufEarCollisions);
+
+        // Mouse fallback: run force loop on main thread (no device to send to, but
+        // keeps collision logic alive for visual/debug feedback)
+        if (useMouse && mouseCursor != null)
+        {
+            Vector3 pos = mouseCursor.position;
+            Vector3 vel = (pos - _prevMouseCursorPos) / Time.deltaTime;
+            _prevMouseCursorPos = pos;
+
+            RunForceLoop(pos, vel, mouseCursorRadius);
+        }
     }
 
     private int FillBuffer<T>(List<T> sourceList, T[] targetArray) where T : MonoBehaviour
@@ -123,34 +163,41 @@ public class HapticManager : MonoBehaviour
         return count;
     }
 
+    // --- SHARED FORCE LOOP ---
+    // Called from both the haptic thread (device mode) and Update (mouse mode)
+    private Vector3 RunForceLoop(Vector3 pos, Vector3 vel, float radius)
+    {
+        Vector3 totalForce = Vector3.zero;
+
+        for (int i = 0; i < _cntTubes; i++) totalForce += _bufTubes[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntCylinders; i++) totalForce += _bufCylinders[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntEars; i++) totalForce += _bufEars[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntEarCollisions; i++) totalForce += _bufEarCollisions[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntSpheres; i++) totalForce += _bufSpheres[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntCubes; i++) totalForce += _bufCubes[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntMoving; i++) totalForce += _bufMoving[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntPlanes; i++) totalForce += _bufPlanes[i].CalculateForce(pos, vel, radius);
+        for (int i = 0; i < _cntTriggers; i++)
+        {
+            if (_bufTriggers[i].isTouchingCube) totalForce += _bufTriggers[i].CalculateForce(pos, vel, radius);
+        }
+
+        return Vector3.ClampMagnitude(totalForce, 3.0f);
+    }
+
     // --- HAPTIC THREAD ---
     void OnDeviceStateChanged(object sender, Inverse3EventArgs args)
     {
         // DEADMAN SWITCH: If the object is deleted, STOP immediately.
         // This prevents "Zombie" scripts from calculating forces in the background.
-        if (_isDestroyed || this == null) 
-        {
+        if (_isDestroyed || this == null)
             return;
-        }
 
-        Vector3 pos = args.DeviceController.CursorLocalPosition;
-        Vector3 vel = args.DeviceController.CursorLocalVelocity;
-        float radius = args.DeviceController.Cursor.Radius;
-        
-        Vector3 totalForce = Vector3.zero;
+        Vector3 pos    = args.DeviceController.CursorLocalPosition;
+        Vector3 vel    = args.DeviceController.CursorLocalVelocity;
+        float   radius = args.DeviceController.Cursor.Radius;
 
-        for (int i = 0; i < _cntTubes; i++) totalForce += _bufTubes[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntCylinders; i++) totalForce += _bufCylinders[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntSpheres; i++) totalForce += _bufSpheres[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntCubes; i++) totalForce += _bufCubes[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntMoving; i++) totalForce += _bufMoving[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntPlanes; i++) totalForce += _bufPlanes[i].CalculateForce(pos, vel, radius);
-        for (int i = 0; i < _cntTriggers; i++) 
-        {
-            if (_bufTriggers[i].isTouchingCube) totalForce += _bufTriggers[i].CalculateForce(pos, vel, radius);
-        }
-
-        totalForce = Vector3.ClampMagnitude(totalForce, 3.0f);
+        Vector3 totalForce = RunForceLoop(pos, vel, radius);
         args.DeviceController.SetCursorLocalForce(totalForce);
     }
 }
