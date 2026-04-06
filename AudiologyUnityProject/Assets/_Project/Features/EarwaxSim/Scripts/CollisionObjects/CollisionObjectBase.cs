@@ -22,6 +22,7 @@ namespace EarwaxSim
 
         public MaterialProperties matProps;
 
+        public Collider unityCollider;
         protected CollisionShape shape;
 
         public CollisionInfo GetCollisionInfo(Vector3 particlePos)
@@ -49,6 +50,8 @@ namespace EarwaxSim
 
             shape = this.BuildShapeTree();
             shape.RecurseSetup(this, null);
+
+            unityCollider = this.GetComponent<MeshCollider>();
         }
 
         protected MaterialProperties BuildMatProps()

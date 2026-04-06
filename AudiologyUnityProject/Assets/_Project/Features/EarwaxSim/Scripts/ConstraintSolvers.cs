@@ -262,7 +262,7 @@ namespace EarwaxSim
         public List<CollisionObjectBase> objects;
 
         // TODO: Replace objects with these two fields
-        public CollisionObjectBase tool;
+        public DynamicCollisionObject tool;
         public CollisionObjectBase canal;
 
         public float compliance;
@@ -300,7 +300,7 @@ namespace EarwaxSim
                     Vector3 collNorm = collisionInfo.collNormal;
 
                     // As long as C is not negative, we assume there is no correction to be made
-                    if (collisionInfo.signedDistance >= 0) continue;
+                    if (c >= 0) continue;
 
                     float wp = ps.invMass[i];
                     float wo = obj.invMass;
@@ -363,9 +363,22 @@ namespace EarwaxSim
             return;
         }
 
-        // TODO: Refactor SolveOnce into separate functions
-        private void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float dt, float alpha)
+        public void NewSolveOnce(ParticleSet ps, float dt)
         {
+            float alpha = this.compliance / (dt * dt);
+
+            // Tool vs. Canal
+            SolveColliderCollider(alpha);
+
+            // Tool + Canal vs. Particles
+            SolvePSCollider(ps, this.tool, alpha);
+            SolvePSCollider(ps, this.canal, alpha);
+        }
+
+        // Solves particle vs. sdf based collider collisions
+        private void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
+        {
+            float wo = obj.invMass;
             for (int i = 0; i < ps.count; i++)
             {
                 if (ps.invMass[i] == 0) continue;
@@ -378,7 +391,6 @@ namespace EarwaxSim
                 if (collisionInfo.signedDistance >= 0) continue;
 
                 float wp = ps.invMass[i];
-                float wo = obj.invMass;
 
                 // Check if denom is close to 0
                 float denom = (wp + wo + alpha);
@@ -388,8 +400,8 @@ namespace EarwaxSim
                 float deltaLambda = -c / denom;
 
                 // Calculate normal correction
-                Vector3 pNormalCorrection = wp * collNorm * deltaLambda;
-                Vector3 oNormalCorrection = -wo * collNorm * deltaLambda; // Inverse of particle correction
+                Vector3 pNormalCorrection = deltaLambda * wp * collNorm;
+                Vector3 oNormalCorrection = -deltaLambda * wo * collNorm; // Inverse of particle correction
 
                 // Update position
                 ps.currentPosition[i] += pNormalCorrection;
@@ -436,10 +448,36 @@ namespace EarwaxSim
             }
         }
 
-        // TODO: Implement collider vs collider collision solving
-        private void SolveColliderCollider(float dt, float alpha)
+        // Solves unity based collider vs unity based collider collisions
+        private void SolveColliderCollider(float alpha)
         {
+            if (!Physics.ComputePenetration(
+                this.tool.unityCollider,
+                this.tool.transform.position,
+                this.tool.transform.rotation,
+                this.canal.unityCollider,
+                this.canal.transform.position,
+                this.canal.transform.rotation,
+                out Vector3 collNorm,
+                out float c)) return;
 
+            float wt = this.tool.invMass;
+            float wc = this.canal.invMass;
+
+            // Check if denom is close to 0
+            float denom = (wt + wc + alpha);
+            if (denom <= Constants.EPS) return;
+
+            // Calculate delta lambda
+            float deltaLambda = c / denom;
+
+            // Calculate normal correction
+            Vector3 tNormalCorrection = deltaLambda * wt * collNorm;
+            Vector3 cNormalCorrection = -deltaLambda * wc * collNorm;
+
+            // Update position
+            this.tool.transform.position += tNormalCorrection;
+            this.canal.transform.position += cNormalCorrection;
         }
     }
 

@@ -242,6 +242,9 @@ namespace EarwaxSim
             // TODO: Add curette tool
             coll.objects.Add(torusToolObj);
             coll.objects.Add(roomObj);
+
+            coll.tool = torusToolObj;
+            coll.canal = roomObj;
         }
 
 
@@ -441,7 +444,8 @@ namespace EarwaxSim
             {
                 if (distOn) dist.SolveOnce(ps, dt, grid);
                 if (denseOn) dense.SolveOnce(ps, dt, grid);
-                if (collOn) coll.SolveOnce(ps, dt, grid);
+                //if (collOn) coll.SolveOnce(ps, dt, grid);
+                if (collOn) coll.NewSolveOnce(ps, dt);
                 if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
 
