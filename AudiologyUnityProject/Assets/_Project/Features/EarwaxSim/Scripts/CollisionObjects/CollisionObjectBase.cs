@@ -25,18 +25,19 @@ namespace EarwaxSim
         public Collider unityCollider;
         protected CollisionShape shape;
 
-        public CollisionInfo GetCollisionInfo(Vector3 particlePos)
+        public CollisionInfo GetCollisionInfo(Vector3 particlePos, float particleRadius)
         {
             Vector3 pLocal = this.transform.InverseTransformPoint(particlePos); // Convert to local space
-            CollisionInfo localHit = this.shape.GetCollisionInfo(pLocal); // Get collision info from this.shape
+            CollisionInfo localHit = this.shape.GetCollisionInfoPoint(pLocal); // Get collision info from this.shape
             localHit.collNormal = this.transform.TransformDirection(localHit.collNormal); // Convert to world space
+            localHit.signedDistance -= particleRadius;
             return localHit;
         }
 
-        public float GetSignedDistance(Vector3 particlePos)
+        public float GetSignedDistance(Vector3 particlePos, float particleRadius)
         {
             Vector3 pLocal = this.transform.InverseTransformPoint(particlePos); // Convert to local space
-            return this.shape.GetSignedDistance(pLocal); // Get signed distance from this.shape
+            return this.shape.GetSignedDistancePoint(pLocal) - particleRadius; // Get signed distance from this.shape
         }
 
         protected virtual void Awake()

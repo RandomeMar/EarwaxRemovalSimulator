@@ -34,6 +34,8 @@ namespace EarwaxSim
         public int latticeParticleCount = 3;
         [Min(.01f)]
         public float latticeLength = 2.0f;
+        [Min(0f)]
+        public float particleRadius = .5f;
 
         [Header("Material Settings")]
         [Min(0f)]
@@ -150,7 +152,7 @@ namespace EarwaxSim
             float invMass = 1f / particleMass;
             float bondCompliance = baseBondCompliance * spacing;
 
-            ParticleSet lattice = new(particleCount);
+            ParticleSet lattice = new(particleCount, particleRadius);
             List<DistanceConstraint> dist = new();
 
             for (int i = 0; i < n; i++)
@@ -469,7 +471,7 @@ namespace EarwaxSim
                 Gizmos.color = Color.black;
                 for (int i = 0; i < ps.currentPosition.Length; i++)
                 {
-                    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+                    Gizmos.DrawSphere(ps.currentPosition[i], particleRadius);
 
                     if (adhesOn && anchors[i].isActive && drawAdhes)
                     {

@@ -21,11 +21,14 @@ namespace EarwaxSim
         public float[] invMass;
         public float[] mass;
 
+        public float radius;
         public int count;
 
-        public ParticleSet(int count)
+        public ParticleSet(int count, float radius)
         {
             this.count = count;
+            this.radius = radius;
+
             this.currentPosition = new Vector3[count];
             this.previousPosition = new Vector3[count];
             this.velocity = new Vector3[count];

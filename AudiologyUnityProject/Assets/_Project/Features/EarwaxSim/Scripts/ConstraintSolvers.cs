@@ -295,7 +295,7 @@ namespace EarwaxSim
                 foreach (CollisionObjectBase obj in this.objects)
                 {
                     // ------ Collision ------
-                    CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i]);
+                    CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i], ps.radius);
                     float c = collisionInfo.signedDistance;
                     Vector3 collNorm = collisionInfo.collNormal;
 
@@ -383,7 +383,7 @@ namespace EarwaxSim
             {
                 if (ps.invMass[i] == 0) continue;
                 // ------ Collision ------
-                CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i]);
+                CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i], ps.radius);
                 float c = collisionInfo.signedDistance;
                 Vector3 collNorm = collisionInfo.collNormal;
 

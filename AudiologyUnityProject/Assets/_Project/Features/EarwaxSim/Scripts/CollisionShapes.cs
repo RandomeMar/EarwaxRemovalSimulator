@@ -73,7 +73,7 @@ namespace EarwaxSim
                     Vector3 globalPos = this.position + this.rotation * localPos;
 
                     // Send that coordinate to the GetSignedDistance function
-                    float sd = shape.GetSignedDistance(globalPos);
+                    float sd = shape.GetSignedDistancePoint(globalPos);
 
                     // Call DrawSphere()
                     if (sd <= 0f) Gizmos.DrawSphere(globalPos, this.particleSize);
@@ -121,7 +121,7 @@ namespace EarwaxSim
                         Vector3 globalPos = obj.transform.TransformPoint(localPos);
 
                         // Send that coordinate to the GetSignedDistance function
-                        float sd = obj.GetSignedDistance(globalPos);
+                        float sd = obj.GetSignedDistance(globalPos, 0f);
 
                         // Draw lattice particle
                         if (sd <= 0f) Gizmos.DrawCube(globalPos, Vector3.one * this.particleSize);
@@ -205,7 +205,7 @@ namespace EarwaxSim
             return this.owner.transform.TransformDirection(ownerLocalDir);
         }
 
-        public CollisionInfo GetCollisionInfo(Vector3 particlePos)
+        public CollisionInfo GetCollisionInfoPoint(Vector3 particlePos)
         {
             Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position); // Convert particle position to local space
 
@@ -215,7 +215,7 @@ namespace EarwaxSim
             return localHit;
         }
 
-        public float GetSignedDistance(Vector3 particlePos)
+        public float GetSignedDistancePoint(Vector3 particlePos)
         {
             Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position); // Convert particle position to local space
             return this.GetSignedDistanceLocal(pLocal);
@@ -227,6 +227,7 @@ namespace EarwaxSim
             this.parent = parent;
             return;
         }
+
 
         protected abstract CollisionInfo GetCollisionInfoLocal(Vector3 pLocal);
         protected abstract float GetSignedDistanceLocal(Vector3 particlePos);
@@ -476,14 +477,14 @@ namespace EarwaxSim
             float e = .001f;
 
             // This estimates the gradient of the union at positon particlePos
-            float dx = this.GetSignedDistance(pLocal + new Vector3(e, 0, 0))
-                - this.GetSignedDistance(pLocal - new Vector3(e, 0, 0));
+            float dx = this.GetSignedDistancePoint(pLocal + new Vector3(e, 0, 0))
+                - this.GetSignedDistancePoint(pLocal - new Vector3(e, 0, 0));
 
-            float dy = this.GetSignedDistance(pLocal + new Vector3(0, e, 0))
-                - this.GetSignedDistance(pLocal - new Vector3(0, e, 0));
+            float dy = this.GetSignedDistancePoint(pLocal + new Vector3(0, e, 0))
+                - this.GetSignedDistancePoint(pLocal - new Vector3(0, e, 0));
 
-            float dz = this.GetSignedDistance(pLocal + new Vector3(0, 0, e))
-                - this.GetSignedDistance(pLocal - new Vector3(0, 0, e));
+            float dz = this.GetSignedDistancePoint(pLocal + new Vector3(0, 0, e))
+                - this.GetSignedDistancePoint(pLocal - new Vector3(0, 0, e));
 
             return new Vector3(dx, dy, dz).normalized;
         }
@@ -507,8 +508,8 @@ namespace EarwaxSim
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
-            CollisionInfo aColl = this.a.GetCollisionInfo(pLocal);
-            CollisionInfo bColl = this.b.GetCollisionInfo(pLocal);
+            CollisionInfo aColl = this.a.GetCollisionInfoPoint(pLocal);
+            CollisionInfo bColl = this.b.GetCollisionInfoPoint(pLocal);
 
             float aDist = aColl.signedDistance;
             float bDist = bColl.signedDistance;
@@ -525,8 +526,8 @@ namespace EarwaxSim
 
         protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            float aDist = this.a.GetSignedDistance(pLocal);
-            float bDist = this.b.GetSignedDistance(pLocal);
+            float aDist = this.a.GetSignedDistancePoint(pLocal);
+            float bDist = this.b.GetSignedDistancePoint(pLocal);
             return Mathf.Min(aDist, bDist);
         }
 
@@ -561,8 +562,8 @@ namespace EarwaxSim
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
-            CollisionInfo aColl = this.a.GetCollisionInfo(pLocal);
-            CollisionInfo bColl = this.b.GetCollisionInfo(pLocal);
+            CollisionInfo aColl = this.a.GetCollisionInfoPoint(pLocal);
+            CollisionInfo bColl = this.b.GetCollisionInfoPoint(pLocal);
 
             float aDist = aColl.signedDistance;
             float bDist = bColl.signedDistance;
@@ -579,8 +580,8 @@ namespace EarwaxSim
 
         protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            float aDist = this.a.GetSignedDistance(pLocal);
-            float bDist = this.b.GetSignedDistance(pLocal);
+            float aDist = this.a.GetSignedDistancePoint(pLocal);
+            float bDist = this.b.GetSignedDistancePoint(pLocal);
             return Mathf.Max(aDist, bDist);
         }
 
@@ -615,8 +616,8 @@ namespace EarwaxSim
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
-            CollisionInfo aColl = this.a.GetCollisionInfo(pLocal);
-            CollisionInfo bColl = this.b.GetCollisionInfo(pLocal);
+            CollisionInfo aColl = this.a.GetCollisionInfoPoint(pLocal);
+            CollisionInfo bColl = this.b.GetCollisionInfoPoint(pLocal);
             bColl.signedDistance *= -1;
             bColl.collNormal *= -1;
 
@@ -635,8 +636,8 @@ namespace EarwaxSim
 
         protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            float aDist = this.a.GetSignedDistance(pLocal);
-            float bDist = this.b.GetSignedDistance(pLocal);
+            float aDist = this.a.GetSignedDistancePoint(pLocal);
+            float bDist = this.b.GetSignedDistancePoint(pLocal);
             return Mathf.Max(aDist, -bDist);
         }
 
@@ -669,7 +670,7 @@ namespace EarwaxSim
 
         protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
         {
-            CollisionInfo collisionInfo = shape.GetCollisionInfo(pLocal);
+            CollisionInfo collisionInfo = shape.GetCollisionInfoPoint(pLocal);
             collisionInfo.signedDistance *= -1;
             collisionInfo.collNormal *= -1;
             return collisionInfo;
@@ -677,7 +678,7 @@ namespace EarwaxSim
 
         protected override float GetSignedDistanceLocal(Vector3 pLocal)
         {
-            return -shape.GetSignedDistance(pLocal);
+            return -shape.GetSignedDistancePoint(pLocal);
         }
 
         public override void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
