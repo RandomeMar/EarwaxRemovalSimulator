@@ -7,9 +7,11 @@ public class VRUserNameInputScript : MonoBehaviour
 {
     [SerializeField] InputField inputField;
     [SerializeField] TimerScript timerScript;
+    [SerializeField] ScoreScript scoreScript;
     [SerializeField] ClockScript clockScript;
     //[SerializeField] GameObject statsManager;
     [SerializeField] GameObject keyboardUI;
+    [SerializeField] GameObject scoreUI;
     [SerializeField] GameObject timerUI;
 
     public void ValidateInput()
@@ -22,10 +24,14 @@ public class VRUserNameInputScript : MonoBehaviour
             if (statsManager != null)
             {
                 statsManager.GetComponent<StatsManager>().setName(input);
+                statsManager.GetComponent<StatsManager>().setScore(0);
                 keyboardUI.gameObject.SetActive(false);
+
                 timerUI.gameObject.SetActive(true);
+                scoreUI.gameObject.SetActive(true);
 
                 timerScript.StartTimer();
+                scoreScript.StartScore();
                 clockScript.StartClock();
                 Time.timeScale = 1;
             }

@@ -37,10 +37,10 @@ public class MovingSphere : MonoBehaviour
 
         initialScale = visualSphere != null ? visualSphere.localScale : Vector3.one;
 
-        FindObjectOfType<HapticManager>()?.RegisterMovingSphere(this);
+        FindFirstObjectByType<HapticManager>()?.RegisterMovingSphere(this);
 
         if (curvedTube == null)
-            curvedTube = FindObjectOfType<CurvedTubeForceFeedback>();
+            curvedTube = FindFirstObjectByType<CurvedTubeForceFeedback>();
     }
 
     private void Update()

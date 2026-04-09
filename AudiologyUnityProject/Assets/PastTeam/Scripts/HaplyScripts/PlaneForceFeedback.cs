@@ -13,7 +13,7 @@ public class PlaneForceFeedback : MonoBehaviour
     private void Awake()
     {
         planeY = transform.position.y;
-        FindObjectOfType<HapticManager>().RegisterPlane(this);
+        FindFirstObjectByType<HapticManager>().RegisterPlane(this);
     }
 
     public Vector3 CalculateForce(Vector3 cursorPosition, Vector3 cursorVelocity, float cursorRadius)

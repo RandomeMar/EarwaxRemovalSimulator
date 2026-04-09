@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 public class StatsData
 {
     public List<string> playerNames = new List<string>();
+    public List<float> playerScores = new List<float>();
     public List<float> times = new List<float>();
 }
 
@@ -15,7 +16,11 @@ public class StatsManager : MonoBehaviour
     private StatsData statsData = new StatsData();
     private string filePath;
 
+    private string filePathforDelete;
+
     public string currentName;
+
+    public float currentScore;
 
 	public float currentElapsedTime;
 
@@ -36,9 +41,10 @@ public class StatsManager : MonoBehaviour
         LoadStats();
     }
 
-    public void AddRecord(string playerName, float elapsedTime)
+    public void AddRecord(string playerName, float playerScore, float elapsedTime)
     {
         statsData.playerNames.Add(playerName);
+        statsData.playerScores.Add(playerScore);
         statsData.times.Add(elapsedTime);
         SaveStats();
     }
@@ -49,6 +55,14 @@ public class StatsManager : MonoBehaviour
 
 	public string getName() {
 		return currentName;
+	}
+
+    public void setScore(float score) {
+		currentScore = score;
+	}
+
+	public float getScore() {
+		return currentScore;
 	}
 
     public void setElapsedTime(float time)
@@ -66,6 +80,7 @@ public class StatsManager : MonoBehaviour
         if (!string.IsNullOrEmpty(currentName))
         {
             statsData.playerNames.Add(currentName);
+            statsData.playerScores.Add(currentScore);
             statsData.times.Add(currentElapsedTime);
             SaveStats();
         }
@@ -74,6 +89,11 @@ public class StatsManager : MonoBehaviour
     public List<string> GetPlayerNames()
     {
         return statsData.playerNames;
+    }
+
+    public List<float> GetScores()
+    {
+        return statsData.playerScores;
     }
 
     public List<float> GetTimes()
@@ -85,7 +105,7 @@ public class StatsManager : MonoBehaviour
     {
         string json = JsonUtility.ToJson(statsData, true);
         File.WriteAllText(filePath, json);
-        Debug.Log("Saved Stats: " + json);
+        Debug.Log("Saved Stats: " + json + "at location: " + filePath);
     }
 
     private void LoadStats()
@@ -98,17 +118,25 @@ public class StatsManager : MonoBehaviour
             if (statsData.playerNames.Count > 0)
             {
                 currentName = statsData.playerNames[statsData.playerNames.Count - 1];
+                currentScore = statsData.playerScores[statsData.playerScores.Count - 1];
                 currentElapsedTime = statsData.times[statsData.times.Count - 1];
             }
         }
     }
 
-    // For deleteing and reseting stats, saved for later
-    //public void ResetStats()
-    //{
-    //    statsData = new StatsData();
-    //    File.Delete(filePath);    
-    //}
+    // For deleteing and reseting stats
+    public void ResetStats()
+    {
+        filePathforDelete = Application.persistentDataPath + "/stats.json";
+        if (File.Exists(filePathforDelete)) 
+        {
+            File.Delete(filePathforDelete);
+            Debug.Log("Saved data file cleared at: " + filePathforDelete);
+            // statsData = new StatsData();
+        }
+        else
+            Debug.Log("No saved data file to delete!");
+    }
 
 
 }

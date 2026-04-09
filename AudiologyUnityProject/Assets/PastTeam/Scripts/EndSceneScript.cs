@@ -8,6 +8,7 @@ public class EndSceneScript : MonoBehaviour
     public string statsScene;
     public Text introText;
     public Text timeText;
+    public Text scoreText;
     
     private void Start()
     {
@@ -16,6 +17,7 @@ public class EndSceneScript : MonoBehaviour
         if (statsManager != null )
         {
             string name = statsManager.GetComponent<StatsManager>().getName();
+            float score = statsManager.GetComponent<StatsManager>().getScore();
             float elapsedTime = statsManager.GetComponent<StatsManager>().getElapsedTime();
 
             int minutes = Mathf.FloorToInt(elapsedTime / 60);
@@ -24,6 +26,7 @@ public class EndSceneScript : MonoBehaviour
 
             introText.text = $"Wax On, Wax Gone!\r\nHere's how you did, {name}:";
             timeText.text = $"Time Taken: {formattedTime}";
+            scoreText.text = $"Score: {score}";
         }
 
 

@@ -47,20 +47,21 @@ public class StatsSceneScript : MonoBehaviour
         string json = File.ReadAllText(filePath);
         StatsData statsData = JsonUtility.FromJson<StatsData>(json);
 
-        List<(string name, float time)> combined = new List<(string, float)>();
+        List<(string name, float score, float time)> combined = new List<(string, float, float)>();
 
         for (int i = 0; i < statsData.playerNames.Count; i++)
         {
             string player = statsData.playerNames[i];
+            float score = statsData.playerScores[i];
             float time = statsData.times[i];
-
+            Debug.Log("Player Stats: " + player + score + time);
             if (!string.IsNullOrEmpty(nameFilter) &&
                 !player.ToLower().Contains(nameFilter.ToLower()))
             {
                 continue;
             }
 
-            combined.Add((player, time));
+            combined.Add((player, score, time));
         }
 
         switch (currentSortMode)
@@ -75,10 +76,11 @@ public class StatsSceneScript : MonoBehaviour
                 break;
         }
 
-        foreach (var (player, time) in combined)
+        foreach (var (player, score, time) in combined)
         {
             GameObject row = Instantiate(statEntryRowPrefab, contentParent);
             row.transform.Find("PlayerNameText").GetComponent<Text>().text = player;
+            row.transform.Find("PlayerScoreText").GetComponent<Text>().text = FormatScore(score);
             row.transform.Find("TimeText").GetComponent<Text>().text = FormatTime(time);
             row.SetActive(true);
         }
@@ -89,6 +91,11 @@ public class StatsSceneScript : MonoBehaviour
         Debug.Log("Dropdown changed: " + index);
         currentSortMode = (SortMode)index;
         LoadStats(searchInput.text);
+    }
+
+    private string FormatScore(float score)
+    {
+        return score.ToString("F2");
     }
 
 
