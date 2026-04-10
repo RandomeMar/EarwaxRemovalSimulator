@@ -25,6 +25,8 @@ public class StatsManager : MonoBehaviour
 	public float currentElapsedTime;
 
     void Awake() {
+
+        // This is meant to destroy all old Statmanagers, needs to be fixed. Doesn't work.
         StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
         if (all.Length > 1)
         {
@@ -34,6 +36,7 @@ public class StatsManager : MonoBehaviour
             }
         }
 
+        // Don't destroy statmanager so it can carry on to next scene.
         DontDestroyOnLoad(gameObject);
         Debug.Log("StatsManager has been initialized.");
         filePath = Application.persistentDataPath + "/stats.json";
@@ -132,7 +135,7 @@ public class StatsManager : MonoBehaviour
         {
             File.Delete(filePathforDelete);
             Debug.Log("Saved data file cleared at: " + filePathforDelete);
-            // statsData = new StatsData();
+            statsData = new StatsData();
         }
         else
             Debug.Log("No saved data file to delete!");

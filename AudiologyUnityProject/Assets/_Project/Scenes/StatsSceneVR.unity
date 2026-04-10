@@ -3483,9 +3483,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 11500000, guid: 8851d3069ad65c44d89b8298b70d46bc, type: 3}
         m_TargetAssemblyTypeName: ClockScript, Assembly-CSharp
-        m_MethodName: ResetButton
+        m_MethodName: 
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -6103,7 +6103,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -6112,7 +6112,7 @@ PrefabInstance:
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Target
       value: 
-      objectReference: {fileID: 11500000, guid: 578118e2545293d4899119f566fd6665, type: 3}
+      objectReference: {fileID: 406471477}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
       value: 2
@@ -6122,12 +6122,20 @@ PrefabInstance:
       value: BackToMainMenu
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: LoadStats
+      objectReference: {fileID: 0}
+    - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: StatsSceneScript, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
       value: StatsSceneScript, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -9602,11 +9610,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -9615,7 +9623,7 @@ PrefabInstance:
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Target
       value: 
-      objectReference: {fileID: 11500000, guid: 578118e2545293d4899119f566fd6665, type: 3}
+      objectReference: {fileID: 406471477}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
       value: 2
@@ -9625,12 +9633,24 @@ PrefabInstance:
       value: ResetStats
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: LoadStats
+      objectReference: {fileID: 0}
+    - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: StatsManager, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
       value: StatsSceneScript, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_StringArgument
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6676023242117530483, guid: 82db688c132a2344fbac19eef3832388, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:

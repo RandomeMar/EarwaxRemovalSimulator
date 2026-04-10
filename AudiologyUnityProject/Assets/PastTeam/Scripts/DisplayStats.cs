@@ -20,6 +20,7 @@ public class StatsSceneScript : MonoBehaviour
 
     void Start()
     {
+        
         filePath = Application.persistentDataPath + "/stats.json";
 
         if (sortDropdown != null)
@@ -37,7 +38,7 @@ public class StatsSceneScript : MonoBehaviour
         LoadStats(input);
     }
 
-    void LoadStats(string nameFilter = "")
+    public void LoadStats(string nameFilter = "")
     {
         foreach (Transform child in contentParent)
             Destroy(child.gameObject);
@@ -93,6 +94,7 @@ public class StatsSceneScript : MonoBehaviour
         LoadStats(searchInput.text);
     }
 
+
     private string FormatScore(float score)
     {
         return score.ToString("F2");
@@ -108,6 +110,15 @@ public class StatsSceneScript : MonoBehaviour
 
     public void BackToMainMenu()
     {
+        // Destroy all old StatManagers as a new Statmanager is made to track new player stats
+        StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
+        if (all.Length > 0)
+        {
+            for (int i = 0; i < all.Length; i++)
+            {
+                Destroy(all[i].gameObject);
+            }
+        }
         SceneManager.LoadScene(mainMenuScene);
     }
 }

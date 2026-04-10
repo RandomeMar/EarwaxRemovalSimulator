@@ -33,6 +33,16 @@ public class EndSceneScript : MonoBehaviour
     }
     public void BackToMainMenu()
     {
+
+        // Destroy all old StatManagers as a new Statmanager is made to track new player stats
+        StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
+        if (all.Length > 0)
+        {
+            for (int i = 0; i < all.Length; i++)
+            {
+                Destroy(all[i].gameObject);
+            }
+        }
         SceneManager.LoadScene(mainMenuScene);
     }
 
