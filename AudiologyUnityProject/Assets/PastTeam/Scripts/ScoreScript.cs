@@ -19,7 +19,7 @@ public class ScoreScript : MonoBehaviour
     {
         if (isRunning)
         {
-            scoreText.text = "Score: " + score.ToString("F2");
+            scoreText.text = "Score: " + score.ToString("F1");
         }
     }
 

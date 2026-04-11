@@ -10,6 +10,7 @@ public class StatsSceneScript : MonoBehaviour
     public Transform contentParent;
     public GameObject statEntryRowPrefab;
     public InputField searchInput;
+    public InputField searchVRInput;
     public Dropdown sortDropdown;
 
     private string filePath;
@@ -32,10 +33,18 @@ public class StatsSceneScript : MonoBehaviour
         LoadStats();
     }
 
+    // Used for keyboard only, not VR keyboard (only one input field allowed per search box)
     public void OnSearchButtonPressed()
     {
         string input = searchInput.text;
         LoadStats(input);
+    }
+
+    // Used for VR keyboard only, not keyboard (only one input field allowed per search box)
+    public void OnSearchButtonVRPressed()
+    {
+        string inputVR = searchVRInput.text;
+        LoadStats(inputVR);
     }
 
     public void LoadStats(string nameFilter = "")
@@ -55,7 +64,7 @@ public class StatsSceneScript : MonoBehaviour
             string player = statsData.playerNames[i];
             float score = statsData.playerScores[i];
             float time = statsData.times[i];
-            Debug.Log("Player Stats: " + player + score + time);
+            // Debug.Log("Player Stats: " + player + score + time);
             if (!string.IsNullOrEmpty(nameFilter) &&
                 !player.ToLower().Contains(nameFilter.ToLower()))
             {
