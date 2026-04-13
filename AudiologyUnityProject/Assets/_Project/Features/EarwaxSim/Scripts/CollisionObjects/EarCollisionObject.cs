@@ -7,7 +7,10 @@ using UnityEngine;
 
 public class EarCollisionObject : CollisionObjectBase
 {
-    public List<CanalNode> canalNodes = new List<CanalNode>(4);
+    [Header("Collider Node Guides")]
+    public List<CanalNode> canalNodes = new List<CanalNode>(5);
+    public CanalNode[] conchaNodes = new CanalNode[2];
+    public List<CanalNode> tragusNodes = new List<CanalNode>(6);
 
     [Header("Viewer Settings")]
     public bool drawLattice = true;
@@ -18,18 +21,22 @@ public class EarCollisionObject : CollisionObjectBase
     [Min(0f)]
     public float viewCutoff = .1f;
 
+    BoxCollider boxCollider;
     ViewingLattice viewer;
 
     // This method is evil incarnate. It builds the canal shape defined using CanalNodes
     protected override CollisionShape BuildShapeTree()
     {
-        CollisionShape prev = null;
-
         if (canalNodes == null)
         {
             Debug.LogError("canalPoints is null");
         }
 
+        List<CollisionShape> negatorList = new(4);
+        List<CollisionShape> adderList = new(4);
+
+        // ------ Negators ------
+        // Build canal collider
         for (int i = 1; i < canalNodes.Count; i++)
         {
             Vector3 a = canalNodes[i - 1].transform.localPosition;
@@ -49,42 +56,137 @@ public class EarCollisionObject : CollisionObjectBase
 
             zAxis.Normalize();
 
-            OvalCylinderShape cyl = new(
+            negatorList.Add(new OvalCylinderShape(
                 center,
                 Quaternion.LookRotation(zAxis, yAxis),
                 distVec.magnitude,
                 canalNodes[i - 1].rx,
-                canalNodes[i - 1].rz);
+                canalNodes[i - 1].rz));
 
-            if (prev == null)
-            {
-                prev = cyl;
-            }
-            else
+            if (i > 1)
             {
                 // Sphere is used to smooth out points where cylinders meet
-                SphereShape sphere = new(
+                negatorList.Add(new SphereShape(
                     a,
                     Quaternion.identity,
-                    cyl.rz);
-
-                UnionShape union0 = new(
-                    Vector3.zero,
-                    Quaternion.identity,
-                    prev,
-                    sphere);
-
-                UnionShape union1 = new(
-                    Vector3.zero,
-                    Quaternion.identity,
-                    union0,
-                    cyl);
-
-                prev = union1;
+                    canalNodes[i - 1].rz));
             }
         }
-        return prev;
+
+        // Build concha collider
+        OvalCylinderShape concha;
+        {
+            Vector3 a = conchaNodes[0].transform.localPosition;
+            Vector3 b = conchaNodes[1].transform.localPosition;
+
+            Vector3 distVec = b - a;
+            Vector3 center = (a + b) / 2f;
+
+            Vector3 yAxis = distVec.normalized; // Cylinders fall along the y-axis
+            Vector3 hint = conchaNodes[0].transform.localRotation * Vector3.forward; // CanalNode's local y rotation controls the roll of the cylinder
+            Vector3 zAxis = hint - Vector3.Project(hint, yAxis);
+
+            if (zAxis.sqrMagnitude < Constants.EPS)
+            {
+                hint = conchaNodes[0].transform.localRotation * Vector3.right; // fallback
+                zAxis = hint - Vector3.Project(hint, yAxis);
+            }
+
+            zAxis.Normalize();
+
+            concha = new(
+                center,
+                Quaternion.LookRotation(zAxis, yAxis),
+                distVec.magnitude,
+                conchaNodes[0].rx,
+                conchaNodes[0].rz);
+        }
+
+        negatorList.Add(concha);
+
+        var negators = BuildBalancedUnion(negatorList);
+
+
+        // ------ Adders ------
+        // Build tragus collider
+        for (int i = 1; i < tragusNodes.Count; i++)
+        {
+            Vector3 a = tragusNodes[i - 1].transform.localPosition;
+            Vector3 b = tragusNodes[i].transform.localPosition;
+            Vector3 distVec = b - a;
+            Vector3 center = (a + b) / 2f;
+
+            Vector3 yAxis = distVec.normalized; // Cylinders fall along the y-axis
+            Vector3 hint = tragusNodes[i - 1].transform.localRotation * Vector3.forward; // CanalNode's local y rotation controls the roll of the cylinder
+            Vector3 zAxis = hint - Vector3.Project(hint, yAxis);
+
+            if (zAxis.sqrMagnitude < Constants.EPS)
+            {
+                hint = tragusNodes[i - 1].transform.localRotation * Vector3.right; // fallback
+                zAxis = hint - Vector3.Project(hint, yAxis);
+            }
+
+            zAxis.Normalize();
+
+            adderList.Add(new CapsuleShape(
+                center,
+                Quaternion.LookRotation(zAxis, yAxis),
+                distVec.magnitude,
+                tragusNodes[i - 1].rx));
+        }
+
+        BoxShape box = new(
+            boxCollider.center,
+            Quaternion.identity,
+            boxCollider.size / 2f);
+
+        adderList.Add(box);
+
+        var adders = BuildBalancedUnion(adderList);
+
+        DifferenceShape diff = new(
+            Vector3.zero,
+            Quaternion.identity,
+            adders,
+            negators); // Final collider
+
+        return diff;
     }
+
+    // Builds balanced union shape trees
+    private CollisionShape BuildBalancedUnion(List<CollisionShape> shapes)
+    {
+        if (shapes == null || shapes.Count == 0) return null;
+        if (shapes.Count == 1) return shapes[0];
+
+        List<CollisionShape> curr = shapes;
+
+        while (curr.Count > 1)
+        {
+            List<CollisionShape> next = new();
+
+            for (int i = 0; i < curr.Count; i += 2)
+            {
+                if (i + 1 < curr.Count)
+                {
+                    next.Add(new UnionShape(
+                        Vector3.zero,
+                        Quaternion.identity,
+                        curr[i],
+                        curr[i + 1]));
+                }
+                else
+                {
+                    next.Add(curr[i]);
+                }
+            }
+
+            curr = next;
+        }
+
+        return curr[0];
+    }
+
 
     // Draws the bounds of an oval cylinder
     private void DrawCylinder(OvalCylinderShape shape)
@@ -115,18 +217,60 @@ public class EarCollisionObject : CollisionObjectBase
         Gizmos.DrawLine(a - zOffset, b - zOffset);
     }
 
+    private void DrawCapsule(CapsuleShape shape)
+    {
+        // Get local positions
+        Vector3 a = Vector3.up * shape.height / 2f;
+        Vector3 b = -a;
+        Vector3 xOffset = Vector3.right * shape.radius;
+        Vector3 zOffset = Vector3.forward * shape.radius;
+
+        // Get world positions
+        a = shape.GetWorldPos(a);
+        b = shape.GetWorldPos(b);
+        xOffset = shape.GetWorldDir(xOffset);
+        zOffset = shape.GetWorldDir(zOffset);
+
+        // Drawing
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(a, b);
+
+        Gizmos.DrawWireSphere(a, shape.radius * this.transform.lossyScale.x);
+        Gizmos.DrawWireSphere(b, shape.radius * this.transform.lossyScale.x);
+
+        Gizmos.DrawLine(a + xOffset, a - xOffset);
+        Gizmos.DrawLine(a + zOffset, a - zOffset);
+        Gizmos.DrawLine(b + xOffset, b - xOffset);
+        Gizmos.DrawLine(b + zOffset, b - zOffset);
+
+        Gizmos.DrawLine(a + xOffset, b + xOffset);
+        Gizmos.DrawLine(a - xOffset, b - xOffset);
+        Gizmos.DrawLine(a + zOffset, b + zOffset);
+        Gizmos.DrawLine(a - zOffset, b - zOffset);
+    }
+
     // Recursively walks through the tree, drawing cylinders and spheres
     private void DrawShapeTree(CollisionShape curr)
     {
-        if (curr is OvalCylinderShape oval)
-        {
-            DrawCylinder(oval);
-            return;
-        }
+        Gizmos.color = Color.yellow;
+        // Non-leaf nodes
         if (curr is UnionShape union)
         {
             DrawShapeTree(union.a);
             DrawShapeTree(union.b);
+            return;
+        }
+        if (curr is DifferenceShape diff)
+        {
+            DrawShapeTree(diff.a);
+            DrawShapeTree(diff.b);
+            return;
+        }
+
+        // Leaf nodes
+        if (curr is OvalCylinderShape oval)
+        {
+            DrawCylinder(oval);
             return;
         }
         if (curr is SphereShape sphere)
@@ -135,10 +279,27 @@ public class EarCollisionObject : CollisionObjectBase
             Gizmos.DrawWireSphere(center, sphere.radius * this.transform.lossyScale.x);
             return;
         }
+        if (curr is BoxShape box)
+        {
+            Color col = Color.blue;
+            col.a = .25f;
+            Gizmos.color = col;
+
+            Gizmos.matrix = this.transform.localToWorldMatrix;
+            Gizmos.DrawCube(this.boxCollider.center, this.boxCollider.size);
+            Gizmos.matrix = Matrix4x4.identity;
+            return;
+        }
+        if (curr is CapsuleShape cap)
+        {
+            DrawCapsule(cap);
+            return;
+        }
     }
 
     protected override void Awake()
     {
+        boxCollider = GetComponent<BoxCollider>();
         base.Awake();
         this.viewer = new(
             this.viewSize,
@@ -149,6 +310,7 @@ public class EarCollisionObject : CollisionObjectBase
     // Rebuilds shape tree and viewer
     public void Rebuild()
     {
+        boxCollider = GetComponent<BoxCollider>();
         shape = BuildShapeTree();
         shape.RecurseSetup(this, null);
         this.viewer = new(
