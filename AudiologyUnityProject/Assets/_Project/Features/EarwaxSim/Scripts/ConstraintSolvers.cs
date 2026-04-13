@@ -375,11 +375,11 @@ namespace EarwaxSim
 
             // Tool + Canal vs. Particles
             SolvePSCollider(ps, this.tool, alpha);
-            SolvePSCollider(ps, this.canal, alpha);
+            //SolvePSCollider(ps, this.canal, alpha);
         }
 
         // Solves particle vs. sdf based collider collisions
-        private void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
+        public void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
         {
             float wo = obj.invMass;
             for (int i = 0; i < ps.count; i++)

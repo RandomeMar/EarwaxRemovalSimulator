@@ -8,7 +8,7 @@ namespace EarwaxSim
     public class Constants
     {
         public const float EPS = 1e-6f; // Used to prevent floating point errors near zero
-        public const float SEAM_EPS = -1f; // EPS for SDF shape calculations. 1e-6f
+        public const float SEAM_EPS = 1e-6f; // EPS for SDF shape calculations. 1e-6f
         public const int MAX_NEIGHBORS = 64; // Maximum neighbor count returned from a neighbor search
     }
 

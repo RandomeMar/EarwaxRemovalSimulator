@@ -442,10 +442,14 @@ namespace EarwaxSim
             {
                 if (distOn) dist.SolveOnce(ps, dt, grid);
                 if (denseOn) dense.SolveOnce(ps, dt, grid);
-                //if (collOn) coll.SolveOnce(ps, dt, grid);
+                
                 if (collOn) coll.NewSolveOnce(ps, dt);
+
                 if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
+            // Run canal collisions only once per frame
+            float alpha = coll.compliance / (dt * dt);
+            coll.SolvePSCollider(ps, coll.canal, alpha);
 
             if (distOn) dist.UpdateRestLengths(ps, dt);
 
