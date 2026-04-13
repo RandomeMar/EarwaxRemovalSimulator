@@ -3,34 +3,29 @@ using UnityEngine;
 
 public class ParticleRenderer : MonoBehaviour
 {
-    public GameObject xpbdSim;
+    public XPBDSim sim;
     public Mesh mesh;
     public Material material;
 
-    public int particleCount = 512; // NOTE: This is so bad. We should read particleCount from sim, but it is initiallized inside start, not awake
-
-
-    int strideInBytes = 12; // Vector 3 is 12 bytes. Maybe use vector 4 since 16 bytes is better
-
-    XPBDSim sim;
-    
+    int strideInBytes = 12; // Vector 3 is 12 bytes. NOTE: Maybe use vector 4 since 16 bytes is better for GPU
 
     GraphicsBuffer positionBuffer;
     RenderParams rps;
 
     private void Awake()
     {
-        sim = xpbdSim.GetComponent<XPBDSim>();
-
         rps = new RenderParams(material);
         rps.worldBounds = new Bounds(Vector3.zero, 1000f * Vector3.one);
+    }
 
+    private void Start()
+    {
         positionBuffer = new(
             GraphicsBuffer.Target.Structured,
-            particleCount,
-            strideInBytes);
+            sim.ps.count,
+            strideInBytes); // Buffer for particle positions
 
-        material.SetBuffer("_Positions", positionBuffer);
+        material.SetBuffer("_Positions", positionBuffer); // Buffer is called "_Positions" inside shader
     }
 
     private void LateUpdate()

@@ -4,11 +4,12 @@ using UnityEngine;
 
 namespace EarwaxSim
 {
+    // Constants used in various scripts
     public class Constants
     {
-        public const float EPS = 1e-6f;
-        public const float SEAM_EPS = 1e-6f;
-        public const int MAX_NEIGHBORS = 64;
+        public const float EPS = 1e-6f; // Used to prevent floating point errors near zero
+        public const float SEAM_EPS = 1e-6f; // EPS for SDF shape calculations
+        public const int MAX_NEIGHBORS = 64; // Maximum neighbor count returned from a neighbor search
     }
 
 
@@ -18,6 +19,8 @@ namespace EarwaxSim
         public Vector3[] currentPosition;
         public Vector3[] previousPosition;
         public Vector3[] velocity;
+
+        // NOTE: Both mass and inverse mass are stored to prevent calculating 1 / mass
         public float[] invMass;
         public float[] mass;
 
@@ -54,6 +57,7 @@ namespace EarwaxSim
             this.neighborBuffer = new int[Constants.MAX_NEIGHBORS]; // Array of neighbor ints to be reused for GetNeighbors
         }
 
+        // Calculates the cell a particle is inside based on its position
         public (int, int, int) CalcCellCoord(Vector3 position)
         {
             return (
@@ -63,6 +67,7 @@ namespace EarwaxSim
                 );
         }
 
+        // Hash function that turns cell coordinate into a key for the spatial hash
         public long HashCoord(int x_coord, int y_coord, int z_coord)
         {
             const int SHIFT = 20;
@@ -154,7 +159,5 @@ namespace EarwaxSim
                     }
             return (this.neighborBuffer, neighborCount);
         }
-
     }
-
 }

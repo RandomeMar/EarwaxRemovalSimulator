@@ -103,6 +103,7 @@ namespace EarwaxSim
             }
         }
 
+        // Updates rest lengths based on principles of plasticity and viscoelasticity
         public void UpdateRestLengths(ParticleSet ps, float dt)
         {
             for (int index = 0; index < this.constraints.Length; index++)
@@ -130,6 +131,7 @@ namespace EarwaxSim
                     continue;
                 }
 
+                // If strain is too large, plastically deform
                 if (Mathf.Abs(strain) > this.yieldStrain)
                 {
                     float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.targetRestLength * dt;
@@ -218,7 +220,7 @@ namespace EarwaxSim
                     float term = (this.h2 - distVec.sqrMagnitude);
 
                     density += mj * this.poly6Coef * term * term * term; // Poly-6 kernel smoothing function
-                    this.gradBuffer[iter] = mj * this.poly6GradCoef * term * term * distVec; // Gradient of Poly-6
+                    this.gradBuffer[iter] = mj * this.poly6GradCoef * term * term * distVec; // Gradient of Poly-6. NOTE: May be better to use gradient of Spiky kernel
 
                     gradi -= this.gradBuffer[iter];
                     denom += this.gradBuffer[iter].sqrMagnitude * ps.invMass[j];
@@ -281,6 +283,7 @@ namespace EarwaxSim
 
         }
         
+        // DEPRECATED
         public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
             float alpha = this.compliance / (dt * dt);
@@ -480,12 +483,13 @@ namespace EarwaxSim
             this.canal.transform.position += cNormalCorrection;
         }
     }
-
+    
+    // Single adhesion constraint between a particle and an anchor position
     public struct AdhesionConstraint
     {
-        public Vector3 localAnchorPos;
+        public Vector3 localAnchorPos; // NOTE: This uses local anchor position, because otherwise if a collider moved, the anchor would be in the air
         public bool isActive;
-        public CollisionShape shape;
+        public CollisionShape shape; // Collider that the anchor is attached to
         public float compliance;
         public float breakDist;
 
@@ -505,6 +509,7 @@ namespace EarwaxSim
 
     }
 
+    // Solves adhesion constraints
     public class AdhesionConstraintSolver : IConstraintSolver
     {
         public float[] lambdas;

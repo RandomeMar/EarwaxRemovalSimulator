@@ -97,7 +97,7 @@ namespace EarwaxSim
             this.particleSize = particleSize;
         }
 
-        public void DrawLattice(CollisionObjectBase obj)
+        public void DrawLattice(CollisionObjectBase obj, float cutoff)
         {
             float xSpacing = this.size.x / (this.resolution.x - 1); // Length / (n - 1)
             float ySpacing = this.size.y / (this.resolution.y - 1);
@@ -108,8 +108,9 @@ namespace EarwaxSim
             float zStart = -this.size.z / 2;
 
             Gizmos.color = new(1f, 0f, 0f, .9f);
-
-            Gizmos.DrawWireCube(obj.transform.position, this.size);
+            Gizmos.matrix = obj.transform.localToWorldMatrix;
+            Gizmos.DrawWireCube(Vector3.zero, this.size);
+            Gizmos.matrix = Matrix4x4.identity;
 
             for (int x = 0; x < this.resolution.x; x++)
             {
@@ -124,7 +125,7 @@ namespace EarwaxSim
                         float sd = obj.GetSignedDistance(globalPos, 0f);
 
                         // Draw lattice particle
-                        if (sd <= 0f) Gizmos.DrawCube(globalPos, Vector3.one * this.particleSize);
+                        if (Mathf.Abs(sd) <= cutoff) Gizmos.DrawCube(globalPos, Vector3.one * this.particleSize);
                     }
                 }
             }
@@ -202,7 +203,7 @@ namespace EarwaxSim
                 curr = curr.parent;
             }
 
-            return this.owner.transform.TransformDirection(ownerLocalDir);
+            return this.owner.transform.TransformVector(ownerLocalDir);
         }
 
         public CollisionInfo GetCollisionInfoPoint(Vector3 particlePos)
@@ -459,6 +460,114 @@ namespace EarwaxSim
         {
             Vector2 q = new(new Vector2(pLocal.x, pLocal.z).magnitude - this.rMajor, pLocal.y);
             return q.magnitude - this.rMinor;
+        }
+    }
+
+    // Defines an oval cross section cylinder collision shape
+    public class OvalCylinderShape : CollisionShape
+    {
+        public float height;
+        public float rx;
+        public float rz;
+
+        // Cached values
+        protected float rx2;
+        protected float rz2;
+        protected float halfHeight;
+        
+
+        public OvalCylinderShape(Vector3 position, Quaternion rotation, float height, float rx, float rz) : base(position, rotation)
+        {
+            this.height = height;
+            this.rx = rx;
+            this.rz = rz;
+
+            this.rx2 = rx * rx;
+            this.rz2 = rz * rz;
+            this.halfHeight = height / 2f;
+        }
+        public OvalCylinderShape(Vector3 position, Vector3 rotationEuler, float height, float rx, float rz) : this(position, Quaternion.Euler(rotationEuler), height, rx, rz) { }
+
+        protected override CollisionInfo GetCollisionInfoLocal(Vector3 pLocal)
+        {
+            float dy = Mathf.Abs(pLocal.y) - this.halfHeight;
+            float k = Mathf.Sqrt((pLocal.x * pLocal.x) / this.rx2 + (pLocal.z * pLocal.z) / this.rz2);
+
+            float minRadius = Mathf.Min(this.rx, this.rz);
+            float sideDist = (k - 1f) * minRadius; // Aproximate side distance
+
+
+            Vector3 sideNorm; // Sideways normal component
+            {
+                Vector3 grad = new Vector3(
+                    pLocal.x / this.rx2,
+                    0f,
+                    pLocal.z / this.rz2
+                );
+
+                sideNorm = (grad.sqrMagnitude <= Constants.EPS) ? Vector3.right : grad.normalized;
+            }
+
+            // Cap normal
+            Vector3 capNorm = (pLocal.y >= 0f) ? Vector3.up : Vector3.down;
+
+
+            float signedDist;
+            Vector3 normal;
+
+            // Outside corner
+            if (sideDist > 0 && dy > 0)
+            {
+                signedDist = Mathf.Sqrt(sideDist * sideDist + dy * dy);
+
+                // Blend side and cap normals
+                Vector3 corner = sideNorm * sideDist + capNorm * dy;
+
+                normal = (corner.sqrMagnitude <= Constants.EPS) ? capNorm : corner.normalized;
+            }
+            // Outside side only
+            else if (sideDist > 0)
+            {
+                signedDist = sideDist;
+                normal = sideNorm;
+            }
+            // Outside cap only
+            else if (dy > 0)
+            {
+                signedDist = dy;
+                normal = capNorm;
+            }
+            // Inside cylinder
+            else
+            {
+                signedDist = Mathf.Max(sideDist, dy);
+                normal = (sideDist > dy) ? sideNorm : capNorm;
+            }
+
+            return new CollisionInfo(signedDist, normal, this);
+        }
+
+        protected override float GetSignedDistanceLocal(Vector3 pLocal)
+        {
+            float dy = Mathf.Abs(pLocal.y) - this.halfHeight;
+            float k = Mathf.Sqrt((pLocal.x * pLocal.x) / this.rx2 + (pLocal.z * pLocal.z) / this.rz2);
+
+            float minRadius = Mathf.Min(this.rx, this.rz);
+            float sideDist = (k - 1f) * minRadius; // Aproximate side distance
+
+
+            float signedDist;
+
+            // Outside corner
+            if (sideDist > 0 && dy > 0) signedDist = Mathf.Sqrt(sideDist * sideDist + dy * dy);
+            // Outside side only
+            else if (sideDist > 0) signedDist = sideDist;
+            // Outside cap only
+            else if (dy > 0) signedDist = dy;
+            // Inside cylinder
+            else signedDist = Mathf.Max(sideDist, dy);
+
+            return signedDist;
         }
     }
 

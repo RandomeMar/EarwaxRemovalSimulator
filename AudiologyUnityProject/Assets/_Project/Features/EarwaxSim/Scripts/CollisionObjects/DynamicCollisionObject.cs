@@ -14,6 +14,8 @@ namespace EarwaxSim
         public Vector3Int viewResolution;
         [Min(0f)]
         public float viewParticleSize = .1f;
+        [Min(0f)]
+        public float viewCutoff = .1f;
 
         // Input
         protected PlayerInput playerInput;
