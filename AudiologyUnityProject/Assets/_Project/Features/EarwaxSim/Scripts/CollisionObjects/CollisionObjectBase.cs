@@ -23,7 +23,7 @@ namespace EarwaxSim
 
         public MaterialProperties matProps;
 
-        public Collider unityCollider;
+        //public Collider unityCollider;
         public List<Collider> unityColliders = new List<Collider>(2);
         protected CollisionShape shape;
 

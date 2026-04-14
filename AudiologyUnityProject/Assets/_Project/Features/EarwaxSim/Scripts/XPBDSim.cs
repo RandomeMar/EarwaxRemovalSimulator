@@ -419,7 +419,7 @@ namespace EarwaxSim
             if (toolObj != null)
             {
                 toolObj.previousPosition = toolObj.transform.position;
-                toolObj.MoveTarget(dt);
+                //toolObj.MoveTarget(dt);
             }
 
             // 1. Reset lambda
@@ -434,7 +434,7 @@ namespace EarwaxSim
             PredictPositions(ps, dt);
             if (toolObj != null) toolObj.MoveTool(dt);
 
-            // 4. Build spatial grid NOTE: Unsure if grid should be built per frame or per iteration
+            // 4. Build spatial grid. NOTE: This is only built once per frame for performance
             if (denseOn) grid.BuildGrid(ps);
 
             // 5. Solve constraints
@@ -442,19 +442,22 @@ namespace EarwaxSim
             {
                 if (distOn) dist.SolveOnce(ps, dt, grid);
                 if (denseOn) dense.SolveOnce(ps, dt, grid);
-                
-                if (collOn) coll.NewSolveOnce(ps, dt);
-
+                if (collOn) coll.NewSolveOnce(ps, dt); // NOTE: This does not solve particle vs. canal collisions
                 if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
-            // Run canal collisions only once per frame
+
+            // Run canal collisions only once per frame for performance
             float alpha = coll.compliance / (dt * dt);
             coll.SolvePSCollider(ps, coll.canal, alpha);
 
+            // Update rest lengths after solving
             if (distOn) dist.UpdateRestLengths(ps, dt);
 
             // 6. Update velocities
             UpdateVelocities(ps, dt);
+
+            // Reset target back to current position
+            if (toolObj != null) toolObj.ResetTarget();
 
         }
 

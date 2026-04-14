@@ -259,7 +259,6 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
   targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
-  unityCollider: {fileID: 189487210}
   unityColliders: []
   drawRoom: 0
 --- !u!4 &189487208
@@ -487,10 +486,11 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   targetPosition: {x: -3.8, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
-  unityCollider: {fileID: 808136099}
-  unityColliders: []
+  unityColliders:
+  - {fileID: 808136099}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 5
+  maxSpeed: 10
   viewSize: {x: 4, y: 2, z: 4}
   viewResolution: {x: 15, y: 10, z: 15}
   viewParticleSize: 0.1

@@ -8,6 +8,7 @@ namespace EarwaxSim
         [Header("Tool Movement Settings")]
         public GameObject keyboardInputManager;
         public float toolSpeed = 2f;
+        public float maxSpeed = 10f;
 
         [Header("Viewer Settings")]
         public Vector3 viewSize;
@@ -22,15 +23,30 @@ namespace EarwaxSim
         protected InputAction moveToolAction;
         
 
+        // Moves target position based on keyboard input
         public void MoveTarget(float dt)
         {
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
-            this.targetPosition = this.transform.position + moveDir * toolSpeed * dt;
+            this.targetPosition += moveDir * toolSpeed * dt;
         }
 
+        public void ResetTarget()
+        {
+            this.targetPosition = this.transform.position;
+        }
+
+        // Moves tool position based on target position
         public void MoveTool(float dt)
         {
-            this.transform.position = this.targetPosition;
+            Vector3 delta = this.targetPosition - this.transform.position;
+            float dist = delta.magnitude;
+
+            if (dist <= Constants.EPS) return;
+
+            float maxStep = maxSpeed * dt;
+            float step = Mathf.Min(dist, maxStep);
+
+            this.transform.position += delta / dist * step;
         }
 
 

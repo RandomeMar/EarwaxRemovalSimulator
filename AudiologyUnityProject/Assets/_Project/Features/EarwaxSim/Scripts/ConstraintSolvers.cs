@@ -454,33 +454,39 @@ namespace EarwaxSim
         // Solves unity based collider vs unity based collider collisions
         private void SolveColliderCollider(float alpha)
         {
-            if (!Physics.ComputePenetration(
-                this.tool.unityCollider,
-                this.tool.transform.position,
-                this.tool.transform.rotation,
-                this.canal.unityCollider,
-                this.canal.transform.position,
-                this.canal.transform.rotation,
-                out Vector3 collNorm,
-                out float c)) return;
+            foreach (Collider toolColl in this.tool.unityColliders)
+            {
+                foreach (Collider canalColl in this.canal.unityColliders)
+                {
+                    if (!Physics.ComputePenetration(
+                        toolColl,
+                        this.tool.transform.position,
+                        this.tool.transform.rotation,
+                        canalColl,
+                        this.canal.transform.position,
+                        this.canal.transform.rotation,
+                        out Vector3 collNorm,
+                        out float c)) continue;
 
-            float wt = this.tool.invMass;
-            float wc = this.canal.invMass;
+                    float wt = this.tool.invMass;
+                    float wc = this.canal.invMass;
 
-            // Check if denom is close to 0
-            float denom = (wt + wc + alpha);
-            if (denom <= Constants.EPS) return;
+                    // Check if denom is close to 0
+                    float denom = (wt + wc + alpha);
+                    if (denom <= Constants.EPS) continue;
 
-            // Calculate delta lambda
-            float deltaLambda = c / denom;
+                    // Calculate delta lambda
+                    float deltaLambda = c / denom;
 
-            // Calculate normal correction
-            Vector3 tNormalCorrection = deltaLambda * wt * collNorm;
-            Vector3 cNormalCorrection = -deltaLambda * wc * collNorm;
+                    // Calculate normal correction
+                    Vector3 tNormalCorrection = deltaLambda * wt * collNorm;
+                    Vector3 cNormalCorrection = -deltaLambda * wc * collNorm;
 
-            // Update position
-            this.tool.transform.position += tNormalCorrection;
-            this.canal.transform.position += cNormalCorrection;
+                    // Update position
+                    this.tool.transform.position += tNormalCorrection;
+                    this.canal.transform.position += cNormalCorrection;
+                }
+            }
         }
     }
     

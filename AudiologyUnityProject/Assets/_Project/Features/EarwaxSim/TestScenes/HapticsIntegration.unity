@@ -228,7 +228,7 @@ Transform:
   m_GameObject: {fileID: 168345640}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.443, y: -0.865, z: -0.089}
+  m_LocalPosition: {x: -0.443, y: -0.843, z: -0.161}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -289,7 +289,6 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
   targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
-  unityCollider: {fileID: 189487210}
   unityColliders:
   - {fileID: 189487210}
   drawRoom: 1
@@ -430,31 +429,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.55
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.67
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.91
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.49864557
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.5013508
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.49864557
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.5013508
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -466,7 +465,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: -90.31
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_ConstrainProportionsScale
@@ -534,7 +533,6 @@ MonoBehaviour:
   previousRotation: {x: 0, y: -0, z: -0, w: 1}
   targetPosition: {x: -0.55, y: 2.67, z: 0.7}
   targetRotation: {x: 0, y: -0, z: -0, w: 1}
-  unityCollider: {fileID: 444514386}
   unityColliders:
   - {fileID: 444514386}
   canalNodes:
@@ -599,8 +597,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.15, y: 4.6, z: 4.17}
-  m_Center: {x: 0.51, y: -0.05, z: -0.3}
+  m_Size: {x: 2.16, y: 4.6, z: 4.17}
+  m_Center: {x: 0.98, y: -0.05, z: -0.3}
 --- !u!1 &641530791
 GameObject:
   m_ObjectHideFlags: 0
@@ -814,11 +812,11 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   targetPosition: {x: -3.8, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
-  unityCollider: {fileID: 808136099}
   unityColliders:
   - {fileID: 808136099}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 15
+  maxSpeed: 10
   viewSize: {x: 4, y: 2, z: 4}
   viewResolution: {x: 15, y: 10, z: 15}
   viewParticleSize: 0.1
@@ -945,7 +943,7 @@ Transform:
   m_GameObject: {fileID: 813540063}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.597, y: -0.813, z: 0.423}
+  m_LocalPosition: {x: -0.597, y: -0.865, z: 0.423}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -989,14 +987,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 881206090}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.550772, y: 0, z: 0, w: 0.8346557}
-  m_LocalPosition: {x: 1.61, y: 6, z: -2.04}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.46, y: -0.77, z: -2.04}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2113227066}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 66.84, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &947317615
 GameObject:
   m_ObjectHideFlags: 0
@@ -1135,14 +1133,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   tool: {fileID: 1730496948}
   room: {fileID: 444514383}
-  drawParticles: 0
+  drawParticles: 1
   particleViewRadius: 0.5
   drawDist: 0
   drawAdhes: 1
   solverIterations: 3
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 0.99
-  latticeOrigin: {x: 0, y: 8.4, z: 1.41}
+  latticeOrigin: {x: 4.11, y: -2.89, z: 3.08}
   latticeParticleCount: 8
   latticeLength: 2
   particleRadius: 1.2
@@ -1568,15 +1566,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.7194922
+      value: 5.84
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.92
+      value: -2.15
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.9171965
+      value: -7.4
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1661,20 +1659,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e38ff7b79b632c46a0d2206a35d032a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CuretteCollisionObject
-  invMass: 0.01
+  invMass: 0.1
   dynamicFriction: 0.6
   adhesCompliance: 0.05
   adhesBreakDist: 0.5
-  previousPosition: {x: 3.7194922, y: 3.92, z: -1.9171965}
+  previousPosition: {x: 5.84, y: -2.15, z: -7.4}
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
-  targetPosition: {x: 3.7194922, y: 3.92, z: -1.9171965}
+  targetPosition: {x: 5.84, y: -2.15, z: -7.4}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
-  unityCollider: {fileID: 1730496950}
   unityColliders:
-  - {fileID: 1730496950}
   - {fileID: 1730496949}
+  - {fileID: 1730496950}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 3
+  maxSpeed: 10
   viewSize: {x: 1.2, y: 0.5, z: 1.2}
   viewResolution: {x: 20, y: 10, z: 20}
   viewParticleSize: 0.05
@@ -1854,7 +1852,7 @@ Transform:
   m_GameObject: {fileID: 2113227063}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.3, z: -6.67}
+  m_LocalPosition: {x: 7.87, y: 0, z: -13.07}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
