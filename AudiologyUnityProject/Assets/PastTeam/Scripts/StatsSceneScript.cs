@@ -16,20 +16,21 @@ public class StatsSceneScript : MonoBehaviour
     private string filePath;
     public string mainMenuScene;
 
-    private enum SortMode { LastCompleted, Fastest, Slowest }
-    private SortMode currentSortMode = SortMode.LastCompleted;
+    private enum SortMode { HighestScore, Fastest, LastCompleted}
+    private SortMode currentSortMode = SortMode.HighestScore;
 
     void Start()
     {
-        
+        // Stat data is stored at path:
+        // "C:/Users/ <<your PC username>> /AppData/LocalLow/DefaultCompany/AudiologyUnityProject/stats.json"
         filePath = Application.persistentDataPath + "/stats.json";
 
+        // Starts the drop down menu listener
         if (sortDropdown != null)
         {
             sortDropdown.onValueChanged.RemoveAllListeners();
             sortDropdown.onValueChanged.AddListener(OnSortOptionChanged);
         }
-
         LoadStats();
     }
 
@@ -49,9 +50,11 @@ public class StatsSceneScript : MonoBehaviour
 
     public void LoadStats(string nameFilter = "")
     {
+        // Destroy all previous instances of stat data loaded
         foreach (Transform child in contentParent)
             Destroy(child.gameObject);
 
+        // Reads from stored stat data to build a list of Playername, Playerscore, and times
         if (!File.Exists(filePath)) return;
 
         string json = File.ReadAllText(filePath);
@@ -59,6 +62,7 @@ public class StatsSceneScript : MonoBehaviour
 
         List<(string name, float score, float time)> combined = new List<(string, float, float)>();
 
+        // Builds full list of stat data
         for (int i = 0; i < statsData.playerNames.Count; i++)
         {
             string player = statsData.playerNames[i];
@@ -74,28 +78,36 @@ public class StatsSceneScript : MonoBehaviour
             combined.Add((player, score, time));
         }
 
+        // Switch statement for the drop down menu
         switch (currentSortMode)
         {
-            case SortMode.Fastest:
+            case SortMode.HighestScore:
+                combined.Sort((a, b) => b.score.CompareTo(a.score));
+                break;
+            case SortMode.Fastest :
                 combined.Sort((a, b) => a.time.CompareTo(b.time));
                 break;
-            case SortMode.Slowest:
-                combined.Sort((a, b) => b.time.CompareTo(a.time));
-                break;
             case SortMode.LastCompleted:
+                combined.Reverse();
                 break;
         }
 
+        // Reduce combine list to 5 and fill in user data in list
+        int count = 0;
         foreach (var (player, score, time) in combined)
         {
+            if (count >= 5)
+                break;
             GameObject row = Instantiate(statEntryRowPrefab, contentParent);
             row.transform.Find("PlayerNameText").GetComponent<Text>().text = player;
             row.transform.Find("PlayerScoreText").GetComponent<Text>().text = FormatScore(score);
             row.transform.Find("TimeText").GetComponent<Text>().text = FormatTime(time);
             row.SetActive(true);
+            count++;
         }
     }
 
+    // The drop down menu
     public void OnSortOptionChanged(int index)
     {
         Debug.Log("Dropdown changed: " + index);
@@ -103,13 +115,13 @@ public class StatsSceneScript : MonoBehaviour
         LoadStats(searchInput.text);
     }
 
-
+    // Formats score to 1 decimal place
     private string FormatScore(float score)
     {
-        return score.ToString("F2");
+        return score.ToString("F1");
     }
 
-
+    // Formats time 
     private string FormatTime(float time)
     {
         int minutes = Mathf.FloorToInt(time / 60);
@@ -117,6 +129,7 @@ public class StatsSceneScript : MonoBehaviour
         return string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
+    // Back to main menu button ends all StatManger game objects from running and loads the main scene
     public void BackToMainMenu()
     {
         // Destroy all old StatManagers as a new Statmanager is made to track new player stats

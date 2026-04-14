@@ -26,7 +26,11 @@ public class StatsManager : MonoBehaviour
 
     void Awake() {
 
-        // This is meant to destroy all old Statmanagers, needs to be fixed. Doesn't work.
+        Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
+        Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
+        Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
+
+        // This is meant to destroy all old Statmanagers
         StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
         if (all.Length > 1)
         {

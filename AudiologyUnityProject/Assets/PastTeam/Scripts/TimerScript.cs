@@ -8,8 +8,10 @@ public class TimerScript : MonoBehaviour
 {
 
     [SerializeField] Text timerText;
+    public GameObject XRCameraEar;
     float elapsedTime;
     private bool isRunning = false;
+
 
     public string endGameScene;
 
@@ -27,8 +29,12 @@ public class TimerScript : MonoBehaviour
             if (elapsedTime >= 20f)
             {
                 isRunning = false;
+
                 statsManager.GetComponent<StatsManager>().setElapsedTime(elapsedTime);
                 statsManager.GetComponent<StatsManager>().SaveCurrentRecord();
+                Debug.Log("EAR SIM OFF\n");
+
+                Destroy(XRCameraEar.gameObject);
                 SceneManager.LoadScene(endGameScene);
             }
         }
