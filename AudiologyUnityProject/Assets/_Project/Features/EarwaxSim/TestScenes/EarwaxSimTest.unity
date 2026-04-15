@@ -619,6 +619,12 @@ MonoBehaviour:
   hMult: 1.25
   collOn: 1
   collCompliance: 0
+  useProceduralShape: 1
+  proceduralSeed: 252
+  proceduralRadii: {x: -1.74, y: 1.15, z: -1.72}
+  proceduralNoiseStrength: 0.271
+  proceduralNoiseFrequency: 2.89
+  proceduralNoiseOctaves: 5
 --- !u!1 &1105516528
 GameObject:
   m_ObjectHideFlags: 0
