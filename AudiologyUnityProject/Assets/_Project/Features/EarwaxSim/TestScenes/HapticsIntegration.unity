@@ -1573,7 +1573,6 @@ MonoBehaviour:
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   unityColliders:
   - {fileID: 808136099}
-  useHapticInput: 0
   followTransform: {fileID: 0}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 15
@@ -2866,7 +2865,6 @@ MonoBehaviour:
   unityColliders:
   - {fileID: 1730496949}
   - {fileID: 1730496950}
-  useHapticInput: 0
   followTransform: {fileID: 0}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 3

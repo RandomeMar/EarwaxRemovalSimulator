@@ -25,10 +25,6 @@ public class HapticManager : MonoBehaviour
     // Mouse-mode velocity tracking
     private Vector3 _prevMouseCursorPos;
 
-    // Cached Inverse3 transform for haptic-thread-safe local->world conversion.
-    // Unity transforms cannot be read off the main thread, so we snapshot them in
-    // Update() and the haptic callback reads these volatile fields.
-    private Vector3 _inverse3WorldPos;
     private Quaternion _inverse3WorldRot = Quaternion.identity;
 
 
@@ -43,7 +39,6 @@ public class HapticManager : MonoBehaviour
     private readonly List<CylinderForceFeedback> _cylindersReg = new();
     private readonly List<EarForceFeedback> _earReg = new();
     private readonly List<EarCollision> _earCollisionReg = new();
-    // XPBD tools that want their targetPosition
     private readonly List<DynamicCollisionObject> _dynamicToolsReg = new();
 
     // --- 2. BUFFERS ---
@@ -148,24 +143,16 @@ public class HapticManager : MonoBehaviour
         _cntEarCollisions = FillBuffer(_earCollisionReg, _bufEarCollisions);
         _cntDynamicTools = FillBuffer(_dynamicToolsReg, _bufDynamicTools);
 
-        // Snapshot the Inverse3 transform so the haptic thread can convert the device local cursor position into world space without touching a Unity Transform off the main thread.
         if (inverse3 != null)
         {
-            var t = inverse3.transform;
-            _inverse3WorldPos = t.position;
-            _inverse3WorldRot = t.rotation;
+            _inverse3WorldRot = inverse3.transform.rotation;
         }
 
-        // Mouse fallback, run force loop on main thread (no device to send to, but keeps collision logic alive for visual/debug feedback)
         if (useMouse && mouseCursor != null)
         {
             Vector3 pos = mouseCursor.position;
             Vector3 vel = (pos - _prevMouseCursorPos) / Time.deltaTime;
             _prevMouseCursorPos = pos;
-
-            // Drive any haptic input XPBD tools from the mouse cursor in world space. Mirror of the haptic-thread branch in OnDeviceStateChanged.
-            for (int i = 0; i < _cntDynamicTools; i++)
-                _bufDynamicTools[i].MoveTarget(pos);
 
             RunForceLoop(pos, vel, mouseCursorRadius);
         }
@@ -223,23 +210,17 @@ public class HapticManager : MonoBehaviour
         Vector3 vel    = args.DeviceController.CursorLocalVelocity;
         float   radius = args.DeviceController.Cursor.Radius;
 
-        /*Push the Haply pose into any registered XPBD dynamic tools. We convert the device's local cursor position into world space using the cached
-        Inverse3 transform (the Transform itself is main-thread only). XPBDSim.FixedUpdate still rate-limits the actual collider chasing the target, so a fast stylus cannot teleport through wax particles.*/
         Vector3 waxForceLocal = Vector3.zero;
         if (_cntDynamicTools > 0)
         {
-            Vector3 worldPose = _inverse3WorldPos + (_inverse3WorldRot * pos);
             Quaternion invRot = Quaternion.Inverse(_inverse3WorldRot);
             for (int i = 0; i < _cntDynamicTools; i++)
             {
-                _bufDynamicTools[i].MoveTarget(worldPose);
-                // Force feedback read the world-space reaction force XPBDSim published  last FixedUpdate, rotate into device-local, accumulate. Same cached rotation we use for the input direction, opposite operation.
                 waxForceLocal += invRot * _bufDynamicTools[i].collisionForceWorld;
             }
             waxForceLocal *= waxForceGain;
         }
 
-        // RunForceLoop already clamps its own output to 3 N. Add wax force then re-clamp the sum so the device never sees more than 3 N regardless of source.
         Vector3 totalForce = Vector3.ClampMagnitude(RunForceLoop(pos, vel, radius) + waxForceLocal, 3.0f);
         args.DeviceController.SetCursorLocalForce(totalForce);
     }
