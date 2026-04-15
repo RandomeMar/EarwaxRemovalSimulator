@@ -23,6 +23,15 @@ public class CuretteCollisionObject : DynamicCollisionObject
         base.Awake();
 
         viewer = new(viewSize, viewResolution, viewParticleSize);
+        if (useHapticInput && Application.isPlaying)
+        {
+            var manager = FindFirstObjectByType<HapticManager>();
+            if (manager != null)
+                manager.RegisterDynamicTool(this);
+            else
+                Debug.LogWarning(
+                    $"[CuretteCollisionObject] useHapticInput is on but no HapticManager was found in the scene.");
+        }
     }
 
     private void OnValidate()

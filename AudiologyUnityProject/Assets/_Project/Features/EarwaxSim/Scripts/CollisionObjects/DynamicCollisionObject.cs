@@ -6,7 +6,10 @@ namespace EarwaxSim
     public abstract class DynamicCollisionObject : CollisionObjectBase
     {
         [Header("Tool Movement Settings")]
-        public GameObject keyboardInputManager;
+        public bool useHapticInput = false; //tick on if this tool should be driven by a Haply device via HapticManager. Leave off to use the fallbacks below.
+        public Transform followTransform; //optional fallback. If assigned, tool will chase this transform's position. If null, falls back to keyboard input (if keyboardInputManager is assigned) or no movement at all.
+        public GameObject keyboardInputManager; 
+
         public float toolSpeed = 2f;
         public float maxSpeed = 10f;
 
@@ -21,13 +24,23 @@ namespace EarwaxSim
         // Input
         protected PlayerInput playerInput;
         protected InputAction moveToolAction;
+
+        // Force feedback handoff. Written by XPBDSim.FixedUpdate on the main thread
+        [System.NonSerialized] public Vector3 collisionForceWorld;
         
 
-        // Moves target position based on keyboard input
+        // Moves target position based on keyboard input. if no keyboard input manager is assigned
         public void MoveTarget(float dt)
         {
+            if (moveToolAction == null) return;
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
             this.targetPosition += moveDir * toolSpeed * dt;
+        }
+
+        //Called from HapticManager on the haptic thread
+        public virtual void MoveTarget(Vector3 pose)
+        {
+            this.targetPosition = pose;
         }
 
         public void ResetTarget()
@@ -54,12 +67,25 @@ namespace EarwaxSim
         {
             base.Awake(); // Calls BuildShapeTree and BuildMatProps
 
-            playerInput = keyboardInputManager.GetComponent<PlayerInput>();
-            moveToolAction = playerInput.actions.FindAction("MoveTool");
+            // Keyboard input is optional if no manager is assigned, HaplyToolDriver is expected to write targetPosition.
+            if (keyboardInputManager != null)
+            {
+                playerInput = keyboardInputManager.GetComponent<PlayerInput>();
+                if (playerInput != null)
+                    moveToolAction = playerInput.actions.FindAction("MoveTool");
+            }
         }
 
         private void Update()
         {
+            if (useHapticInput) return;
+
+            if (followTransform != null)
+            {
+                this.targetPosition = followTransform.position;
+                return;
+            }
+            if (moveToolAction == null) return;
             float dt = Time.deltaTime;
             MoveTarget(dt);
         }

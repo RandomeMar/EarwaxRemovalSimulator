@@ -456,6 +456,14 @@ namespace EarwaxSim
             // 6. Update velocities
             UpdateVelocities(ps, dt);
 
+            // Force feedback handof publish the accumulated tool reaction impulse
+            // Cleared here so the next FixedUpdate starts from zero.
+            if (toolObj != null && coll != null)
+            {
+                toolObj.collisionForceWorld = coll.ToolImpulseAccum / dt;
+                coll.ClearToolImpulse();
+            }
+
             // Reset target back to current position
             if (toolObj != null) toolObj.ResetTarget();
 
