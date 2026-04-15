@@ -25,6 +25,19 @@ public class StatsDelete : MonoBehaviour
         // path of saved password file
         filePath = Application.persistentDataPath + "/gate.json";
 
+        // If password file is not found, create a new one with initial password "Abc123"
+        if (!File.Exists(filePath)) 
+        {   
+            PassData passwordData = new PassData();
+            passwordData.gatePass.Add("Abc123");
+            string json = JsonUtility.ToJson(passwordData, true);
+            File.WriteAllText(filePath, json);
+
+            Debug.Log("Password file created\n" + filePath);
+        }
+        else
+            Debug.Log("Password File Found!");
+
         // Set wrong and correct password windows to not display
         statsDeleteButton.gameObject.SetActive(false);
         statsWrongPassButton.gameObject.SetActive(false);
