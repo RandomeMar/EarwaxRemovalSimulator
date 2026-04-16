@@ -272,9 +272,9 @@ namespace EarwaxSim
         public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
 
         //Force feedback
-        private Vector3 _toolImpulseAccum;
-        public Vector3 ToolImpulseAccum => _toolImpulseAccum;
-        public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
+        // private Vector3 _toolImpulseAccum;
+        // public Vector3 ToolImpulseAccum => _toolImpulseAccum;
+        // public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
 
         public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
@@ -388,7 +388,7 @@ namespace EarwaxSim
         {
             float wo = obj.invMass;
             // Only the tool feeds force feedback. Canal collisions go through the same function
-            bool accumImpulse = (obj == this.tool);
+            // bool accumImpulse = (obj == this.tool);
             for (int i = 0; i < ps.count; i++)
             {
                 if (ps.invMass[i] == 0) continue;
@@ -418,7 +418,7 @@ namespace EarwaxSim
                 obj.transform.position += oNormalCorrection;
 
                 // Force feedback: virtual normal impulse on the tool.
-                if (accumImpulse) _toolImpulseAccum += -deltaLambda * collNorm;
+                // if (accumImpulse) _toolImpulseAccum += -deltaLambda * collNorm;
 
 
                 // ------ Adhesion ------
@@ -459,7 +459,7 @@ namespace EarwaxSim
                     obj.transform.position -= (wo / wSum) * frictionCorrectionRel; // Inverse of particle correction
 
                     // Force feedback - tangential reaction on the tool
-                    if (accumImpulse) _toolImpulseAccum += -frictionCorrectionRel;
+                    // if (accumImpulse) _toolImpulseAccum += -frictionCorrectionRel;
                 }
             }
         }
@@ -500,7 +500,7 @@ namespace EarwaxSim
                     this.canal.transform.position += cNormalCorrection;
 
                     // Force feedback- virtual reaction on the tool from the canal wall.
-                    _toolImpulseAccum += deltaLambda * collNorm;
+                    // _toolImpulseAccum += deltaLambda * collNorm;
                 }
             }
         }
