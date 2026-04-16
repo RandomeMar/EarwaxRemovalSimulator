@@ -1,5 +1,6 @@
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
@@ -72,6 +73,7 @@ public class EarwaxBillboardPass : ScriptableRenderPass
         var colorDesc = sceneData.cameraColor.GetDescriptor(renderGraph);
         colorDesc.depthBufferBits = 0;
         colorDesc.name = "BillboardColor";
+        colorDesc.format = GraphicsFormat.R8G8B8A8_UNorm;
         TextureHandle billboardTexture = renderGraph.CreateTexture(in colorDesc);
 
 
