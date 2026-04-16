@@ -443,7 +443,7 @@ namespace EarwaxSim
 
             // 6. Update velocities
             UpdateVelocities(ps, dt);
-            toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) * dt;
+            toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) / dt;
 
             // 7. Send HapticMessage to NewHapticManager from the collision solver
             hapticManager.SetHapticMessage(coll.GetHapticMessage());
