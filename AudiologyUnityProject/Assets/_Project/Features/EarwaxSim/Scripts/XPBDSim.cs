@@ -465,7 +465,7 @@ namespace EarwaxSim
             }
 
             // Reset target back to current position
-            if (toolObj != null) toolObj.ResetTarget();
+            //if (toolObj != null) toolObj.ResetTarget();
 
         }
 

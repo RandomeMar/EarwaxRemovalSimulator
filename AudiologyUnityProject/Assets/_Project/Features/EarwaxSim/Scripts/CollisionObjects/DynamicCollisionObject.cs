@@ -7,6 +7,9 @@ namespace EarwaxSim
     {
         [Header("Tool Movement Settings")]
         public GameObject keyboardInputManager;
+        public GameObject haplyCursor;
+
+        public bool keyboardOn = false;
 
         public float toolSpeed = 2f;
         public float maxSpeed = 10f;
@@ -26,17 +29,20 @@ namespace EarwaxSim
         [System.NonSerialized] public Vector3 collisionForceWorld;
 
 
-        public void MoveTarget(float dt)
+        public virtual void MoveTarget(float dt)
         {
             if (moveToolAction == null) return;
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
-            this.targetPosition += moveDir * toolSpeed * dt;
+
+            //this.targetPosition += moveDir * toolSpeed * dt;
+
+            this.targetPosition = haplyCursor.transform.position;
         }
 
-        public void ResetTarget()
-        {
-            this.targetPosition = this.transform.position;
-        }
+        //public void ResetTarget()
+        //{
+        //    this.targetPosition = this.transform.position;
+        //}
 
         // Moves tool position based on target position
         public void MoveTool(float dt)

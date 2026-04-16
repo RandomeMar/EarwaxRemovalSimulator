@@ -67,5 +67,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 391b70e70092a614ba22a0eaec1388ed, type: 3}
   m_Name: EarwaxMetaballFeature
   m_EditorClassIdentifier: Assembly-CSharp::EarwaxMetaballFeature
-  m_Active: 1
+  m_Active: 0
   particleRenderer: {fileID: 0}
+  compositeMaterial: {fileID: 2100000, guid: e9b4d152bf5067747a547b033d46bf07, type: 2}

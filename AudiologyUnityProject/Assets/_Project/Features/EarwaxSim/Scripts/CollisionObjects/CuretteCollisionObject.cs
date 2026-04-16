@@ -23,12 +23,12 @@ public class CuretteCollisionObject : DynamicCollisionObject
         base.Awake();
 
         viewer = new(viewSize, viewResolution, viewParticleSize);
-        if (Application.isPlaying)
-        {
-            var manager = FindFirstObjectByType<HapticManager>();
-            if (manager != null)
-                manager.RegisterDynamicTool(this);
-        }
+        //if (Application.isPlaying)
+        //{
+        //    var manager = FindFirstObjectByType<HapticManager>();
+        //    if (manager != null)
+        //        manager.RegisterDynamicTool(this);
+        //}
     }
 
     private void OnValidate()
