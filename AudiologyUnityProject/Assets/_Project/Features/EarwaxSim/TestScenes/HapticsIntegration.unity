@@ -1592,7 +1592,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   sim: {fileID: 1039142607}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  material: {fileID: 2100000, guid: 152c7b6e904bc4249b8d21e6b9ca6e54, type: 2}
+  material: {fileID: 2100000, guid: ca7f507eff738b64ca955e808c8d0095, type: 2}
 --- !u!4 &1105516530
 Transform:
   m_ObjectHideFlags: 0
