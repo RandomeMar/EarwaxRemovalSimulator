@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class NewHapticManager : MonoBehaviour
 {
-    public Inverse3Controller inverse3;
+    public Inverse3Controller _inverse3;
     public CuretteCollisionObject curette;
 
     [Min(0)]
@@ -18,9 +18,20 @@ public class NewHapticManager : MonoBehaviour
     // SAFETY FLAG: Stops the loop instantly if the object is dying
     private bool _isDestroyed = false;
 
+    private Quaternion _inverse3WorldRot = Quaternion.identity;
+
     private void OnEnable()
     {
-        if (inverse3 == null) inverse3 = FindFirstObjectByType<Inverse3Controller>();
+        _isDestroyed = false;
+
+        if (_inverse3 == null) _inverse3 = GetComponentInChildren<Inverse3Controller>();
+
+        if (_inverse3 != null)
+        {
+            // Unsubscribe first just in case (prevents double-subscription)
+            _inverse3.DeviceStateChanged -= OnDeviceStateChanged;
+            _inverse3.DeviceStateChanged += OnDeviceStateChanged;
+        }
     }
     private void OnDisable()
     {
@@ -39,19 +50,31 @@ public class NewHapticManager : MonoBehaviour
 
     private void Cleanup()
     {
-        if (inverse3 != null)
+        _isDestroyed = true;
+
+        if (_inverse3 != null)
         {
             // 1. Unsubscribe immediately so memory can be freed
-            inverse3.DeviceStateChanged -= OnDeviceStateChanged;
+            _inverse3.DeviceStateChanged -= OnDeviceStateChanged;
 
             // 2. FORCE RELEASE (Stop the motors)
-            if (inverse3.IsReady)
+            if (_inverse3.IsReady)
             {
-                inverse3.SetCursorLocalForce(Vector3.zero); // Send one last zero
-                inverse3.Release(); // Kill the connection
+                _inverse3.SetCursorLocalForce(Vector3.zero); // Send one last zero
+                _inverse3.Release(); // Kill the connection
             }
         }
     }
+
+    private void Update()
+    {
+        if (_inverse3 != null)
+        {
+            _inverse3WorldRot = _inverse3.transform.rotation;
+        }
+    }
+
+
 
     void OnDeviceStateChanged(object sender, Inverse3EventArgs args)
     {
@@ -60,14 +83,16 @@ public class NewHapticManager : MonoBehaviour
         if (_isDestroyed || this == null)
             return;
 
+        var inverse3 = args.DeviceController;
+
         // Vector from target to the curette
-        Vector3 force = curette.transform.position - args.DeviceController.transform.position;
+        Vector3 force = curette.transform.position - inverse3.CursorPosition;
 
         force *= strength;
 
-        Vector3 totalForce = force.magnitude > MAX_FORCE ? force.normalized * MAX_FORCE : force;
+        Vector3 totalForce = Vector3.ClampMagnitude(force, MAX_FORCE);
 
-        args.DeviceController.SetCursorLocalForce(totalForce);
+        inverse3.SetCursorLocalForce(totalForce);
     }
 
 }
