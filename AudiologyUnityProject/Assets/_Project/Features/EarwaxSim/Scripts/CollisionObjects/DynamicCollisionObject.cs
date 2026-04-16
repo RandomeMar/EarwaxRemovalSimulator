@@ -6,7 +6,6 @@ namespace EarwaxSim
     public abstract class DynamicCollisionObject : CollisionObjectBase
     {
         [Header("Tool Movement Settings")]
-        public Transform followTransform;
         public GameObject keyboardInputManager;
 
         public float toolSpeed = 2f;
@@ -66,13 +65,8 @@ namespace EarwaxSim
             }
         }
 
-        private void Update()
+        protected virtual void Update()
         {
-            if (followTransform != null)
-            {
-                this.targetPosition = followTransform.position;
-                return;
-            }
             if (moveToolAction == null) return;
             float dt = Time.deltaTime;
             MoveTarget(dt);

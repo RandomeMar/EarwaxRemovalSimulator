@@ -1573,7 +1573,6 @@ MonoBehaviour:
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   unityColliders:
   - {fileID: 808136099}
-  followTransform: {fileID: 0}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 15
   maxSpeed: 10
@@ -2826,6 +2825,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1730496951}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1730496953}
   m_SourcePrefab: {fileID: 100100000, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
 --- !u!1 &1730496948 stripped
 GameObject:
@@ -2849,7 +2851,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1730496948}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6e38ff7b79b632c46a0d2206a35d032a, type: 3}
   m_Name: 
@@ -2865,7 +2867,6 @@ MonoBehaviour:
   unityColliders:
   - {fileID: 1730496949}
   - {fileID: 1730496950}
-  followTransform: {fileID: 0}
   keyboardInputManager: {fileID: 1455697835}
   toolSpeed: 3
   maxSpeed: 10
@@ -2882,6 +2883,38 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
   m_PrefabInstance: {fileID: 1730496947}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1730496953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1730496948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cfa96dfabc762549ad8dfc0d9967c9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CuretteCollisionObjectHaply
+  invMass: 0
+  dynamicFriction: 0
+  adhesCompliance: 0
+  adhesBreakDist: 0
+  previousPosition: {x: 5.84, y: -2.15, z: -7.400001}
+  previousRotation: {x: -0, y: -0, z: -0, w: 1}
+  targetPosition: {x: 5.84, y: -2.15, z: -7.400001}
+  targetRotation: {x: -0, y: -0, z: -0, w: 1}
+  unityColliders: []
+  keyboardInputManager: {fileID: 0}
+  toolSpeed: 2
+  maxSpeed: 10
+  viewSize: {x: 0, y: 0, z: 0}
+  viewResolution: {x: 0, y: 0, z: 0}
+  viewParticleSize: 0.1
+  viewCutoff: 0.1
+  rMajor: 0
+  rMinor: 0
+  xRotation: 0
+  drawShape: 0
 --- !u!1001 &1844037487
 PrefabInstance:
   m_ObjectHideFlags: 0
