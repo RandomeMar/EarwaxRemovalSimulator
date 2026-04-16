@@ -1,0 +1,27 @@
+using System;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+public class EarwaxMetaballFeature : ScriptableRendererFeature
+{
+    [SerializeField] private ParticleRenderer particleRenderer;
+    [SerializeField] private Material compositeMaterial;
+
+    private EarwaxBillboardPass pass;
+
+    public override void Create()
+    {
+        pass = new EarwaxBillboardPass();
+    }
+
+    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+    {
+        particleRenderer = ParticleRenderer.current;
+
+        if (particleRenderer == null) return;
+
+        pass.Setup(particleRenderer, compositeMaterial);
+        renderer.EnqueuePass(pass);
+    }
+}

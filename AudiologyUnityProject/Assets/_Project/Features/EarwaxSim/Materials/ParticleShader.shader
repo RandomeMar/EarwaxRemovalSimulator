@@ -17,6 +17,7 @@ Shader "Custom/ParticleShader"
             // These lines set the functions vert and frag to be the vertex and fragment shaders respectively
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -75,11 +76,11 @@ Shader "Custom/ParticleShader"
 
                 Light mainLight = GetMainLight();
                 float3 lightDir = normalize(mainLight.direction);
-                float diffuse = dot(normalWorld, lightDir); // How aligned the surface normal is with the light direction
+                float diffuse = max(0.0, dot(normalWorld, lightDir)); // How aligned the surface normal is with the light direction
 
                 float ambient = .3;
 
-                return _BaseColor * (diffuse);
+                return float4(_BaseColor.xyz * diffuse, 1.0);
             }
 
             ENDHLSL
