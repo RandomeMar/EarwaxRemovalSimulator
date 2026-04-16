@@ -10,7 +10,10 @@ public class NewHapticManager : MonoBehaviour
     public CuretteCollisionObject curette;
 
     [Min(0)]
-    public float strength;
+    [SerializeField] private float stiffness = 1f;
+
+    [Min(0)]
+    [SerializeField] private float damping = 1f;
 
     [Min(0)]
     public float MAX_FORCE = 10;
@@ -18,12 +21,29 @@ public class NewHapticManager : MonoBehaviour
     // SAFETY FLAG: Stops the loop instantly if the object is dying
     private bool _isDestroyed = false;
 
-    private Quaternion _inverse3WorldRot = Quaternion.identity;
+    private HapticMessage _hapticMessage;
+    public readonly object _hapticLock = new object();
 
-    // Curette Position
-    volatile float curetteX;
-    volatile float curetteY;
-    volatile float curetteZ;
+
+    // Thread-safe setter called by XPBDSim
+    public void SetHapticMessage(HapticMessage value)
+    {
+        lock (_hapticLock)
+        {
+            _hapticMessage = value;
+        }
+    }
+
+    // Thread-safe getter called by NewHapticManager
+    private HapticMessage GetHapticMessage()
+    {
+        lock (_hapticLock)
+        {
+            return _hapticMessage;
+        }
+    }
+
+
 
     private void OnEnable()
     {
@@ -37,21 +57,19 @@ public class NewHapticManager : MonoBehaviour
             _inverse3.DeviceStateChanged -= OnDeviceStateChanged;
             _inverse3.DeviceStateChanged += OnDeviceStateChanged;
         }
-    }
-    private void OnDisable()
-    {
-        Cleanup();
+
+        // Initialize haptic message to 0 values
+        _hapticMessage = new(
+            false,
+            Vector3.zero,
+            0f,
+            Vector3.zero,
+            Vector3.zero);
     }
 
-    private void OnDestroy()
-    {
-        Cleanup();
-    }
-
-    private void OnApplicationQuit()
-    {
-        Cleanup();
-    }
+    private void OnDisable() { Cleanup(); }
+    private void OnDestroy() {  Cleanup(); }
+    private void OnApplicationQuit() {  Cleanup(); }
 
     private void Cleanup()
     {
@@ -72,19 +90,15 @@ public class NewHapticManager : MonoBehaviour
     }
 
 
-    private void Update()
+    // TODO: Implement force formula
+    private Vector3 CalculateForce(HapticMessage msg, Vector3 cursorPos, Vector3 cursorVel)
     {
-        if (_inverse3 != null)
-        {
-            _inverse3WorldRot = _inverse3.transform.rotation;
+        float relVelNorm = Vector3.Dot(msg.toolVelocity - cursorVel, msg.collisionNorm); // Get relative velocity in the normal direction
 
-            curetteX = curette.transform.position.x;
-            curetteY = curette.transform.position.y;
-            curetteZ = curette.transform.position.z;
-        }
+        // Based on F = (k * d -b * Vn) * collisionNormal
+        Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
+        return force;
     }
-
-
 
     void OnDeviceStateChanged(object sender, Inverse3EventArgs args)
     {
@@ -93,16 +107,22 @@ public class NewHapticManager : MonoBehaviour
         if (_isDestroyed || this == null)
             return;
 
+
         var inverse3 = args.DeviceController;
 
-        // Vector from target to the curette
-        Vector3 force = new Vector3(curetteX, curetteY, curetteZ) - inverse3.CursorPosition;
+        // Get haptic message sent from XPBDSim
+        HapticMessage msg = this.GetHapticMessage();
 
-        force *= strength;
 
-        Vector3 totalForce = Vector3.ClampMagnitude(force, MAX_FORCE);
-
-        inverse3.SetCursorLocalForce(totalForce);
+        if (msg.isContact)
+        {
+            Vector3 force = CalculateForce(msg, inverse3.CursorPosition, inverse3.CursorVelocity);
+            inverse3.SetCursorLocalForce(Vector3.ClampMagnitude(force, MAX_FORCE));
+        }
+        else
+        {
+            inverse3.SetCursorLocalForce(Vector3.zero);
+        }
     }
 
 }

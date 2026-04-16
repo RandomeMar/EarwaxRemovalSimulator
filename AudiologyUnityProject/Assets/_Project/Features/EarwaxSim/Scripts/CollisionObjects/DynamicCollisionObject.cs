@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR.Haptics;
 
 namespace EarwaxSim
 {
@@ -34,16 +35,9 @@ namespace EarwaxSim
             if (moveToolAction == null) return;
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
 
-            //this.targetPosition += moveDir * toolSpeed * dt;
-
             this.targetPosition = haplyCursor.transform.position;
             this.targetRotation = haplyCursor.transform.rotation;
         }
-
-        //public void ResetTarget()
-        //{
-        //    this.targetPosition = this.transform.position;
-        //}
 
         // Moves tool position based on target position
         public void MoveTool(float dt)

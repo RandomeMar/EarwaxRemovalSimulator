@@ -21,6 +21,8 @@ namespace EarwaxSim
         [ReadOnly(true)] public Vector3 targetPosition;
         [ReadOnly(true)] public Quaternion targetRotation;
 
+        [ReadOnly(true)] public Vector3 velocity;
+
         public MaterialProperties matProps;
 
         //public Collider unityCollider;
@@ -57,6 +59,7 @@ namespace EarwaxSim
             this.previousRotation = this.transform.rotation;
             this.targetPosition = this.transform.position;
             this.targetRotation = this.transform.rotation;
+            this.velocity = Vector3.zero;
 
             this.matProps = BuildMatProps();
 

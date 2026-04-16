@@ -10,9 +10,12 @@ namespace EarwaxSim
     public class XPBDSim : MonoBehaviour
     {
         #region Public Parameters
+        [Header("Haptic Manager")]
+        public NewHapticManager hapticManager;
+
         [Header("Collision Objects")]
-        public GameObject tool;
-        public GameObject room;
+        public DynamicCollisionObject toolObj;
+        public CollisionObjectBase roomObj;
 
         [Header("Gizmo Debug Settings")]
         public bool drawParticles = true;
@@ -72,10 +75,6 @@ namespace EarwaxSim
         [Min(0f)]
         public float collCompliance;
         #endregion
-
-        // Collision Object Components
-        private DynamicCollisionObject toolObj;
-        private CollisionObjectBase roomObj;
 
         #region Solver Objects
         public ParticleSet ps;
@@ -355,16 +354,6 @@ namespace EarwaxSim
         // Called when the script instance is first initialized
         private void Awake()
         {
-            if (tool != null)
-            {
-                toolObj = tool.GetComponent<DynamicCollisionObject>();
-            }
-
-            if (room != null)
-            {
-                roomObj = room.GetComponent<CollisionObjectBase>();
-            }
-
             BuildSimulation();
         }
 
@@ -415,24 +404,23 @@ namespace EarwaxSim
         {
             float dt = Time.fixedDeltaTime;
 
-            // Move tool
-            if (toolObj != null)
-            {
-                toolObj.previousPosition = toolObj.transform.position;
-                //toolObj.MoveTarget(dt);
-            }
-
             // 1. Reset lambda
             if (distOn) dist.ResetLambda();
             if (denseOn) dense.ResetLambda();
             if (adhesOn) adhes.ResetLambda();
+            if (collOn) coll.ResetLambda(); // Also resets haptic message
 
             // 2. Apply external forces
             ApplyForces(ps, dt);
 
             // 3. Predict positions
             PredictPositions(ps, dt);
-            if (toolObj != null) toolObj.MoveTool(dt);
+
+            if (toolObj != null)
+            {
+                toolObj.previousPosition = toolObj.transform.position;
+                toolObj.MoveTool(dt);
+            } 
 
             // 4. Build spatial grid. NOTE: This is only built once per frame for performance
             if (denseOn) grid.BuildGrid(ps);
@@ -455,18 +443,10 @@ namespace EarwaxSim
 
             // 6. Update velocities
             UpdateVelocities(ps, dt);
+            toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) * dt;
 
-            // Force feedback handof publish the accumulated tool reaction impulse
-            // Cleared here so the next FixedUpdate starts from zero.
-            // if (toolObj != null && coll != null)
-            // {
-            //     toolObj.collisionForceWorld = coll.ToolImpulseAccum / dt;
-            //     coll.ClearToolImpulse();
-            // }
-
-            // Reset target back to current position
-            //if (toolObj != null) toolObj.ResetTarget();
-
+            // 7. Send HapticMessage to NewHapticManager from the collision solver
+            hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 
         // Draws particles and constraints for debugging.

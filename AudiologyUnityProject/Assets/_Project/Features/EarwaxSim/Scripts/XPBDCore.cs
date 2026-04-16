@@ -160,4 +160,34 @@ namespace EarwaxSim
             return (this.neighborBuffer, neighborCount);
         }
     }
+
+    public struct HapticMessage
+    {
+        public bool isContact;
+        public Vector3 collisionNorm;
+        public float penetrationDepth;
+
+        public Vector3 toolPosition;
+        public Vector3 toolVelocity;
+
+        static public HapticMessage Default()
+        {
+            return new HapticMessage(
+                false,
+                Vector3.zero,
+                0f,
+                Vector3.zero,
+                Vector3.zero);
+        }
+        
+        public HapticMessage(bool isContact, Vector3 collisionNorm, float penetrationDepth, Vector3 toolPosition, Vector3 toolVelocity)
+        {
+            this.isContact = isContact;
+            this.collisionNorm = collisionNorm;
+            this.penetrationDepth = penetrationDepth;
+
+            this.toolPosition = toolPosition;
+            this.toolVelocity = toolVelocity;
+        }
+    }
 }

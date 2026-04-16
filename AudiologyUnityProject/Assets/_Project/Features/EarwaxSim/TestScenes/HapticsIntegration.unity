@@ -385,6 +385,7 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
   targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders:
   - {fileID: 189487210}
   drawRoom: 1
@@ -718,6 +719,7 @@ MonoBehaviour:
   previousRotation: {x: 0, y: -0, z: -0, w: 1}
   targetPosition: {x: -0.55, y: 2.67, z: 0.7}
   targetRotation: {x: 0, y: -0, z: -0, w: 1}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders:
   - {fileID: 444514386}
   canalNodes:
@@ -1109,6 +1111,7 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   targetPosition: {x: -3.8, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders:
   - {fileID: 808136099}
   keyboardInputManager: {fileID: 1455697835}
@@ -1483,8 +1486,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00dc09bc49c2d642b24c4d2e36265f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  tool: {fileID: 1730496948}
-  room: {fileID: 444514383}
+  hapticManager: {fileID: 1243392359}
+  toolObj: {fileID: 1730496951}
+  roomObj: {fileID: 444514385}
   drawParticles: 1
   particleViewRadius: 0.5
   drawDist: 0
@@ -2318,6 +2322,7 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
   targetPosition: {x: 5.19, y: -2.4, z: 0}
   targetRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders:
   - {fileID: 1730496949}
   - {fileID: 1730496950}
