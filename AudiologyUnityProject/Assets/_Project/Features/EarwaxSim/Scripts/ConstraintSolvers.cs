@@ -271,6 +271,11 @@ namespace EarwaxSim
 
         public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
 
+        //Force feedback
+        private Vector3 _toolImpulseAccum;
+        public Vector3 ToolImpulseAccum => _toolImpulseAccum;
+        public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
+
         public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
             this.objects = new(1);
@@ -382,6 +387,8 @@ namespace EarwaxSim
         public void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
         {
             float wo = obj.invMass;
+            // Only the tool feeds force feedback. Canal collisions go through the same function
+            bool accumImpulse = (obj == this.tool);
             for (int i = 0; i < ps.count; i++)
             {
                 if (ps.invMass[i] == 0) continue;
@@ -390,7 +397,7 @@ namespace EarwaxSim
                 float c = collisionInfo.signedDistance;
                 Vector3 collNorm = collisionInfo.collNormal;
 
-                // As long as C is not negative, we assume there is no correction to be made
+                // As long as C is not negative, assume there is no correction to be made
                 if (collisionInfo.signedDistance >= 0) continue;
 
                 float wp = ps.invMass[i];
@@ -409,6 +416,9 @@ namespace EarwaxSim
                 // Update position
                 ps.currentPosition[i] += pNormalCorrection;
                 obj.transform.position += oNormalCorrection;
+
+                // Force feedback: virtual normal impulse on the tool.
+                if (accumImpulse) _toolImpulseAccum += -deltaLambda * collNorm;
 
 
                 // ------ Adhesion ------
@@ -447,6 +457,9 @@ namespace EarwaxSim
                     // Update position
                     ps.currentPosition[i] += (wp / wSum) * frictionCorrectionRel;
                     obj.transform.position -= (wo / wSum) * frictionCorrectionRel; // Inverse of particle correction
+
+                    // Force feedback - tangential reaction on the tool
+                    if (accumImpulse) _toolImpulseAccum += -frictionCorrectionRel;
                 }
             }
         }
@@ -485,6 +498,9 @@ namespace EarwaxSim
                     // Update position
                     this.tool.transform.position += tNormalCorrection;
                     this.canal.transform.position += cNormalCorrection;
+
+                    // Force feedback- virtual reaction on the tool from the canal wall.
+                    _toolImpulseAccum += deltaLambda * collNorm;
                 }
             }
         }

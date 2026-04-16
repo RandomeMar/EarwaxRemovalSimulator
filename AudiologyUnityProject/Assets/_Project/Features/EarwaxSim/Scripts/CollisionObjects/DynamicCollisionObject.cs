@@ -7,6 +7,7 @@ namespace EarwaxSim
     {
         [Header("Tool Movement Settings")]
         public GameObject keyboardInputManager;
+
         public float toolSpeed = 2f;
         public float maxSpeed = 10f;
 
@@ -21,11 +22,13 @@ namespace EarwaxSim
         // Input
         protected PlayerInput playerInput;
         protected InputAction moveToolAction;
-        
 
-        // Moves target position based on keyboard input
+        [System.NonSerialized] public Vector3 collisionForceWorld;
+
+
         public void MoveTarget(float dt)
         {
+            if (moveToolAction == null) return;
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
             this.targetPosition += moveDir * toolSpeed * dt;
         }
@@ -52,14 +55,19 @@ namespace EarwaxSim
 
         protected override void Awake()
         {
-            base.Awake(); // Calls BuildShapeTree and BuildMatProps
+            base.Awake();
 
-            playerInput = keyboardInputManager.GetComponent<PlayerInput>();
-            moveToolAction = playerInput.actions.FindAction("MoveTool");
+            if (keyboardInputManager != null)
+            {
+                playerInput = keyboardInputManager.GetComponent<PlayerInput>();
+                if (playerInput != null)
+                    moveToolAction = playerInput.actions.FindAction("MoveTool");
+            }
         }
 
-        private void Update()
+        protected virtual void Update()
         {
+            if (moveToolAction == null) return;
             float dt = Time.deltaTime;
             MoveTarget(dt);
         }
