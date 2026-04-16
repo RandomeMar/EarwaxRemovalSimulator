@@ -20,6 +20,11 @@ public class NewHapticManager : MonoBehaviour
 
     private Quaternion _inverse3WorldRot = Quaternion.identity;
 
+    // Curette Position
+    volatile float curetteX;
+    volatile float curetteY;
+    volatile float curetteZ;
+
     private void OnEnable()
     {
         _isDestroyed = false;
@@ -66,11 +71,16 @@ public class NewHapticManager : MonoBehaviour
         }
     }
 
+
     private void Update()
     {
         if (_inverse3 != null)
         {
             _inverse3WorldRot = _inverse3.transform.rotation;
+
+            curetteX = curette.transform.position.x;
+            curetteY = curette.transform.position.y;
+            curetteZ = curette.transform.position.z;
         }
     }
 
@@ -86,7 +96,7 @@ public class NewHapticManager : MonoBehaviour
         var inverse3 = args.DeviceController;
 
         // Vector from target to the curette
-        Vector3 force = curette.transform.position - inverse3.CursorPosition;
+        Vector3 force = new Vector3(curetteX, curetteY, curetteZ) - inverse3.CursorPosition;
 
         force *= strength;
 
