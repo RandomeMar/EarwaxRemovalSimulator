@@ -18,6 +18,9 @@ public class NewHapticManager : MonoBehaviour
     [Min(0)]
     public float MAX_FORCE = 10;
 
+    [Min(0)]
+    public float minPenetration = .01f;
+
     // SAFETY FLAG: Stops the loop instantly if the object is dying
     private bool _isDestroyed = false;
 
@@ -115,7 +118,7 @@ public class NewHapticManager : MonoBehaviour
         HapticMessage msg = this.GetHapticMessage();
 
 
-        if (msg.isContact)
+        if (msg.isContact && msg.penetrationDepth > minPenetration)
         {
             Vector3 force = CalculateForce(msg, inverse3.CursorPosition, inverse3.CursorVelocity);
             inverse3.SetCursorLocalForce(Vector3.ClampMagnitude(force, MAX_FORCE));
