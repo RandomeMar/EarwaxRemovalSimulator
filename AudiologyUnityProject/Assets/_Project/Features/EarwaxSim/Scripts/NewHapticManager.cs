@@ -96,7 +96,8 @@ public class NewHapticManager : MonoBehaviour
         float relVelNorm = Vector3.Dot(msg.toolVelocity - cursorVel, msg.collisionNorm); // Get relative velocity in the normal direction
 
         // Based on F = (k * d -b * Vn) * collisionNormal
-        Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
+        //Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
+        Vector3 force = msg.collisionNorm * msg.penetrationDepth * stiffness - cursorVel * damping;
         return force;
     }
 
