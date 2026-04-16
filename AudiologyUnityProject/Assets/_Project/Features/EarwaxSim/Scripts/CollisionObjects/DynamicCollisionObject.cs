@@ -37,6 +37,7 @@ namespace EarwaxSim
             //this.targetPosition += moveDir * toolSpeed * dt;
 
             this.targetPosition = haplyCursor.transform.position;
+            this.targetRotation = haplyCursor.transform.rotation;
         }
 
         //public void ResetTarget()
@@ -56,6 +57,8 @@ namespace EarwaxSim
             float step = Mathf.Min(dist, maxStep);
 
             this.transform.position += delta / dist * step;
+
+            this.transform.rotation = this.targetRotation;
         }
 
 
