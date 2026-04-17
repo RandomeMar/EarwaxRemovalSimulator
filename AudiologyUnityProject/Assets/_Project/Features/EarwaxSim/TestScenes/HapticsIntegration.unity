@@ -603,19 +603,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.x
-      value: 7.16
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.y
-      value: 7.16
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.z
-      value: 7.16
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1496,9 +1496,9 @@ MonoBehaviour:
   solverIterations: 3
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 0.99
-  latticeOrigin: {x: -8, y: -3.4, z: 4.44}
+  latticeOrigin: {x: -2.07, y: -2.37, z: 3.84}
   latticeParticleCount: 8
-  latticeLength: 2
+  latticeLength: 1.7
   particleRadius: 1.2
   materialDensity: 8
   baseBondCompliance: 0.0003
@@ -1592,7 +1592,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   sim: {fileID: 1039142607}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  material: {fileID: 2100000, guid: ca7f507eff738b64ca955e808c8d0095, type: 2}
+  material: {fileID: 2100000, guid: 152c7b6e904bc4249b8d21e6b9ca6e54, type: 2}
 --- !u!4 &1105516530
 Transform:
   m_ObjectHideFlags: 0

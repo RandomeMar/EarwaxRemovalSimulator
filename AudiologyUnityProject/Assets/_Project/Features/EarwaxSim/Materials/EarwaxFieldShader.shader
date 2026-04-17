@@ -15,7 +15,7 @@ Shader "Custom/EarwaxFieldShader"
             ZWrite Off
             Cull Off
             Blend One One
-            BlendOp Max
+            BlendOp Min
 
 
             HLSLPROGRAM
@@ -78,22 +78,18 @@ Shader "Custom/EarwaxFieldShader"
                 if (r2 > 1) discard; // Discard pixels more than 1 unit away from the center uv position. This results in a circle of radius 1
 
                 float z = sqrt(1.0 - r2);
-                float3 normalView = float3(p.x, p.y, z); // Normal in view space
-                float3 surfaceView = i.centerVS + normalView * _ParticleSize; // Fragment position in view space
+                
+                float3 normalView = normalize(float3(p.x, p.y, z)); // Normal in view space
+                float3 surfaceView = i.centerVS + (normalView * _ParticleSize); // Fragment position in view space
 
                 float depth = -surfaceView.z;
 
-                float depthKey = 1.0 / max(depth, 1e-5);
-                return float4(depthKey, 0.0, 0.0, 1.0);
+                float nearD = 0.0;
+                float farD = 11.0;
+                float depth01 = saturate((depth - nearD) / (farD - nearD));
+                return float4(depth01, 0, 0, 1);
 
-                //float centerDepth = -i.centerVS.z;
-                //float depthDelta = centerDepth - depth;   // or depth - centerDepth depending on which way you want
-                //float debug = saturate(depthDelta); // scale up
-
-
-                //return float4(debug, 0.0, 0.0, 1.0);
-
-                //return float4(depth, 0.0, 0.0, 1);
+                return float4(depth, 0.0, 0.0, 1);
             }
 
             ENDHLSL

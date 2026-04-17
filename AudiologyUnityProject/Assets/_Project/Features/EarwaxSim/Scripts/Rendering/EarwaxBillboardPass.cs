@@ -40,7 +40,7 @@ public class EarwaxBillboardPass : ScriptableRenderPass
         if (data.mesh == null || data.material == null || data.particleCount <= 0)
             return;
 
-        context.cmd.ClearRenderTarget(false, true, Color.clear);
+        context.cmd.ClearRenderTarget(false, true, new Color(1000f, 0f, 0f, 0f));
 
         // Draw call for drawing all of the billboard quads
         context.cmd.DrawMeshInstancedProcedural(
