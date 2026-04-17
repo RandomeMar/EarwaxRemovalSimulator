@@ -372,34 +372,37 @@ namespace EarwaxSim
         private void Update()
         {
             // Mouse manipulation
-            // if (Input.GetMouseButtonUp(0))
-            // {
-            //     grabbedParticle = -1;
-            //     return;
-            // }
+             if (Input.GetMouseButtonUp(0))
+            {
+                grabbedParticle = -1;
+                return;
+            }
 
-            // if (grabbedParticle != -1)
-            // {
-            //     DragUpdate(grabbedParticle);
-            //     return;
-            // }
+            if (grabbedParticle != -1)
+            {
+                DragUpdate(grabbedParticle);
+                return;
+            }
 
-            // if (Input.GetMouseButtonDown(0))
-            // {
-            //     grabbedParticle = SelectParticle();
-            //     if (grabbedParticle != -1)
-            //     {
-            //         dragPlane = GetDragPlane(grabbedParticle);
-            //     }
-            // }
+            if (Input.GetMouseButtonDown(0))
+            {
+                grabbedParticle = SelectParticle();
+                if (grabbedParticle != -1)
+                {
+                    dragPlane = GetDragPlane(grabbedParticle);
+                }
+            }
 
-            // if (Input.GetMouseButtonDown(1))
-            // {
-            //     selectedParticle = SelectParticle();
-            // }
+            if (Input.GetMouseButtonDown(1))
+            {
+                selectedParticle = SelectParticle();
+            }
+        }
 
-
-            float dt = Time.deltaTime;
+        // Sim physics Loop
+        private void FixedUpdate()
+        {
+            float dt = Time.fixedDeltaTime;
             float collAlpha = coll.compliance / (dt * dt);
 
             // ------ 1. Reset lambda ------
@@ -444,56 +447,6 @@ namespace EarwaxSim
 
             // ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
             hapticManager.SetHapticMessage(coll.GetHapticMessage());
-        }
-
-        // Sim physics Loop
-        private void FixedUpdate()
-        {
-            //float dt = Time.fixedDeltaTime;
-            //float collAlpha = coll.compliance / (dt * dt);
-
-            //// ------ 1. Reset lambda ------
-            //if (distOn) dist.ResetLambda();
-            //if (denseOn) dense.ResetLambda();
-            //if (adhesOn) adhes.ResetLambda();
-            //if (collOn) coll.ResetLambda(); // Also resets haptic message
-
-            //// ------ 2. Apply external forces ------
-            //ApplyForces(ps, dt);
-
-            //// ------ 3. Predict positions ------
-            //PredictPositions(ps, dt);
-
-            //if (toolObj != null)
-            //{
-            //    toolObj.previousPosition = toolObj.transform.position;
-            //    toolObj.MoveTool(dt);
-            //}
-
-            //// ------ 4. Build spatial grid. ------
-            //if (denseOn) grid.BuildGrid(ps);
-
-            //// ------ 5. Solve constraints ------
-            //coll.SolveColliderCollider(collAlpha); // Run tool vs. canal collisions only once per frame for stability
-
-            //for (int i = 0; i < solverIterations; i++)
-            //{
-            //    if (distOn) dist.SolveOnce(ps, dt, grid);
-            //    if (denseOn) dense.SolveOnce(ps, dt, grid);
-            //    if (collOn) coll.NewSolveOnce(ps, dt); // NOTE: This does not solve particle vs. canal collisions
-            //    if (adhesOn) adhes.SolveOnce(ps, dt, grid);
-            //}
-
-            //coll.SolvePSCollider(ps, coll.canal, collAlpha); // Run canal collisions only once per frame for performance
-
-            //if (distOn) dist.UpdateRestLengths(ps, dt); // Update rest lengths after solving
-
-            //// ------ 6. Update velocities ------
-            //UpdateVelocities(ps, dt);
-            //toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) / dt;
-
-            //// ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
-            //hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 
         // Draws particles and constraints for debugging.
