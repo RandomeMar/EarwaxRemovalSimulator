@@ -265,7 +265,7 @@ GameObject:
   m_Layer: 0
   m_Name: canal0
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -311,7 +311,7 @@ GameObject:
   m_Layer: 0
   m_Name: antitragus1
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -603,19 +603,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.x
-      value: 7.16
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.y
-      value: 7.16
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalScale.z
-      value: 7.16
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f76fcbb23ae20a7438a8087c6fbf54f4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -911,7 +911,7 @@ GameObject:
   m_Layer: 0
   m_Name: tragus2
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1232,7 +1232,7 @@ GameObject:
   m_Layer: 0
   m_Name: antitragus2
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1290,7 +1290,7 @@ Transform:
   m_GameObject: {fileID: 881206090}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
-  m_LocalPosition: {x: 7.23, y: 0.74, z: -8.57}
+  m_LocalPosition: {x: 0.329, y: -0.046, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1310,7 +1310,7 @@ GameObject:
   m_Layer: 0
   m_Name: antitragus0
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1409,7 +1409,7 @@ GameObject:
   m_Layer: 0
   m_Name: concha0
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1470,7 +1470,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1492,13 +1492,13 @@ MonoBehaviour:
   drawParticles: 1
   particleViewRadius: 0.5
   drawDist: 0
-  drawAdhes: 1
+  drawAdhes: 0
   solverIterations: 3
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 0.99
-  latticeOrigin: {x: -8, y: -3.4, z: 4.44}
+  latticeOrigin: {x: -0.11, y: -0.1, z: 0.12}
   latticeParticleCount: 8
-  latticeLength: 2
+  latticeLength: 0.05
   particleRadius: 1.2
   materialDensity: 8
   baseBondCompliance: 0.0003
@@ -1528,7 +1528,7 @@ GameObject:
   m_Layer: 0
   m_Name: canal2
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1728,7 +1728,7 @@ GameObject:
   m_Layer: 0
   m_Name: canal4
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -1916,8 +1916,8 @@ Transform:
   m_GameObject: {fileID: 1243392356}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.87, y: -16.9, z: 11.9}
-  m_LocalScale: {x: 100, y: 100, z: 100}
+  m_LocalPosition: {x: 0.138, y: -0.171, z: 0.219}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1921582245}
@@ -1935,7 +1935,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6baa9bd232f241b99b7fbf0ebb6bc9dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uniformScale: 100
+  uniformScale: 1
   lockGizmos: 0
 --- !u!114 &1243392359
 MonoBehaviour:
@@ -1951,9 +1951,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NewHapticManager
   _inverse3: {fileID: 1921582248}
   curette: {fileID: 1730496951}
-  stiffness: 400
+  stiffness: 300
   damping: 0.1
-  MAX_FORCE: 10
+  MAX_FORCE: 5
   minPenetration: 0.01
 --- !u!1 &1385133163
 GameObject:
@@ -1968,7 +1968,7 @@ GameObject:
   m_Layer: 0
   m_Name: tragus1
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -2014,7 +2014,7 @@ GameObject:
   m_Layer: 0
   m_Name: canal1
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -2122,7 +2122,7 @@ GameObject:
   m_Layer: 0
   m_Name: concha1
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -2168,7 +2168,7 @@ GameObject:
   m_Layer: 0
   m_Name: tragus0
   m_TagString: Untagged
-  m_Icon: {fileID: 4422084297763085224, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -2211,27 +2211,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1
+      value: 0.03
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 0.03
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 0.03
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 5.19
+      value: 0.138
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -2.4
+      value: -0.171
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 0.219
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2320,9 +2320,9 @@ MonoBehaviour:
   dynamicFriction: 0.55
   adhesCompliance: 0.05
   adhesBreakDist: 0.5
-  previousPosition: {x: 5.19, y: -2.4, z: 0}
+  previousPosition: {x: 0.138, y: -0.171, z: 0.219}
   previousRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
-  targetPosition: {x: 5.19, y: -2.4, z: 0}
+  targetPosition: {x: 0.138, y: -0.171, z: 0.219}
   targetRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
   velocity: {x: 0, y: 0, z: 0}
   unityColliders:
@@ -2354,7 +2354,7 @@ GameObject:
   m_Layer: 0
   m_Name: canal3
   m_TagString: Untagged
-  m_Icon: {fileID: -5442936267250999957, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -2631,7 +2631,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.03
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -2660,7 +2660,7 @@ Transform:
   m_GameObject: {fileID: 2113227063}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7.87, y: 0, z: -13.07}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
