@@ -93,13 +93,15 @@ public class NewHapticManager : MonoBehaviour
     }
 
 
-    // TODO: Implement force formula
     private Vector3 CalculateForce(HapticMessage msg, Vector3 cursorPos, Vector3 cursorVel)
     {
-        float relVelNorm = Vector3.Dot(msg.toolVelocity - cursorVel, msg.collisionNorm); // Get relative velocity in the normal direction
+        if (!msg.isContact) return Vector3.zero;
+
+        //float relVelNorm = Vector3.Dot(msg.toolVelocity - cursorVel, msg.collisionNorm); // Get relative velocity in the normal direction
 
         // Based on F = (k * d -b * Vn) * collisionNormal
         //Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
+
         Vector3 force = msg.collisionNorm * msg.penetrationDepth * stiffness - cursorVel * damping;
         return force;
     }
@@ -118,15 +120,8 @@ public class NewHapticManager : MonoBehaviour
         HapticMessage msg = this.GetHapticMessage();
 
 
-        if (msg.isContact && msg.penetrationDepth > minPenetration)
-        {
-            Vector3 force = CalculateForce(msg, inverse3.CursorPosition, inverse3.CursorVelocity);
-            inverse3.SetCursorLocalForce(Vector3.ClampMagnitude(force, MAX_FORCE));
-        }
-        else
-        {
-            inverse3.SetCursorLocalForce(Vector3.zero);
-        }
+        Vector3 force = this.CalculateForce(msg, inverse3.CursorPosition, inverse3.CursorVelocity);
+        inverse3.SetCursorLocalForce(Vector3.ClampMagnitude(force, MAX_FORCE));
     }
 
 }

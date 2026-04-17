@@ -403,29 +403,32 @@ namespace EarwaxSim
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+            float collAlpha = coll.compliance / (dt * dt);
 
-            // 1. Reset lambda
+            // ------ 1. Reset lambda ------
             if (distOn) dist.ResetLambda();
             if (denseOn) dense.ResetLambda();
             if (adhesOn) adhes.ResetLambda();
             if (collOn) coll.ResetLambda(); // Also resets haptic message
 
-            // 2. Apply external forces
+            // ------ 2. Apply external forces ------
             ApplyForces(ps, dt);
 
-            // 3. Predict positions
+            // ------ 3. Predict positions ------
             PredictPositions(ps, dt);
 
             if (toolObj != null)
             {
                 toolObj.previousPosition = toolObj.transform.position;
                 toolObj.MoveTool(dt);
-            } 
+            }
 
-            // 4. Build spatial grid. NOTE: This is only built once per frame for performance
+            // ------ 4. Build spatial grid. ------
             if (denseOn) grid.BuildGrid(ps);
 
-            // 5. Solve constraints
+            // ------ 5. Solve constraints ------
+            coll.SolveColliderCollider(collAlpha); // Run tool vs. canal collisions only once per frame for stability
+
             for (int i = 0; i < solverIterations; i++)
             {
                 if (distOn) dist.SolveOnce(ps, dt, grid);
@@ -434,18 +437,15 @@ namespace EarwaxSim
                 if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
 
-            // Run canal collisions only once per frame for performance
-            float alpha = coll.compliance / (dt * dt);
-            coll.SolvePSCollider(ps, coll.canal, alpha);
+            coll.SolvePSCollider(ps, coll.canal, collAlpha); // Run canal collisions only once per frame for performance
 
-            // Update rest lengths after solving
-            if (distOn) dist.UpdateRestLengths(ps, dt);
+            if (distOn) dist.UpdateRestLengths(ps, dt); // Update rest lengths after solving
 
-            // 6. Update velocities
+            // ------ 6. Update velocities ------
             UpdateVelocities(ps, dt);
             toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) / dt;
 
-            // 7. Send HapticMessage to NewHapticManager from the collision solver
+            // ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
             hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 

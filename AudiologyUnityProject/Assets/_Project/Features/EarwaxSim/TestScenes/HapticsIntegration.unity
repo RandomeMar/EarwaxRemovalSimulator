@@ -1951,8 +1951,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NewHapticManager
   _inverse3: {fileID: 1921582248}
   curette: {fileID: 1730496951}
-  strength: 2
+  stiffness: 1
+  damping: 1
   MAX_FORCE: 10
+  minPenetration: 0.01
 --- !u!1 &1385133163
 GameObject:
   m_ObjectHideFlags: 0

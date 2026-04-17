@@ -301,8 +301,8 @@ namespace EarwaxSim
         {
             float alpha = this.compliance / (dt * dt);
 
-            // Tool vs. Canal
-            SolveColliderCollider(alpha);
+            //// Tool vs. Canal
+            //SolveColliderCollider(alpha);
 
             // Tool + Canal vs. Particles
             SolvePSCollider(ps, this.tool, alpha);
@@ -400,7 +400,7 @@ namespace EarwaxSim
         }
 
         // Solves unity based collider vs unity based collider collisions
-        private void SolveColliderCollider(float alpha)
+        public void SolveColliderCollider(float alpha)
         {
             foreach (Collider toolColl in this.tool.unityColliders)
             {
