@@ -12,6 +12,7 @@ public class VRUserNameInputScript : MonoBehaviour
     [SerializeField] ClockScript clockScript;
     //[SerializeField] GameObject statsManager;
     [SerializeField] GameObject keyboardUI;
+    [SerializeField] GameObject jake;
     [SerializeField] GameObject scoreUI;
     [SerializeField] GameObject timerUI;
 
@@ -42,6 +43,7 @@ public class VRUserNameInputScript : MonoBehaviour
                 XRCameraEar.gameObject.SetActive(true);
                 XRCameraManagerInitial.gameObject.SetActive(false);
                 XRCameraInitial.gameObject.SetActive(false);
+                jake.gameObject.SetActive(false);
 
                 timerScript.StartTimer();
                 scoreScript.StartScore();
