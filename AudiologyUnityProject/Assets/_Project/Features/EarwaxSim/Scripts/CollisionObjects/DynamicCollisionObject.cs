@@ -8,6 +8,7 @@ namespace EarwaxSim
     {
         [Header("Tool Movement Settings")]
         public GameObject keyboardInputManager;
+        public Camera cam;
         public GameObject haplyCursor;
 
         public bool keyboardOn = false;
@@ -27,16 +28,29 @@ namespace EarwaxSim
         protected PlayerInput playerInput;
         protected InputAction moveToolAction;
 
-        [System.NonSerialized] public Vector3 collisionForceWorld;
 
-
+        // Update target position and rotation using keyboard or haply cursor
         public virtual void MoveTarget(float dt)
         {
             if (moveToolAction == null) return;
             Vector3 moveDir = moveToolAction.ReadValue<Vector3>();
 
+            // Keyboard controller
+            if (keyboardOn)
+            {
+                this.targetPosition += cam.transform.TransformDirection(moveDir) * toolSpeed * dt;
+                return;
+            }
+            
+            // Haptic controller
             this.targetPosition = haplyCursor.transform.position;
             this.targetRotation = haplyCursor.transform.rotation;
+        }
+
+        // Resets target position to the curette's position. (Keyboard only)
+        public void ResetTarget()
+        {
+            this.targetPosition = this.transform.position;
         }
 
         // Moves tool position based on target position

@@ -14,8 +14,8 @@ namespace EarwaxSim
         public NewHapticManager hapticManager;
 
         [Header("Collision Objects")]
-        public DynamicCollisionObject toolObj;
-        public CollisionObjectBase roomObj;
+        public DynamicCollisionObject tool;
+        public CollisionObjectBase canal;
 
         [Header("Gizmo Debug Settings")]
         public bool drawParticles = true;
@@ -286,7 +286,7 @@ namespace EarwaxSim
 
             float closestDist = float.MaxValue;
             int closestIndex = -1;
-            float radius = 0.1f; // same as Gizmo sphere size
+            float radius = ps.radius; // same as Gizmo sphere size
 
             for (int i = 0; i < ps.count; i++)
             {
@@ -361,11 +361,11 @@ namespace EarwaxSim
         private void Start()
         {
             // TODO: Remove when coll.objects is deprecated
-            coll.objects.Add(toolObj);
-            coll.objects.Add(roomObj);
+            coll.objects.Add(tool);
+            coll.objects.Add(canal);
 
-            coll.tool = toolObj;
-            coll.canal = roomObj;
+            coll.tool = tool;
+            coll.canal = canal;
         }
 
         // User input loop
@@ -417,10 +417,10 @@ namespace EarwaxSim
             // ------ 3. Predict positions ------
             PredictPositions(ps, dt);
 
-            if (toolObj != null)
+            if (tool != null)
             {
-                toolObj.previousPosition = toolObj.transform.position;
-                toolObj.MoveTool(dt);
+                tool.previousPosition = tool.transform.position;
+                tool.MoveTool(dt);
             }
 
             // ------ 4. Build spatial grid. ------
@@ -443,10 +443,11 @@ namespace EarwaxSim
 
             // ------ 6. Update velocities ------
             UpdateVelocities(ps, dt);
-            toolObj.velocity = (toolObj.transform.position - toolObj.previousPosition) / dt;
+            tool.velocity = (tool.transform.position - tool.previousPosition) / dt;
 
             // ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
-            hapticManager.SetHapticMessage(coll.GetHapticMessage());
+            if (tool != null && tool.keyboardOn) tool.ResetTarget(); // If using keyboard, just reset target
+            else hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 
         // Draws particles and constraints for debugging.
@@ -468,7 +469,7 @@ namespace EarwaxSim
 
                     Vector3 anchorPos = anchors[i].shape.GetWorldPos(anchors[i].localAnchorPos);
 
-                    Gizmos.DrawSphere(anchorPos, .05f);
+                    Gizmos.DrawSphere(anchorPos, ps.radius * particleViewRadius);
 
                     Gizmos.DrawLine(
                         ps.currentPosition[i],

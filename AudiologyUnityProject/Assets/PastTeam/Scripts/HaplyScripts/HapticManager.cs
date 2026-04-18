@@ -211,15 +211,16 @@ public class HapticManager : MonoBehaviour
         float   radius = args.DeviceController.Cursor.Radius;
 
         Vector3 waxForceLocal = Vector3.zero;
-        if (_cntDynamicTools > 0)
-        {
-            Quaternion invRot = Quaternion.Inverse(_inverse3WorldRot);
-            for (int i = 0; i < _cntDynamicTools; i++)
-            {
-                waxForceLocal += invRot * _bufDynamicTools[i].collisionForceWorld;
-            }
-            waxForceLocal *= waxForceGain;
-        }
+
+        //if (_cntDynamicTools > 0)
+        //{
+        //    Quaternion invRot = Quaternion.Inverse(_inverse3WorldRot);
+        //    for (int i = 0; i < _cntDynamicTools; i++)
+        //    {
+        //        waxForceLocal += invRot * _bufDynamicTools[i].collisionForceWorld;
+        //    }
+        //    waxForceLocal *= waxForceGain;
+        //}
 
         Vector3 totalForce = Vector3.ClampMagnitude(RunForceLoop(pos, vel, radius) + waxForceLocal, 3.0f);
         args.DeviceController.SetCursorLocalForce(totalForce);
