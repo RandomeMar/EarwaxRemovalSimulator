@@ -1291,7 +1291,7 @@ Transform:
   m_GameObject: {fileID: 881206090}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
-  m_LocalPosition: {x: 0.2, y: -0.09, z: 0.07}
+  m_LocalPosition: {x: 0.32, y: -0.09, z: 0.07}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1490,7 +1490,7 @@ MonoBehaviour:
   hapticManager: {fileID: 1243392359}
   tool: {fileID: 1730496951}
   canal: {fileID: 444514385}
-  drawParticles: 1
+  drawParticles: 0
   particleViewRadius: 0.5
   drawDist: 1
   drawAdhes: 1
@@ -1499,13 +1499,13 @@ MonoBehaviour:
   globalDamping: 0.99
   latticeOrigin: {x: -0.07, y: -0.1, z: 0.129}
   latticeParticleCount: 8
-  latticeLength: 0.05
+  latticeLength: 0.065
   particleRadius: 1.2
   materialDensity: 8
   baseBondCompliance: 0.0003
   adhesOn: 1
   distOn: 1
-  yieldStrain: 0.25
+  yieldStrain: 0.2
   plasticFlow: 1
   breakStrain: 0.4
   adaptRate: 3
@@ -2235,7 +2235,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8688419052629784098, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2272,10 +2272,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e38ff7b79b632c46a0d2206a35d032a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CuretteCollisionObject
-  invMass: 5000
+  invMass: 1000
   dynamicFriction: 0.55
-  adhesCompliance: 0.05
-  adhesBreakDist: 0
+  adhesCompliance: 900
+  adhesBreakDist: 0.02
   previousPosition: {x: 0.06, y: -0.08, z: 0.01}
   previousRotation: {x: 0, y: 0.7071068, z: -0, w: -0.7071068}
   targetPosition: {x: 0.06, y: -0.08, z: 0.01}
@@ -2674,11 +2674,11 @@ SceneRoots:
   - {fileID: 658205866}
   - {fileID: 1455697837}
   - {fileID: 1039142606}
+  - {fileID: 444514382}
+  - {fileID: 1730496947}
   - {fileID: 189487208}
   - {fileID: 808136098}
   - {fileID: 1105516530}
   - {fileID: 881206091}
-  - {fileID: 444514382}
-  - {fileID: 1730496947}
   - {fileID: 1166009746}
   - {fileID: 1243392357}
