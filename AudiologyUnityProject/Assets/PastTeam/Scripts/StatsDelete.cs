@@ -18,7 +18,10 @@ public class StatsDelete : MonoBehaviour
     private string filePath;
     [SerializeField] Canvas statsDeleteCanvas;
     public GameObject statsDeleteButton;
+    public GameObject statsDeletedButton;
+    public GameObject statsChangePassButton;
     public GameObject statsWrongPassButton;
+    public GameObject statsPassChangedButton;
 
     void Start()
     {
@@ -40,7 +43,10 @@ public class StatsDelete : MonoBehaviour
 
         // Set wrong and correct password windows to not display
         statsDeleteButton.gameObject.SetActive(false);
+        statsDeletedButton.gameObject.SetActive(false);
         statsWrongPassButton.gameObject.SetActive(false);
+        statsChangePassButton.gameObject.SetActive(false);
+        statsPassChangedButton.gameObject.SetActive(false);
     }
 
     // Check if input data matches password
@@ -59,6 +65,7 @@ public class StatsDelete : MonoBehaviour
         {
             statsWrongPassButton.gameObject.SetActive(false);
             statsDeleteButton.gameObject.SetActive(true);
+            statsChangePassButton.gameObject.SetActive(true);
         }
 
         // Wrong password
@@ -71,10 +78,35 @@ public class StatsDelete : MonoBehaviour
         }
     }
 
+    // Reset password
+    // Deletes old password json file and created a new file with a new password
+    public void ResetPassword()
+    {
+        if (File.Exists(filePath)) 
+        {
+            File.Delete(filePath);
+            Debug.Log("Saved Password file cleared at: " + filePath);
+            PassData passwordData = new PassData();
+            passwordData.gatePass.Add(passInput.text);
+            string json = JsonUtility.ToJson(passwordData, true);
+            File.WriteAllText(filePath, json);
+            statsPassChangedButton.gameObject.SetActive(true);
+            statsDeleteButton.gameObject.SetActive(false);
+            Debug.Log("Password file created\n" + filePath);
+        }
+    }
+
     // Clear input data 
     public void ClearPassInput()
     {
         passInput.text = "";
+    }
+
+    // Opens deleted data window and closes change password window
+    public void DeletedData()
+    {
+        statsDeletedButton.gameObject.SetActive(true);
+        statsChangePassButton.gameObject.SetActive(false);
     }
 
     // Open clear data window
@@ -89,7 +121,10 @@ public class StatsDelete : MonoBehaviour
         // Clear input window and set all other windows to not display
         ClearPassInput();
         statsDeleteButton.gameObject.SetActive(false);
+        statsDeletedButton.gameObject.SetActive(false);
         statsWrongPassButton.gameObject.SetActive(false);
         statsDeleteCanvas.gameObject.SetActive(false);
+        statsChangePassButton.gameObject.SetActive(false);
+        statsPassChangedButton.gameObject.SetActive(false);
     }
 }
