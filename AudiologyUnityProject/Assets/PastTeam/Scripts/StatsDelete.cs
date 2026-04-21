@@ -22,26 +22,35 @@ public class StatsDelete : MonoBehaviour
     public GameObject statsChangePassButton;
     public GameObject statsWrongPassButton;
     public GameObject statsPassChangedButton;
+    public GameObject statsPassCheckButton;
 
     void Start()
     {
         // path of saved password file
         filePath = Application.persistentDataPath + "/gate.json";
 
-        // If password file is not found, create a new one with initial password "Abc123"
+        // If password file is not found, create a new one with initial password "Cerumen"
         if (!File.Exists(filePath)) 
         {   
             PassData passwordData = new PassData();
-            passwordData.gatePass.Add("Abc123");
+            passwordData.gatePass.Add("Cerumen");
             string json = JsonUtility.ToJson(passwordData, true);
             File.WriteAllText(filePath, json);
 
             Debug.Log("Password file created\n" + filePath);
         }
-        else
-            Debug.Log("Password File Found!");
 
-        // Set wrong and correct password windows to not display
+        // Password file found
+        else
+        {
+            Debug.Log("Password File Found!");
+        }
+    }
+
+    // Set password enter button to display, and other popup buttons and windows to not display
+    public void OnClickClearData()
+    {
+        statsPassCheckButton.gameObject.SetActive(true);
         statsDeleteButton.gameObject.SetActive(false);
         statsDeletedButton.gameObject.SetActive(false);
         statsWrongPassButton.gameObject.SetActive(false);
@@ -66,6 +75,7 @@ public class StatsDelete : MonoBehaviour
             statsWrongPassButton.gameObject.SetActive(false);
             statsDeleteButton.gameObject.SetActive(true);
             statsChangePassButton.gameObject.SetActive(true);
+            statsPassCheckButton.gameObject.SetActive(false);
         }
 
         // Wrong password
@@ -96,7 +106,7 @@ public class StatsDelete : MonoBehaviour
         }
     }
 
-    // Clear input data 
+    // Clear input data after wrong password used or clear data window closed.
     public void ClearPassInput()
     {
         passInput.text = "";
@@ -118,7 +128,7 @@ public class StatsDelete : MonoBehaviour
     // Close clear data window 
     public void CloseConfirm()
     {
-        // Clear input window and set all other windows to not display
+        // Clear text input box and set all other windows to not display
         ClearPassInput();
         statsDeleteButton.gameObject.SetActive(false);
         statsDeletedButton.gameObject.SetActive(false);
@@ -126,5 +136,6 @@ public class StatsDelete : MonoBehaviour
         statsDeleteCanvas.gameObject.SetActive(false);
         statsChangePassButton.gameObject.SetActive(false);
         statsPassChangedButton.gameObject.SetActive(false);
+        statsPassCheckButton.gameObject.SetActive(false);
     }
 }
