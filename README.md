@@ -41,6 +41,17 @@ This virtual reality application is designed to provide medical professionals an
 - Developing new main scene to replace the simulation scene to use new earwax and ear model.
 - Meta VR headset functionality is still not functioning properly after Unity update. Troubleshooting.
 
+### Code Milestone 3
+- Added friction to earwax
+- Added tearing to earwax
+- Added SDF based colliders
+- Added SDF collider viewers
+- Added adhesion constraints (stickiness)
+- Colliders are now affected by earwax
+- Added Haply controller collision and feedback with ear model
+- Added mouse controls to currette to aid code development when Haply controller is absent
+
+
 ## Changelog
 ### Version 0.9.1
 - Updated Unity to 6000.3.9f1

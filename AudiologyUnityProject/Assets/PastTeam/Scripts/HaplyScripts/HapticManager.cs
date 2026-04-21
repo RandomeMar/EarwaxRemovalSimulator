@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EarwaxSim;
 using Haply.Inverse.DeviceControllers;
 using Haply.Inverse.DeviceData;
 using UnityEngine;
@@ -15,11 +16,16 @@ public class HapticManager : MonoBehaviour
     [Tooltip("Simulated cursor radius used in mouse mode (metres).")]
     public float mouseCursorRadius = 0.006f;
 
+    [Header("XPBD Wax Force Feedback")]
+    public float waxForceGain = 1f; //Multiplier on worldspace impulse (XPBDSim publishes impulse/dt) before applying to device. Start at 1, tune by feel.
+
     // SAFETY FLAG: Stops the loop instantly if the object is dying
     private bool _isDestroyed = false;
 
     // Mouse-mode velocity tracking
     private Vector3 _prevMouseCursorPos;
+
+    private Quaternion _inverse3WorldRot = Quaternion.identity;
 
 
     // --- 1. REGISTRATION LISTS ---
@@ -33,6 +39,7 @@ public class HapticManager : MonoBehaviour
     private readonly List<CylinderForceFeedback> _cylindersReg = new();
     private readonly List<EarForceFeedback> _earReg = new();
     private readonly List<EarCollision> _earCollisionReg = new();
+    private readonly List<DynamicCollisionObject> _dynamicToolsReg = new();
 
     // --- 2. BUFFERS ---
     private const int BUFFER_SIZE = 64;
@@ -46,8 +53,9 @@ public class HapticManager : MonoBehaviour
     private CylinderForceFeedback[] _bufCylinders = new CylinderForceFeedback[BUFFER_SIZE];
     private EarForceFeedback[] _bufEars = new EarForceFeedback[BUFFER_SIZE];
     private EarCollision[] _bufEarCollisions = new EarCollision[BUFFER_SIZE];
+    private DynamicCollisionObject[] _bufDynamicTools = new DynamicCollisionObject[BUFFER_SIZE];
 
-    private volatile int _cntCubes, _cntSpheres, _cntZones, _cntTubes, _cntMoving, _cntPlanes, _cntTriggers, _cntCylinders, _cntEars, _cntEarCollisions;
+    private volatile int _cntCubes, _cntSpheres, _cntZones, _cntTubes, _cntMoving, _cntPlanes, _cntTriggers, _cntCylinders, _cntEars, _cntEarCollisions, _cntDynamicTools;
 
     private void OnEnable()
     {
@@ -116,6 +124,7 @@ public class HapticManager : MonoBehaviour
     public void RegisterCylinder(CylinderForceFeedback x) { if (!_cylindersReg.Contains(x)) _cylindersReg.Add(x); }
     public void RegisterEar(EarForceFeedback x) { if (!_earReg.Contains(x)) _earReg.Add(x); }
     public void RegisterEarCollision(EarCollision x) { if (!_earCollisionReg.Contains(x)) _earCollisionReg.Add(x); }
+    public void RegisterDynamicTool(DynamicCollisionObject x) { if (!_dynamicToolsReg.Contains(x)) _dynamicToolsReg.Add(x); }
 
     // --- MAIN THREAD ---
     private void Update()
@@ -132,9 +141,13 @@ public class HapticManager : MonoBehaviour
         _cntCylinders = FillBuffer(_cylindersReg, _bufCylinders);
         _cntEars = FillBuffer(_earReg, _bufEars);
         _cntEarCollisions = FillBuffer(_earCollisionReg, _bufEarCollisions);
+        _cntDynamicTools = FillBuffer(_dynamicToolsReg, _bufDynamicTools);
 
-        // Mouse fallback: run force loop on main thread (no device to send to, but
-        // keeps collision logic alive for visual/debug feedback)
+        if (inverse3 != null)
+        {
+            _inverse3WorldRot = inverse3.transform.rotation;
+        }
+
         if (useMouse && mouseCursor != null)
         {
             Vector3 pos = mouseCursor.position;
@@ -197,7 +210,19 @@ public class HapticManager : MonoBehaviour
         Vector3 vel    = args.DeviceController.CursorLocalVelocity;
         float   radius = args.DeviceController.Cursor.Radius;
 
-        Vector3 totalForce = RunForceLoop(pos, vel, radius);
+        Vector3 waxForceLocal = Vector3.zero;
+
+        //if (_cntDynamicTools > 0)
+        //{
+        //    Quaternion invRot = Quaternion.Inverse(_inverse3WorldRot);
+        //    for (int i = 0; i < _cntDynamicTools; i++)
+        //    {
+        //        waxForceLocal += invRot * _bufDynamicTools[i].collisionForceWorld;
+        //    }
+        //    waxForceLocal *= waxForceGain;
+        //}
+
+        Vector3 totalForce = Vector3.ClampMagnitude(RunForceLoop(pos, vel, radius) + waxForceLocal, 3.0f);
         args.DeviceController.SetCursorLocalForce(totalForce);
     }
 }

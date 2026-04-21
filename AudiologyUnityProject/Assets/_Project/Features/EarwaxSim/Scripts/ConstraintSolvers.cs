@@ -103,6 +103,7 @@ namespace EarwaxSim
             }
         }
 
+        // Updates rest lengths based on principles of plasticity and viscoelasticity
         public void UpdateRestLengths(ParticleSet ps, float dt)
         {
             for (int index = 0; index < this.constraints.Length; index++)
@@ -130,6 +131,7 @@ namespace EarwaxSim
                     continue;
                 }
 
+                // If strain is too large, plastically deform
                 if (Mathf.Abs(strain) > this.yieldStrain)
                 {
                     float deltaRestLen = this.plasticFlow * (Mathf.Abs(strain) - this.yieldStrain) * Mathf.Sign(strain) * constraint.targetRestLength * dt;
@@ -218,7 +220,7 @@ namespace EarwaxSim
                     float term = (this.h2 - distVec.sqrMagnitude);
 
                     density += mj * this.poly6Coef * term * term * term; // Poly-6 kernel smoothing function
-                    this.gradBuffer[iter] = mj * this.poly6GradCoef * term * term * distVec; // Gradient of Poly-6
+                    this.gradBuffer[iter] = mj * this.poly6GradCoef * term * term * distVec; // Gradient of Poly-6. NOTE: May be better to use gradient of Spiky kernel
 
                     gradi -= this.gradBuffer[iter];
                     denom += this.gradBuffer[iter].sqrMagnitude * ps.invMass[j];
@@ -258,29 +260,202 @@ namespace EarwaxSim
     // Solves collisions between particles and collision shapes
     public class CollisionConstraintSolver : IConstraintSolver
     {
-        // Will be replaced later
-        public List<CollisionObjectBase> objects;
+        public List<CollisionObjectBase> objects; // TODO: Remove
 
-        // TODO: Replace objects with these two fields
-        public CollisionObjectBase tool;
+        // Colliders
+        public DynamicCollisionObject tool;
         public CollisionObjectBase canal;
+
+        // Tool status for haptics
+        private Vector3 toolCorrection;
+        private bool isContacting;
 
         public float compliance;
 
         public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
+
+
+        //Force feedback
+        // private Vector3 _toolImpulseAccum;
+        // public Vector3 ToolImpulseAccum => _toolImpulseAccum;
+        // public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
 
         public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
             this.objects = new(1);
             this.compliance = compliance;
             this.adhesConstraints = adhesConstraints;
+
+            this.toolCorrection = Vector3.zero;
+            this.isContacting = false;
         }
 
         public void ResetLambda()
         {
-
+            this.isContacting = false;
+            this.toolCorrection = Vector3.zero;
         }
         
+        
+        public void NewSolveOnce(ParticleSet ps, float dt)
+        {
+            float alpha = this.compliance / (dt * dt);
+
+            //// Tool vs. Canal
+            //SolveColliderCollider(alpha);
+
+            // Tool + Canal vs. Particles
+            SolvePSCollider(ps, this.tool, alpha);
+        }
+
+        // Solves particle vs. sdf based collider collisions
+        public void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
+        {
+            float wo = obj.invMass;
+            // Only the tool feeds force feedback. Canal collisions go through the same function
+            // bool accumImpulse = (obj == this.tool);
+            for (int i = 0; i < ps.count; i++)
+            {
+                if (ps.invMass[i] == 0) continue;
+
+
+                // ------ Collision Check ------
+
+                CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i], ps.radius);
+                float c = collisionInfo.signedDistance;
+                Vector3 collNorm = collisionInfo.collNormal;
+
+                // As long as C is not negative, assume there is no correction to be made
+                if (collisionInfo.signedDistance >= 0) continue;
+
+                float wp = ps.invMass[i];
+
+                // Check if denom is close to 0
+                float denom = (wp + wo + alpha);
+                if (denom <= Constants.EPS) continue;
+
+
+                // ------ Collision Solve ------
+
+                // Calculate delta lambda
+                float deltaLambda = -c / denom;
+
+                // Calculate normal correction
+                Vector3 pNormalCorrection = deltaLambda * wp * collNorm;
+                Vector3 oNormalCorrection = -deltaLambda * wo * collNorm; // Inverse of particle correction
+
+                // Update position
+                ps.currentPosition[i] += pNormalCorrection;
+                obj.transform.position += oNormalCorrection;
+
+                // Store haptic info if the object was the tool
+                if (obj == this.tool)
+                {
+                    this.toolCorrection += oNormalCorrection;
+                    this.isContacting = true;
+                }
+
+
+                // ------ Adhesion ------
+
+                // Set adhesion anchor to active and add local position and owner shape to the struct array
+                AdhesionConstraint adhesConst = new(
+                    collisionInfo.owner.GetLocalPos(ps.currentPosition[i]),
+                    collisionInfo.owner,
+                    obj.matProps.adhesCompliance,
+                    obj.matProps.adhesBreakDist);
+
+                this.adhesConstraints[i] = adhesConst;
+
+
+                // ------ Friction ------
+                Vector3 dxParticle = ps.currentPosition[i] - ps.previousPosition[i];
+                Vector3 dxObj = obj.transform.position - obj.previousPosition;
+                Vector3 dxRel = dxParticle - dxObj; // Relative change in position
+
+                Vector3 dxNormal = Vector3.Dot(dxRel, collNorm) * collNorm;
+                Vector3 dxTangent = dxRel - dxNormal;
+
+                float tangLength = dxTangent.magnitude;
+
+                if (tangLength > Constants.EPS)
+                {
+                    Vector3 normalCorrectionRel = pNormalCorrection - oNormalCorrection;
+
+                    float maxFriction = obj.matProps.dynamicFriction * normalCorrectionRel.magnitude;
+
+                    // Friction cannot cause the particle to move backwards, only resist forward motion
+                    Vector3 frictionCorrectionRel = -dxTangent.normalized * Mathf.Min(maxFriction, tangLength);
+
+                    float wSum = wp + wo;
+
+                    // Update position
+                    ps.currentPosition[i] += (wp / wSum) * frictionCorrectionRel;
+                    obj.transform.position -= (wo / wSum) * frictionCorrectionRel; // Inverse of particle correction
+
+                    // Force feedback - tangential reaction on the tool
+                    // if (accumImpulse) _toolImpulseAccum += -frictionCorrectionRel;
+                }
+            }
+        }
+
+        // Solves unity based collider vs unity based collider collisions
+        public void SolveColliderCollider(float alpha)
+        {
+            foreach (Collider toolColl in this.tool.unityColliders)
+            {
+                foreach (Collider canalColl in this.canal.unityColliders)
+                {
+                    bool isColliding = Physics.ComputePenetration(
+                        toolColl,
+                        this.tool.transform.position,
+                        this.tool.transform.rotation,
+                        canalColl,
+                        this.canal.transform.position,
+                        this.canal.transform.rotation,
+                        out Vector3 collNorm,
+                        out float c);
+                    if (!isColliding) continue;
+
+                    float wt = this.tool.invMass;
+                    float wc = this.canal.invMass;
+
+                    // Check if denom is close to 0
+                    float denom = (wt + wc + alpha);
+                    if (denom <= Constants.EPS) continue;
+
+                    // Calculate delta lambda
+                    float deltaLambda = c / denom;
+
+                    // Calculate normal correction
+                    Vector3 tNormalCorrection = deltaLambda * wt * collNorm;
+                    Vector3 cNormalCorrection = -deltaLambda * wc * collNorm;
+
+                    // Update position
+                    this.tool.transform.position += tNormalCorrection;
+                    this.canal.transform.position += cNormalCorrection;
+
+
+                    // Store info for haptics
+                    this.toolCorrection += tNormalCorrection;
+                    this.isContacting = true;
+                }
+            }
+        }
+
+        // Returns haptic message. Called after solving in XPBDSim
+        public HapticMessage GetHapticMessage()
+        {
+            return new HapticMessage(
+                this.isContacting,
+                this.toolCorrection.normalized,
+                this.toolCorrection.magnitude,
+                this.tool.transform.position,
+                this.tool.velocity);
+        }
+
+
+        // DEPRECATED
         public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
             float alpha = this.compliance / (dt * dt);
@@ -295,12 +470,12 @@ namespace EarwaxSim
                 foreach (CollisionObjectBase obj in this.objects)
                 {
                     // ------ Collision ------
-                    CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i]);
+                    CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i], ps.radius);
                     float c = collisionInfo.signedDistance;
                     Vector3 collNorm = collisionInfo.collNormal;
 
                     // As long as C is not negative, we assume there is no correction to be made
-                    if (collisionInfo.signedDistance >= 0) continue;
+                    if (c >= 0) continue;
 
                     float wp = ps.invMass[i];
                     float wo = obj.invMass;
@@ -362,92 +537,14 @@ namespace EarwaxSim
             }
             return;
         }
-
-        // TODO: Refactor SolveOnce into separate functions
-        private void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float dt, float alpha)
-        {
-            for (int i = 0; i < ps.count; i++)
-            {
-                if (ps.invMass[i] == 0) continue;
-                // ------ Collision ------
-                CollisionInfo collisionInfo = obj.GetCollisionInfo(ps.currentPosition[i]);
-                float c = collisionInfo.signedDistance;
-                Vector3 collNorm = collisionInfo.collNormal;
-
-                // As long as C is not negative, we assume there is no correction to be made
-                if (collisionInfo.signedDistance >= 0) continue;
-
-                float wp = ps.invMass[i];
-                float wo = obj.invMass;
-
-                // Check if denom is close to 0
-                float denom = (wp + wo + alpha);
-                if (denom <= Constants.EPS) continue;
-
-                // Calculate delta lambda
-                float deltaLambda = -c / denom;
-
-                // Calculate normal correction
-                Vector3 pNormalCorrection = wp * collNorm * deltaLambda;
-                Vector3 oNormalCorrection = -wo * collNorm * deltaLambda; // Inverse of particle correction
-
-                // Update position
-                ps.currentPosition[i] += pNormalCorrection;
-                obj.transform.position += oNormalCorrection;
-
-
-                // ------ Adhesion ------
-
-                // Set adhesion anchor to active and add local position and owner shape to the struct array
-                AdhesionConstraint adhesConst = new(
-                    collisionInfo.owner.GetLocalPos(ps.currentPosition[i]),
-                    collisionInfo.owner,
-                    obj.matProps.adhesCompliance,
-                    obj.matProps.adhesBreakDist);
-
-                this.adhesConstraints[i] = adhesConst;
-
-
-                // ------ Friction ------
-                Vector3 dxParticle = ps.currentPosition[i] - ps.previousPosition[i];
-                Vector3 dxObj = obj.transform.position - obj.previousPosition;
-                Vector3 dxRel = dxParticle - dxObj; // Relative change in position
-
-                Vector3 dxNormal = Vector3.Dot(dxRel, collNorm) * collNorm;
-                Vector3 dxTangent = dxRel - dxNormal;
-
-                float tangLength = dxTangent.magnitude;
-
-                if (tangLength > Constants.EPS)
-                {
-                    Vector3 normalCorrectionRel = pNormalCorrection - oNormalCorrection;
-
-                    float maxFriction = obj.matProps.dynamicFriction * normalCorrectionRel.magnitude;
-
-                    // Friction cannot cause the particle to move backwards, only resist forward motion
-                    Vector3 frictionCorrectionRel = -dxTangent.normalized * Mathf.Min(maxFriction, tangLength);
-
-                    float wSum = wp + wo;
-
-                    // Update position
-                    ps.currentPosition[i] += (wp / wSum) * frictionCorrectionRel;
-                    obj.transform.position -= (wo / wSum) * frictionCorrectionRel; // Inverse of particle correction
-                }
-            }
-        }
-
-        // TODO: Implement collider vs collider collision solving
-        private void SolveColliderCollider(float dt, float alpha)
-        {
-
-        }
     }
 
+    // Single adhesion constraint between a particle and an anchor position
     public struct AdhesionConstraint
     {
-        public Vector3 localAnchorPos;
+        public Vector3 localAnchorPos; // NOTE: This uses local anchor position, because otherwise if a collider moved, the anchor would be in the air
         public bool isActive;
-        public CollisionShape shape;
+        public CollisionShape shape; // Collider that the anchor is attached to
         public float compliance;
         public float breakDist;
 
@@ -467,6 +564,7 @@ namespace EarwaxSim
 
     }
 
+    // Solves adhesion constraints
     public class AdhesionConstraintSolver : IConstraintSolver
     {
         public float[] lambdas;

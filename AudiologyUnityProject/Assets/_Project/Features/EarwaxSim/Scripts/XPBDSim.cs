@@ -10,16 +10,19 @@ namespace EarwaxSim
     public class XPBDSim : MonoBehaviour
     {
         #region Public Parameters
+        [Header("Haptic Manager")]
+        public NewHapticManager hapticManager;
+
         [Header("Collision Objects")]
-        public GameObject curette;
-        public GameObject torusTool;
-        public GameObject room;
+        public DynamicCollisionObject tool;
+        public CollisionObjectBase canal;
 
         [Header("Gizmo Debug Settings")]
         public bool drawParticles = true;
+        [Min(0)]
+        public float particleViewRadius = .5f;
         public bool drawDist = true;
         public bool drawAdhes = true;
-        public bool drawTool = true;
 
         [Header("Solver Settings")]
         [Min(1f)]
@@ -34,48 +37,43 @@ namespace EarwaxSim
         public int latticeParticleCount = 3;
         [Min(.01f)]
         public float latticeLength = 2.0f;
+        [Min(0f)]
+        public float particleRadius = .5f;
 
         [Header("Material Settings")]
         [Min(0f)]
         public float materialDensity;
         [Min(0f)]
-        public float baseBondCompliance;
+        public float baseBondCompliance; // NOTE: Although distance constraint compliance is based on lattice scale, it does not scale perfectly with it.
+        // This means compliance will need to be adjusted when the lattice is scaled.
 
         [Header("Adhesion Constraint Settings")]
         public bool adhesOn;
 
         [Header("Distance Constraint Settings")]
         public bool distOn = true;
-        public float yieldStrain = .5f;
-        public float plasticFlow = 1f;
-        public float breakStrain = 1f;
+        public float yieldStrain = .5f; // At what strain distance constraints begin permanently deforming
+        public float plasticFlow = 1f; // The rate that distance constraints permanently deform
+        public float breakStrain = 1f; // At what strain distance constraints break
 
         [Header("Visco-elasticity Settings")]
         [Min(0f)]
-        public float adaptRate;
+        public float adaptRate; // How much distance constraints give based on temporary deformation
         [Min(0f)]
-        public float recoveryRate;
+        public float recoveryRate; // How quickly particles return to their original position
 
         [Header("Density Constraint Settings")]
         public bool denseOn = true;
         [Min(0f)]
         public float denseCompliance;
         [Min(1f)]
-        public float hMult = 1.25f;
+        public float hMult = 1.25f; // Distance that density constraints are applied. Scales with particle spacing
 
         [Header("Collision Constraint Settings")]
         public bool collOn = true;
+        public bool colliderCollOn = true; // Whether collider vs. collider collisions happen
         [Min(0f)]
         public float collCompliance;
-        #endregion
-
-        #region Private Input Values
-        // Collision Object Components
-        private TorusToolObject torusToolObj;
-        private CollisionObjectBase curetteObj; // TODO: Implement curette stuff
-        private CollisionObjectBase roomObj;
-
-        private ViewingLattice torusToolViewer;
         #endregion
 
         #region Solver Objects
@@ -93,7 +91,7 @@ namespace EarwaxSim
 
         // ------ Functions ------
 
-        // Smoothing kernel for calculating density DEPRECIATED
+        // Smoothing kernel for calculating density
         static float Poly6(float r2, float h)
         {
             float h2 = h * h;
@@ -106,11 +104,7 @@ namespace EarwaxSim
             return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
         }
 
-        int CalcIndex(int i, int j, int k, int n)
-        {
-            return n * (n * i + j) + k;
-        }
-
+        // Estimates rest density of particles in a lattice. NOTE: Needs to be different if particle set is not a lattice
         float CalcRestDensity(ParticleSet ps, SpatialHash grid, float h)
         {
             int n = latticeParticleCount;
@@ -136,13 +130,20 @@ namespace EarwaxSim
             return density;
         }
 
+        // Calculates index in a 1d array of particles based on a x, y, z coordinate in a 3d lattice
+        int CalcIndex(int x, int y, int z, int n)
+        {
+            return n * (n * x + y) + z;
+        }
+
+        // Builds a particle set that is a lattice along with all necessary constraint solvers for the lattice
         (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice()
         {
-            int n = latticeParticleCount;
-            int particleCount = n * n * n;
+            int n = latticeParticleCount; // Number of particles in a single row/column
+            int particleCount = n * n * n; // Total particle count
             float length = latticeLength;
             float spacing = length / (n - 1);
-            float h = spacing * hMult;
+            float h = spacing * hMult; // Distance that density constraint looks for neighbors. Higher means more neighbors to search through
 
             float totalVolume = length * length * length;
             float totalMass = materialDensity * totalVolume;
@@ -150,7 +151,7 @@ namespace EarwaxSim
             float invMass = 1f / particleMass;
             float bondCompliance = baseBondCompliance * spacing;
 
-            ParticleSet lattice = new(particleCount);
+            ParticleSet lattice = new(particleCount, particleRadius * (spacing / 2f));
             List<DistanceConstraint> dist = new();
 
             for (int i = 0; i < n; i++)
@@ -159,7 +160,7 @@ namespace EarwaxSim
                 {
                     for (int k = 0; k < n; k++)
                     {
-                        // Particles
+                        // ------ Particles ------
                         int curr = CalcIndex(i, j, k, n);
                         lattice.currentPosition[curr] = new(-length / 2 + i * spacing, -length / 2 + j * spacing, -length / 2 + k * spacing);
                         lattice.currentPosition[curr] += latticeOrigin;
@@ -170,7 +171,7 @@ namespace EarwaxSim
                         lattice.invMass[curr] = invMass;
                         lattice.mass[curr] = particleMass;
 
-                        // Constraints
+                        // ------ Constraints ------
                         if (i + 1 < n)
                         {
                             int iPlus = CalcIndex(i + 1, j, k, n);
@@ -230,7 +231,7 @@ namespace EarwaxSim
             return (lattice, grid, dcs, dense);
         }
 
-        // Creates lattice, room, and sphere tool
+        // Initializes particle set and constraint solvers
         void BuildSimulation()
         {
             (ps, grid, dist, dense) = GenerateLattice();
@@ -238,13 +239,9 @@ namespace EarwaxSim
             anchors = new AdhesionConstraint[ps.count];
             adhes = new AdhesionConstraintSolver(anchors);
             coll = new CollisionConstraintSolver(collCompliance, anchors);
-
-            // TODO: Add curette tool
-            coll.objects.Add(torusToolObj);
-            coll.objects.Add(roomObj);
         }
 
-
+        // Updates particle velocity based on gravity
         void ApplyForces(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -254,6 +251,7 @@ namespace EarwaxSim
             }
         }
 
+        // Updates particle positions without taking into account collisions or other constraints
         void PredictPositions(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -264,6 +262,7 @@ namespace EarwaxSim
             }
         }
 
+        // Updates velocities based on change in position on the current frame
         void UpdateVelocities(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -280,13 +279,14 @@ namespace EarwaxSim
         Plane dragPlane;
         private int selectedParticle = -1;
 
+        // Finds closest particle to mouse position and returns its index
         int SelectParticle()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
             float closestDist = float.MaxValue;
             int closestIndex = -1;
-            float radius = 0.1f; // same as Gizmo sphere size
+            float radius = ps.radius; // same as Gizmo sphere size
 
             for (int i = 0; i < ps.count; i++)
             {
@@ -313,6 +313,7 @@ namespace EarwaxSim
             return closestIndex;
         }
 
+        // Creates a drag plane aligned with the selected particle
         Plane GetDragPlane(int selectedIndex)
         {
             // Get drag plane
@@ -322,6 +323,7 @@ namespace EarwaxSim
             return new(planeNormal, planePoint);
         }
 
+        // Drags particle across drag plane based on mouse movement
         void DragUpdate(int selectedIndex)
         {
             if (selectedIndex == -1) return;
@@ -352,37 +354,25 @@ namespace EarwaxSim
         // Called when the script instance is first initialized
         private void Awake()
         {
-            if (curette != null)
-            {
-                curetteObj = curette.GetComponent<CollisionObjectBase>();
-            }
-            if (torusTool != null)
-            {
-                torusToolObj = torusTool.GetComponent<TorusToolObject>();
-                torusToolViewer = new(
-                    torusToolObj.viewSize,
-                    torusToolObj.viewResolution,
-                    torusToolObj.viewParticleSize);
-            }
-            if (room != null)
-            {
-                roomObj = room.GetComponent<CollisionObjectBase>();
-            }
+            BuildSimulation();
         }
 
         // Called before the first frame
         private void Start()
         {
-            print("START");
-            BuildSimulation();
+            // TODO: Remove when coll.objects is deprecated
+            coll.objects.Add(tool);
+            coll.objects.Add(canal);
 
+            coll.tool = tool;
+            coll.canal = canal;
         }
 
         // User input loop
         private void Update()
         {
             // Mouse manipulation
-            if (Input.GetMouseButtonUp(0))
+             if (Input.GetMouseButtonUp(0))
             {
                 grabbedParticle = -1;
                 return;
@@ -413,43 +403,51 @@ namespace EarwaxSim
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+            float collAlpha = coll.compliance / (dt * dt);
 
-            // Move ball tool
-            if (torusToolObj != null)
-            {
-                torusToolObj.previousPosition = torusToolObj.transform.position;
-                torusToolObj.MoveTarget(dt);
-            }
-
-            // 1. Reset lambda
+            // ------ 1. Reset lambda ------
             if (distOn) dist.ResetLambda();
             if (denseOn) dense.ResetLambda();
             if (adhesOn) adhes.ResetLambda();
+            if (collOn) coll.ResetLambda(); // Also resets haptic message
 
-            // 2. Apply external forces
+            // ------ 2. Apply external forces ------
             ApplyForces(ps, dt);
 
-            // 3. Predict positions
+            // ------ 3. Predict positions ------
             PredictPositions(ps, dt);
-            torusToolObj.MoveTool(dt);
 
-            // 4. Build spatial grid NOTE: Unsure if grid should be built per frame or per iteration
+            if (tool != null)
+            {
+                tool.previousPosition = tool.transform.position;
+                tool.MoveTool(dt);
+            }
+
+            // ------ 4. Build spatial grid. ------
             if (denseOn) grid.BuildGrid(ps);
 
-            // 5. Solve constraints
+            // ------ 5. Solve constraints ------
+            coll.SolveColliderCollider(collAlpha); // Run tool vs. canal collisions only once per frame for stability
+
             for (int i = 0; i < solverIterations; i++)
             {
                 if (distOn) dist.SolveOnce(ps, dt, grid);
                 if (denseOn) dense.SolveOnce(ps, dt, grid);
-                if (collOn) coll.SolveOnce(ps, dt, grid);
+                if (collOn) coll.NewSolveOnce(ps, dt); // NOTE: This does not solve particle vs. canal collisions
                 if (adhesOn) adhes.SolveOnce(ps, dt, grid);
             }
 
-            if (distOn) dist.UpdateRestLengths(ps, dt);
+            coll.SolvePSCollider(ps, coll.canal, collAlpha); // Run canal collisions only once per frame for performance
 
-            // 6. Update velocities
+            if (distOn) dist.UpdateRestLengths(ps, dt); // Update rest lengths after solving
+
+            // ------ 6. Update velocities ------
             UpdateVelocities(ps, dt);
+            tool.velocity = (tool.transform.position - tool.previousPosition) / dt;
 
+            // ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
+            if (tool != null && tool.keyboardOn) tool.ResetTarget(); // If using keyboard, just reset target
+            else hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 
         // Draws particles and constraints for debugging.
@@ -458,31 +456,29 @@ namespace EarwaxSim
             if (ps == null) return;
             if (ps.currentPosition == null) return;
 
-            if (torusToolObj != null && drawTool) torusToolViewer.DrawLattice(torusToolObj);
-
-            if (drawParticles)
+            // Draw particles
+            Gizmos.color = Color.black;
+            for (int i = 0; i < ps.currentPosition.Length; i++)
             {
-                Gizmos.color = Color.black;
-                for (int i = 0; i < ps.currentPosition.Length; i++)
+                if (drawParticles) Gizmos.DrawSphere(ps.currentPosition[i], ps.radius * particleViewRadius);
+
+                // Draw adhesion constraints
+                if (adhesOn && anchors[i].isActive && drawAdhes)
                 {
-                    Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+                    Gizmos.color = Color.green;
 
-                    if (adhesOn && anchors[i].isActive && drawAdhes)
-                    {
-                        Gizmos.color = Color.green;
+                    Vector3 anchorPos = anchors[i].shape.GetWorldPos(anchors[i].localAnchorPos);
 
-                        Vector3 anchorPos = anchors[i].shape.GetWorldPos(anchors[i].localAnchorPos);
+                    Gizmos.DrawSphere(anchorPos, ps.radius * particleViewRadius);
 
-                        Gizmos.DrawSphere(anchorPos, .05f);
-
-                        Gizmos.DrawLine(
-                            ps.currentPosition[i],
-                            anchorPos);
-                        Gizmos.color = Color.black;
-                    }
+                    Gizmos.DrawLine(
+                        ps.currentPosition[i],
+                        anchorPos);
+                    Gizmos.color = Color.black;
                 }
             }
 
+            // Draw distance constraints
             if (drawDist)
             {
                 Gizmos.color = new(1f, 1f, 1f, .5f);
@@ -495,13 +491,14 @@ namespace EarwaxSim
                 }
             }
 
-
+            // Draw grabbed particle
             Gizmos.color = new(0f, 0f, 1f, .5f);
             if (grabbedParticle != -1)
             {
                 Gizmos.DrawWireSphere(ps.currentPosition[grabbedParticle], dense.h);
             }
 
+            // Draw selected particle's density constraints
             Gizmos.color = Color.red;
             if (selectedParticle != -1)
             {
