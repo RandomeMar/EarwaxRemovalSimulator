@@ -70,3 +70,4 @@ MonoBehaviour:
   m_Active: 1
   particleRenderer: {fileID: 0}
   compositeMaterial: {fileID: 2100000, guid: e9b4d152bf5067747a547b033d46bf07, type: 2}
+  renderMaterial: {fileID: 2100000, guid: 50e6aac6614d5ea479f02e8aa4024040, type: 2}

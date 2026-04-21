@@ -10,13 +10,15 @@ public class EarwaxBillboardPass : ScriptableRenderPass
 {
     const string m_PassName = "EarwaxBillboardPass";
     ParticleRenderer particleRenderer;
+
     Material compositeMaterial;
+    Material renderMaterial;
 
     public EarwaxBillboardPass() { }
 
     // Class defining what will be passed into the pass when it actually runs.
     // Goes into ExecutePass()
-    class PassData
+    class BillboardPassData
     {
         internal Material material;
         internal Mesh mesh;
@@ -25,17 +27,23 @@ public class EarwaxBillboardPass : ScriptableRenderPass
 
     class CompositePassData
     {
-        internal TextureHandle inputTexture;
         internal Material material;
+        internal TextureHandle sceneColor;
+        internal TextureHandle earwaxLit;
+
+        internal TextureHandle sceneDepth;
+        internal TextureHandle earwaxDepth;
     }
 
-    public void Setup(ParticleRenderer particleRenderer, Material compositeMaterial)
+
+    public void Setup(ParticleRenderer particleRenderer, Material compositeMaterial, Material renderMaterial)
     {
         this.particleRenderer = particleRenderer;
         this.compositeMaterial = compositeMaterial;
+        this.renderMaterial = renderMaterial;
     }
 
-    static void ExecutePass(PassData data, RasterGraphContext context)
+    static void ExecuteBillboardPass(BillboardPassData data, RasterGraphContext context)
     {
         if (data.mesh == null || data.material == null || data.particleCount <= 0)
             return;
@@ -55,10 +63,19 @@ public class EarwaxBillboardPass : ScriptableRenderPass
 
     static void ExecuteCompositePass(CompositePassData data, RasterGraphContext context)
     {
-        if (data.material == null || data.inputTexture.IsUnityNull()) return;
-        Blitter.BlitTexture(context.cmd, new Vector4(1, 1, 0, 0), data.material, 0);
-    }
+        if (data.material == null)
+            return;
 
+        // Draw a screen sized triangle for blit
+        context.cmd.DrawProcedural(
+            Matrix4x4.identity,
+            data.material,
+            0,
+            MeshTopology.Triangles,
+            3,
+            1
+        );
+    }
 
     // Sets up input/output for the pass, and binds the ExecutePass method as the function to run when rendering
     public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -68,51 +85,106 @@ public class EarwaxBillboardPass : ScriptableRenderPass
         // Gets texture description from the camera's color texture
         var sceneData = frameData.Get<UniversalResourceData>();
 
-
+        #region Textures
         // Billboard color texture
         var colorDesc = sceneData.cameraColor.GetDescriptor(renderGraph);
         colorDesc.depthBufferBits = 0;
         colorDesc.name = "BillboardColor";
         colorDesc.format = GraphicsFormat.R8G8B8A8_UNorm;
-        TextureHandle billboardTexture = renderGraph.CreateTexture(in colorDesc);
+        TextureHandle billboardColor = renderGraph.CreateTexture(in colorDesc);
 
+        // Billboard depth texture
+        var depthDesc = sceneData.cameraDepth.GetDescriptor(renderGraph);
+        depthDesc.name = "BillboardDepth";
+        TextureHandle billboardDepth = renderGraph.CreateTexture(in depthDesc);
 
-        // 1. Render particle billboards to billboardTexture
-        using (var builder = renderGraph.AddRasterRenderPass<PassData>(m_PassName, out PassData passData))
+        // Debug texture
+        var debugDesc = sceneData.cameraColor.GetDescriptor(renderGraph);
+        debugDesc.depthBufferBits = 0;
+        debugDesc.name = "EarwaxLit";
+        debugDesc.format = GraphicsFormat.R8G8B8A8_UNorm;
+        TextureHandle earwaxLit = renderGraph.CreateTexture(in debugDesc);
+
+        // Destination texture
+        var destinationDesc = sceneData.cameraColor.GetDescriptor(renderGraph);
+        destinationDesc.depthBufferBits = 0;
+        destinationDesc.name = "Destination";
+        TextureHandle destinationTexture = renderGraph.CreateTexture(in destinationDesc);
+        #endregion
+
+        // 1. Render particle billboards to a depth texture
+        using (var builder = renderGraph.AddRasterRenderPass<BillboardPassData>(m_PassName, out BillboardPassData passData))
         {
             // Supply passData with necessary data
-            passData.material = particleRenderer.material;
+            passData.material = particleRenderer.billboardMaterial;
             passData.mesh = particleRenderer.mesh;
             passData.particleCount = particleRenderer.particleCount;
 
             // Sets pass's render target to the outputTexture
-            builder.SetRenderAttachment(billboardTexture, 0);
-            builder.SetRenderAttachmentDepth(sceneData.activeDepthTexture, AccessFlags.Write);
+            builder.SetRenderAttachment(billboardColor, 0);
+            builder.SetRenderAttachmentDepth(billboardDepth, AccessFlags.Write);
 
             // Prevents pass from being culled by the render graph optimizer
             builder.AllowPassCulling(false);
 
             // The function that is called every pass
-            builder.SetRenderFunc(static (PassData data, RasterGraphContext context)
-                => ExecutePass(data, context));
+            builder.SetRenderFunc(static (BillboardPassData data, RasterGraphContext context)
+                => ExecuteBillboardPass(data, context));
 
+            // TODO: May need to make depth texture global instead.
             int billboardTexID = Shader.PropertyToID("_BillboardTex");
-            builder.SetGlobalTextureAfterPass(billboardTexture, billboardTexID);
+            builder.SetGlobalTextureAfterPass(billboardColor, billboardTexID);
         }
 
 
-        var destinationDesc = sceneData.cameraColor.GetDescriptor(renderGraph);
-        destinationDesc.depthBufferBits = 0;
-        destinationDesc.name = "Destination";
-        TextureHandle destinationTexture = renderGraph.CreateTexture(in destinationDesc);
-
-
-        var blitParams = new RenderGraphUtils.BlitMaterialParameters(
-            sceneData.activeColorTexture,
-            destinationTexture,
-            compositeMaterial,
+        // 2. Calculate normals using gradient of depth texture. Use normals for lambertian diffuse
+        var renderBlitParams = new RenderGraphUtils.BlitMaterialParameters(
+            billboardDepth,
+            earwaxLit,
+            renderMaterial,
             0);
-        renderGraph.AddBlitPass(blitParams, "Composite Billboard");
+        renderGraph.AddBlitPass(renderBlitParams, "Render Particles from Field");
+
+        // 3. Composite earwax color texture with scene color texture based on depth textures
+        using (var builder = renderGraph.AddRasterRenderPass<CompositePassData>("CompositePass", out CompositePassData passData))
+        {
+            passData.material = compositeMaterial;
+            passData.sceneColor = sceneData.activeColorTexture;
+            passData.earwaxLit = earwaxLit;
+            passData.sceneDepth = sceneData.activeDepthTexture;
+            passData.earwaxDepth = billboardDepth;
+
+            builder.UseTexture(passData.sceneColor, AccessFlags.Read);
+            builder.UseTexture(passData.earwaxLit, AccessFlags.Read);
+            builder.UseTexture(passData.sceneDepth, AccessFlags.Read);
+            builder.UseTexture(billboardDepth, AccessFlags.Read);
+
+            builder.SetRenderAttachment(destinationTexture, 0, AccessFlags.WriteAll);
+
+            builder.AllowPassCulling(false);
+
+            builder.SetRenderFunc(static (CompositePassData data, RasterGraphContext context) =>
+            {
+                if (data.material == null)
+                    return;
+
+                data.material.SetTexture("_SceneColorTex", data.sceneColor);
+                data.material.SetTexture("_EarwaxLitTex", data.earwaxLit);
+
+                data.material.SetTexture("_SceneDepthTex", data.sceneDepth);
+                data.material.SetTexture("_EarwaxDepthTex", data.earwaxDepth);
+
+                // Draw a screen sized triangle for blit
+                context.cmd.DrawProcedural(
+                    Matrix4x4.identity,
+                    data.material,
+                    0,
+                    MeshTopology.Triangles,
+                    3,
+                    1
+                );
+            });
+        }
 
         sceneData.cameraColor = destinationTexture;
     }

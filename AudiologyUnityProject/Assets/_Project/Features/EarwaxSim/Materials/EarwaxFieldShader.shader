@@ -11,11 +11,14 @@ Shader "Custom/EarwaxFieldShader"
 
         Pass
         {
-            ColorMask R // Only outputs to red channel
-            ZWrite Off
+            ZWrite On
+            ZTest LEqual
             Cull Off
-            Blend One One
-            BlendOp Min
+
+            //ColorMask R // Only outputs to red channel
+            Blend Off
+            //Blend One One
+            //BlendOp Min
 
 
             HLSLPROGRAM
@@ -48,6 +51,12 @@ Shader "Custom/EarwaxFieldShader"
                 float3 centerVS : TEXCOORD1;
             };
 
+            struct fragOut
+            {
+                float4 color : SV_TARGET;
+                float depth : SV_DEPTH;
+            };
+
             // Vertex Shader
             v2f vert(appdata v, uint instanceID : SV_InstanceID)
             {
@@ -70,26 +79,26 @@ Shader "Custom/EarwaxFieldShader"
             }
 
             // Fragment Shader
-            float4 frag(v2f i) : SV_Target
+            fragOut frag(v2f i)
             {
+                fragOut o;
+
                 float2 p = i.uv * 2.0 - 1.0; // Since UVs usually go from 0 to 1, this makes them go -1 to 1. That means (0, 0) is now the center
                 float r2 = dot(p, p);
 
                 if (r2 > 1) discard; // Discard pixels more than 1 unit away from the center uv position. This results in a circle of radius 1
 
                 float z = sqrt(1.0 - r2);
-                
                 float3 normalView = normalize(float3(p.x, p.y, z)); // Normal in view space
-                float3 surfaceView = i.centerVS + (normalView * _ParticleSize); // Fragment position in view space
 
-                float depth = -surfaceView.z;
+                float4 surfaceView = float4(i.centerVS + (normalView * _ParticleSize), 1.0); // Frag position in view space
+                float4 surfaceClip = mul(UNITY_MATRIX_P, surfaceView); // Frag position in clip space
 
-                float nearD = 0.0;
-                float farD = 11.0;
-                float depth01 = saturate((depth - nearD) / (farD - nearD));
-                return float4(depth01, 0, 0, 1);
+                o.depth = surfaceClip.z / surfaceClip.w; // Normalized device coordinate
 
-                return float4(depth, 0.0, 0.0, 1);
+                o.color = float4(-surfaceView.z, 0.0, 0.0, 1.0); // Linear eye depth
+
+                return o;
             }
 
             ENDHLSL
