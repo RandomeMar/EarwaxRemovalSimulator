@@ -24,6 +24,8 @@ Shader "Custom/EarwaxLighting"
             #pragma vertex vert
             #pragma fragment frag
 
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -96,15 +98,20 @@ Shader "Custom/EarwaxLighting"
                 // Simple screen-space pseudo-normal
                 float3 N = normalize(float3(-dx, -dy, _DepthScale));
 
+                float3 worldPos = ComputeWorldSpacePosition(i.uv, dC, UNITY_MATRIX_I_VP);
+                float4 shadowCoord = TransformWorldToShadowCoord(worldPos);
+
                 // Light
-                Light mainLight = GetMainLight();
+                Light mainLight = GetMainLight(shadowCoord);
                 float3 lightWorld = normalize(mainLight.direction);
                 float3 lightView = normalize(mul((float3x3)UNITY_MATRIX_V, lightWorld)); // Convert to view space
 
-                float diffuse = saturate(dot(N, lightView));
-                float lighting = saturate(_Ambient + diffuse);
+                float NdotL = saturate(dot(N, lightView));
+                float3 direct = mainLight.color * NdotL * mainLight.shadowAttenuation;
+                float3 color = (direct + _Ambient) * _WaxColor.rgb;
 
-                float3 color = _WaxColor.rgb * lighting;
+                //float3 color = N * .5 + .5; // For testing normals
+
                 return float4(color, 1.0);
             }
             ENDHLSL
