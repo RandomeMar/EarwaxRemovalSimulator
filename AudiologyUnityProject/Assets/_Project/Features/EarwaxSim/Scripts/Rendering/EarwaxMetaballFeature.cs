@@ -7,6 +7,7 @@ public class EarwaxMetaballFeature : ScriptableRendererFeature
 {
     [SerializeField] private ParticleRenderer particleRenderer;
     [SerializeField] private Material compositeMaterial;
+    [SerializeField] private Material renderMaterial;
 
     private EarwaxBillboardPass pass;
 
@@ -21,7 +22,7 @@ public class EarwaxMetaballFeature : ScriptableRendererFeature
 
         if (particleRenderer == null) return;
 
-        pass.Setup(particleRenderer, compositeMaterial);
+        pass.Setup(particleRenderer, compositeMaterial, renderMaterial);
         renderer.EnqueuePass(pass);
     }
 }

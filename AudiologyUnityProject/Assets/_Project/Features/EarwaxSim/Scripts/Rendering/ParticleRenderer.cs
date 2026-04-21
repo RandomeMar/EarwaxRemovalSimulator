@@ -6,13 +6,13 @@ public class ParticleRenderer : MonoBehaviour
 {
     public XPBDSim sim;
     public Mesh mesh;
-    public Material material;
+    public Material billboardMaterial;
     public GraphicsBuffer positionBuffer { get; private set; }
     public int particleCount => sim ? sim.ps.count : 0;
     public bool isReady =>
         sim != null &&
         mesh != null &&
-        material != null &&
+        billboardMaterial != null &&
         positionBuffer != null &&
         particleCount > 0;
 
@@ -39,7 +39,7 @@ public class ParticleRenderer : MonoBehaviour
             sim.ps.count,
             strideInBytes); // Buffer for particle positions
 
-        material.SetBuffer("_Positions", positionBuffer); // Buffer is called "_Positions" inside shader
+        billboardMaterial.SetBuffer("_Positions", positionBuffer); // Buffer is called "_Positions" inside shader
     }
 
     private void LateUpdate()
