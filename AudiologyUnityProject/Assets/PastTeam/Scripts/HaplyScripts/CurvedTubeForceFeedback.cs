@@ -24,7 +24,7 @@ public class CurvedTubeForceFeedback : MonoBehaviour
     private void Awake()
     {
         CacheControlPointPositions();
-        FindObjectOfType<HapticManager>().RegisterTube(this);
+        FindFirstObjectByType<HapticManager>().RegisterTube(this);
     }
 
     private void CacheControlPointPositions()

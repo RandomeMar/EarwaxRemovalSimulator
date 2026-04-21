@@ -16,7 +16,7 @@ public class SphereForceFeedback : MonoBehaviour
         _ballPosition = transform.position;
         _ballRadius = transform.lossyScale.x / 2f;
 
-        FindObjectOfType<HapticManager>().RegisterSphere(this);
+        FindFirstObjectByType<HapticManager>().RegisterSphere(this);
     }
 
     public Vector3 CalculateForce(Vector3 cursorPosition, Vector3 cursorVelocity, float cursorRadius)

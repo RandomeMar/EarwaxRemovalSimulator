@@ -19,7 +19,7 @@ public class SoftbodyGenerator : MonoBehaviour
     private Mesh writableMesh;
 
     private List<GameObject> phyisicedVertexes;
-    private new Dictionary<int, int> vertexDictunery;
+    private Dictionary<int, int> vertexDictunery;
     /** public variable to controll softbody **/
     public bool runOptimizedVersion = false;
     public float _collissionSurfaceOffset = 0.001f;

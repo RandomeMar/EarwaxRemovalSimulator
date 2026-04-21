@@ -29,7 +29,7 @@ public class ClockScript : MonoBehaviour
 
     public void ResetButton()
     {
-/*         StatsManager[] allManagers = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
+        /*         StatsManager[] allManagers = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
 
         foreach (StatsManager sm in allManagers)
         {
@@ -53,9 +53,6 @@ public class ClockScript : MonoBehaviour
 
 
             statsManager.GetComponent<StatsManager>().setElapsedTime(elapsedTime);
-
-
-    
         }
     }
 
