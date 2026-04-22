@@ -74,6 +74,58 @@ namespace EarwaxSim
         public bool colliderCollOn = true; // Whether collider vs. collider collisions happen
         [Min(0f)]
         public float collCompliance;
+
+        [Header("Procedural Earwax Shape")]
+        [Tooltip("Use procedural noise-based shape instead of uniform lattice.")]
+        public bool useProceduralShape = false;
+        [Tooltip("Seed for reproducible shapes. Same seed = same earwax.")]
+        public int proceduralSeed = 42;
+        [Tooltip("Base ellipsoid radii (x, y, z) before noise displacement.")]
+        public Vector3 proceduralRadii = new Vector3(0.5f, 0.3f, 0.4f);
+        [Tooltip("How much noise displaces the surface (fraction of radius).")]
+        [Range(0f, 0.8f)]
+        public float proceduralNoiseStrength = 0.3f;
+        [Tooltip("Noise frequency. Higher = more bumps.")]
+        [Range(0.5f, 8f)]
+        public float proceduralNoiseFrequency = 2.0f;
+        [Tooltip("Number of noise octaves for detail.")]
+        [Range(1, 5)]
+        public int proceduralNoiseOctaves = 3;
+
+        [Header("Wax Preset")]
+        [Tooltip("Quick presets for different wax types. Custom = keep inspector values as-is; " +
+                 "any other preset overwrites material + noise fields when the sim builds.")]
+        public WaxPreset waxPreset = WaxPreset.Custom;
+
+        [Header("Procedural Parametric Ranges")]
+        [Tooltip("If on, the seed also rolls the ACTUAL radii/noise values from the ranges below. " +
+                 "Each seed then produces a different silhouette — tall/skinny/bumpy vs. wide/smooth, etc.")]
+        public bool useParametricRanges = false;
+        [Tooltip("Per-axis minimum radius when parametric ranges are on.")]
+        public Vector3 proceduralRadiiMin = new Vector3(0.3f, 0.2f, 0.3f);
+        [Tooltip("Per-axis maximum radius when parametric ranges are on.")]
+        public Vector3 proceduralRadiiMax = new Vector3(0.6f, 0.5f, 0.5f);
+        [Tooltip("Min/max noise strength (x=min, y=max).")]
+        public Vector2 proceduralNoiseStrengthRange = new Vector2(0.15f, 0.45f);
+        [Tooltip("Min/max noise frequency (x=min, y=max).")]
+        public Vector2 proceduralNoiseFrequencyRange = new Vector2(1.5f, 3.5f);
+
+        [Header("Procedural Asymmetry / Lobes")]
+        [Tooltip("Pushes noise bumps toward one side of the blob. 0 = uniform, 1 = fully biased.")]
+        [Range(0f, 1f)]
+        public float proceduralBumpinessBias = 0f;
+        [Tooltip("Direction the bumpiness gets biased toward.")]
+        public Vector3 proceduralBumpinessBiasAxis = Vector3.up;
+        [Tooltip("Low-frequency sine warp magnitude. Bends/lobes the overall shape. 0 = straight.")]
+        [Range(0f, 1f)]
+        public float proceduralStretchAmount = 0f;
+        [Tooltip("Sine wave frequency for the stretch warp.")]
+        public float proceduralStretchFrequency = 3f;
+        [Tooltip("Flattens one side of the blob, as if pressed against the canal wall. 0 = none, 1 = fully flat.")]
+        [Range(0f, 1f)]
+        public float proceduralSquashAmount = 0f;
+        [Tooltip("Direction that gets squashed. Default -Y = flatten the bottom.")]
+        public Vector3 proceduralSquashAxis = Vector3.down;
         #endregion
 
         #region Solver Objects
@@ -231,10 +283,100 @@ namespace EarwaxSim
             return (lattice, grid, dcs, dense);
         }
 
-        // Initializes particle set and constraint solvers
+        // Feature 3: Wax presets. Overwrites material + noise params with canned values for
+        // different wax types so the sponsor demo has easy variety. Custom = no-op.
+        void ApplyWaxPreset()
+        {
+            switch (waxPreset)
+            {
+                case WaxPreset.DryCrumbly:
+                    // Hard, brittle, breaks apart under light pressure.
+                    materialDensity = 1.2f;
+                    yieldStrain = 0.1f;   // yields almost immediately
+                    plasticFlow = 0.3f;   // very little flow
+                    breakStrain = 0.3f;   // shatters
+                    proceduralNoiseStrength = 0.45f;
+                    proceduralNoiseFrequency = 3.5f;
+                    proceduralNoiseOctaves = 4;
+                    break;
+
+                case WaxPreset.SoftSticky:
+                    // Pliable, stretches, hard to break.
+                    materialDensity = 0.8f;
+                    yieldStrain = 0.8f;   // stretches a lot before yielding
+                    plasticFlow = 1.2f;   // flows easily
+                    breakStrain = 2.0f;   // very hard to break
+                    proceduralNoiseStrength = 0.2f;
+                    proceduralNoiseFrequency = 1.5f;
+                    proceduralNoiseOctaves = 2;
+                    break;
+
+                case WaxPreset.OldImpacted:
+                    // Dense, stuck, moderately stiff — the "hard case" the student has to work for.
+                    materialDensity = 1.5f;
+                    yieldStrain = 0.3f;
+                    plasticFlow = 0.5f;
+                    breakStrain = 0.8f;
+                    proceduralNoiseStrength = 0.35f;
+                    proceduralNoiseFrequency = 2.5f;
+                    proceduralNoiseOctaves = 3;
+                    break;
+
+                case WaxPreset.Custom:
+                default:
+                    // Leave everything alone.
+                    break;
+            }
+        }
+
+        // Creates lattice, room, and sphere tool
         void BuildSimulation()
         {
-            (ps, grid, dist, dense) = GenerateLattice();
+            // Apply wax preset first so procedural/material fields reflect the selected type.
+            ApplyWaxPreset();
+
+            if (useProceduralShape) // If true, generates a procedural earwax shape instead of a uniform lattice. See ProceduralEarwax.cs for details.
+            {
+                var gen = new ProceduralEarwax
+                {
+                    seed = proceduralSeed,
+                    baseRadii = proceduralRadii,
+                    resolution = latticeParticleCount,
+                    origin = latticeOrigin,
+                    noiseStrength = proceduralNoiseStrength,
+                    noiseFrequency = proceduralNoiseFrequency,
+                    noiseOctaves = proceduralNoiseOctaves,
+                    materialDensity = materialDensity,
+                    baseBondCompliance = baseBondCompliance,
+                    hMult = hMult,
+                    denseCompliance = denseCompliance,
+                    yieldStrain = yieldStrain,
+                    plasticFlow = plasticFlow,
+                    breakStrain = breakStrain,
+                    adaptRate = adaptRate,
+                    recoveryRate = recoveryRate,
+
+                    // Feature 1: parametric ranges
+                    useParametricRanges = useParametricRanges,
+                    radiiMin = proceduralRadiiMin,
+                    radiiMax = proceduralRadiiMax,
+                    noiseStrengthRange = proceduralNoiseStrengthRange,
+                    noiseFrequencyRange = proceduralNoiseFrequencyRange,
+
+                    // Feature 2: asymmetry / lobes
+                    bumpinessBias = proceduralBumpinessBias,
+                    bumpinessBiasAxis = proceduralBumpinessBiasAxis,
+                    stretchAmount = proceduralStretchAmount,
+                    stretchFrequency = proceduralStretchFrequency,
+                    squashAmount = proceduralSquashAmount,
+                    squashAxis = proceduralSquashAxis,
+                };
+                (ps, grid, dist, dense) = gen.Generate();
+            }
+            else
+            {
+                (ps, grid, dist, dense) = GenerateLattice();
+            }
 
             anchors = new AdhesionConstraint[ps.count];
             adhes = new AdhesionConstraintSolver(anchors);

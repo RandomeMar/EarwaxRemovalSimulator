@@ -1496,7 +1496,7 @@ MonoBehaviour:
   canal: {fileID: 444514385}
   drawParticles: 0
   particleViewRadius: 0.5
-  drawDist: 1
+  drawDist: 0
   drawAdhes: 1
   solverIterations: 3
   gravity: {x: 0, y: -0.5, z: 0}
@@ -1520,6 +1520,24 @@ MonoBehaviour:
   collOn: 1
   colliderCollOn: 1
   collCompliance: 0
+  useProceduralShape: 0
+  proceduralSeed: 42
+  proceduralRadii: {x: 0.5, y: 0.3, z: 0.4}
+  proceduralNoiseStrength: 0.3
+  proceduralNoiseFrequency: 2
+  proceduralNoiseOctaves: 3
+  waxPreset: 0
+  useParametricRanges: 0
+  proceduralRadiiMin: {x: 0.3, y: 0.2, z: 0.3}
+  proceduralRadiiMax: {x: 0.6, y: 0.5, z: 0.5}
+  proceduralNoiseStrengthRange: {x: 0.15, y: 0.45}
+  proceduralNoiseFrequencyRange: {x: 1.5, y: 3.5}
+  proceduralBumpinessBias: 0
+  proceduralBumpinessBiasAxis: {x: 0, y: 1, z: 0}
+  proceduralStretchAmount: 0
+  proceduralStretchFrequency: 3
+  proceduralSquashAmount: 0
+  proceduralSquashAxis: {x: 0, y: -1, z: 0}
 --- !u!1 &1048988001
 GameObject:
   m_ObjectHideFlags: 0

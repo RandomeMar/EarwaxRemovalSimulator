@@ -259,6 +259,7 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
   targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders: []
   drawRoom: 0
 --- !u!4 &189487208
@@ -486,9 +487,13 @@ MonoBehaviour:
   previousRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
   targetPosition: {x: -3.8, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
+  velocity: {x: 0, y: 0, z: 0}
   unityColliders:
   - {fileID: 808136099}
   keyboardInputManager: {fileID: 1455697835}
+  cam: {fileID: 0}
+  haplyCursor: {fileID: 0}
+  keyboardOn: 0
   toolSpeed: 5
   maxSpeed: 10
   viewSize: {x: 4, y: 2, z: 4}
@@ -720,8 +725,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e00dc09bc49c2d642b24c4d2e36265f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  tool: {fileID: 808136096}
-  room: {fileID: 189487206}
+  hapticManager: {fileID: 0}
+  tool: {fileID: 808136097}
+  canal: {fileID: 0}
   drawParticles: 1
   particleViewRadius: 0.5
   drawDist: 1
@@ -733,13 +739,13 @@ MonoBehaviour:
   latticeParticleCount: 8
   latticeLength: 3
   particleRadius: 0.5
-  materialDensity: 9
+  materialDensity: 1.5
   baseBondCompliance: 0.0003
   adhesOn: 1
   distOn: 1
-  yieldStrain: 0.25
-  plasticFlow: 1
-  breakStrain: 0.4
+  yieldStrain: 0.3
+  plasticFlow: 0.5
+  breakStrain: 0.8
   adaptRate: 3
   recoveryRate: 0.3
   denseOn: 1
@@ -748,6 +754,24 @@ MonoBehaviour:
   collOn: 1
   colliderCollOn: 1
   collCompliance: 0
+  useProceduralShape: 1
+  proceduralSeed: 252
+  proceduralRadii: {x: -1.74, y: 1.15, z: -1.72}
+  proceduralNoiseStrength: 0.35
+  proceduralNoiseFrequency: 2.5
+  proceduralNoiseOctaves: 3
+  waxPreset: 3
+  useParametricRanges: 0
+  proceduralRadiiMin: {x: 0.3, y: 0.2, z: 0.3}
+  proceduralRadiiMax: {x: 0.6, y: 0.5, z: 0.5}
+  proceduralNoiseStrengthRange: {x: 0.15, y: 0.45}
+  proceduralNoiseFrequencyRange: {x: 1.5, y: 3.5}
+  proceduralBumpinessBias: 0
+  proceduralBumpinessBiasAxis: {x: 0, y: 1, z: 0}
+  proceduralStretchAmount: 0
+  proceduralStretchFrequency: 3
+  proceduralSquashAmount: 0
+  proceduralSquashAxis: {x: 0, y: -1, z: 0}
 --- !u!1 &1105516528
 GameObject:
   m_ObjectHideFlags: 0
@@ -779,7 +803,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   sim: {fileID: 1039142607}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  material: {fileID: 2100000, guid: 152c7b6e904bc4249b8d21e6b9ca6e54, type: 2}
+  billboardMaterial: {fileID: 0}
 --- !u!4 &1105516530
 Transform:
   m_ObjectHideFlags: 0
