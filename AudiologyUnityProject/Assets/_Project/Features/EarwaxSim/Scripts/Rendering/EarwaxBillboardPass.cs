@@ -60,22 +60,7 @@ public class EarwaxBillboardPass : ScriptableRenderPass
             null
         );
     }
-
-    static void ExecuteCompositePass(CompositePassData data, RasterGraphContext context)
-    {
-        if (data.material == null)
-            return;
-
-        // Draw a screen sized triangle for blit
-        context.cmd.DrawProcedural(
-            Matrix4x4.identity,
-            data.material,
-            0,
-            MeshTopology.Triangles,
-            3,
-            1
-        );
-    }
+    
 
     // Sets up input/output for the pass, and binds the ExecutePass method as the function to run when rendering
     public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)

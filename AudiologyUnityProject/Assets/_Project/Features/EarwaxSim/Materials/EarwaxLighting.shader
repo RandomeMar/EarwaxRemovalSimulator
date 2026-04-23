@@ -26,12 +26,12 @@ Shader "Custom/EarwaxLighting"
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
 
+            #include "HLSLSupport.cginc"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             // AddBlitPass() values
-            Texture2D _BlitTexture;
-            sampler sampler_BlitTexture;
+            UNITY_DECLARE_SCREENSPACE_TEXTURE(_BlitTexture);
             float4 _BlitTexture_TexelSize;
 
             float4 _WaxColor;
@@ -75,7 +75,7 @@ Shader "Custom/EarwaxLighting"
 
             float SampleDepth(float2 uv)
             {
-                return SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, uv).r;
+                return UNITY_SAMPLE_SCREENSPACE_TEXTURE(_BlitTexture, uv);
             }
 
             float4 frag(FragIn i) : SV_TARGET
