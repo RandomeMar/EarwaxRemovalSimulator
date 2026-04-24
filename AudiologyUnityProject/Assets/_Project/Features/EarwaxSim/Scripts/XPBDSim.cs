@@ -383,6 +383,23 @@ namespace EarwaxSim
             coll = new CollisionConstraintSolver(collCompliance, anchors);
         }
 
+        public float GetPercentWaxRemoved()
+        {
+            if (dist == null || dist.constraints == null)
+                return 0f;
+
+            int total = dist.constraints.Length;
+            int broken = 0;
+
+            for (int i = 0; i < total; i++)
+            {
+                if (!dist.constraints[i].active)
+                    broken++;
+            }
+
+            return (broken / (float)total) * 100f;
+        }
+        
         // Updates particle velocity based on gravity
         void ApplyForces(ParticleSet ps, float dt)
         {

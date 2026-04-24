@@ -16,6 +16,9 @@ public class StatsManager : MonoBehaviour
     private StatsData statsData = new StatsData();
     private string filePath;
 
+    private bool disqualified = false;
+    public float maxScore = 100f;
+
     private string filePathforDelete;
 
     public string currentName;
@@ -131,11 +134,38 @@ public class StatsManager : MonoBehaviour
         }
     }
 
+    // New scoring algorithm methods
+    
+    public void InitializeScore()
+    {
+        currentScore = maxScore;
+        disqualified = false;
+    }
+
+    public void Disqualify()
+    {
+        disqualified = true;
+        Debug.Log("[StatsManager] Player disqualified - too much pressure!");
+    }
+
+    public bool IsDisqualified() => disqualified;
+
+    public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
+    {
+        if (disqualified)
+            return 0f;
+
+        float waxScore = (percentWaxRemoved / 100f) * 50f;
+        float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
+
+        return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
+    }
+
     // For deleteing and reseting stats
     public void ResetStats()
     {
         filePathforDelete = Application.persistentDataPath + "/stats.json";
-        if (File.Exists(filePathforDelete)) 
+        if (File.Exists(filePathforDelete))
         {
             File.Delete(filePathforDelete);
             Debug.Log("Saved data file cleared at: " + filePathforDelete);

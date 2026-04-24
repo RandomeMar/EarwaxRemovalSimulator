@@ -27,7 +27,9 @@ public class NewHapticManager : MonoBehaviour
     private HapticMessage _hapticMessage;
     public readonly object _hapticLock = new object();
 
+    private StatsManager _statsManager;
 
+    
     // Thread-safe setter called by XPBDSim
     public void SetHapticMessage(HapticMessage value)
     {
@@ -51,6 +53,11 @@ public class NewHapticManager : MonoBehaviour
     private void OnEnable()
     {
         _isDestroyed = false;
+
+        if (_statsManager == null)
+        {
+            _statsManager = FindFirstObjectByType<StatsManager>();
+        }
 
         if (_inverse3 == null) _inverse3 = GetComponentInChildren<Inverse3Controller>();
 
@@ -103,6 +110,9 @@ public class NewHapticManager : MonoBehaviour
         //Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
 
         Vector3 force = msg.collisionNorm * msg.penetrationDepth * stiffness - cursorVel * damping;
+        
+        if (force.magnitude >= MAX_FORCE && _statsManager != null && !_statsManager.IsDisqualified())
+            _statsManager.Disqualify();
         return force;
     }
 

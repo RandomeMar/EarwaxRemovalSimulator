@@ -26,7 +26,7 @@ public class EndSceneScript : MonoBehaviour
 
             introText.text = $"Wax On, Wax Gone!\r\nHere's how you did, {name}:";
             timeText.text = $"Time Taken: {formattedTime}";
-            scoreText.text = $"Score: {score}";
+            scoreText.text = $"Score: {score:F1} pts";
         }
 
 
