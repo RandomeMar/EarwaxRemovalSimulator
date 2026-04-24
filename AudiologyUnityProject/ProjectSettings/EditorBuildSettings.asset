@@ -20,18 +20,21 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/PastTeam/Scenes/TestScenes/DemoScene.unity
     guid: 3853ea15e5f96424f9c9bf167500ada1
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Project/Scenes/StartSceneVR.unity
     guid: af3f352def72dd74db2485e9706882dc
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Project/Scenes/StatsSceneVR.unity
     guid: 671d6b7fd8d9890499f3aef1ab56584f
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Project/Scenes/SimulationSceneVR.unity
     guid: 085996d3330910146a6ba1738647e89d
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Project/Scenes/EndSceneVR.unity
     guid: 687622bf11a3cf8438983c9f19e676b4
+  - enabled: 1
+    path: Assets/_Project/Features/EarwaxSim/TestScenes/HapticsIntegration.unity
+    guid: a220c3cbee3d2c84b87288f9fe3a0ba5
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 92987b19b30fcd64891939c2ee13403a, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}

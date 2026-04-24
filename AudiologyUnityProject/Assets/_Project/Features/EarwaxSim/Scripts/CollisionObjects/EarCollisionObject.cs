@@ -2,7 +2,7 @@ using EarwaxSim;
 using NUnit.Framework;
 using System.Collections.Generic;
 using Unity.Burst.CompilerServices;
-using UnityEditor.Compilation;
+//using UnityEditor.Compilation;
 using UnityEngine;
 
 public class EarCollisionObject : CollisionObjectBase
