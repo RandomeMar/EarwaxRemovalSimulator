@@ -1494,13 +1494,14 @@ MonoBehaviour:
   hapticManager: {fileID: 1243392359}
   tool: {fileID: 1730496951}
   canal: {fileID: 444514385}
-  drawParticles: 0
-  particleViewRadius: 0.5
-  drawDist: 0
+  drawParticles: 1
+  particleViewRadius: 1
+  drawDist: 1
   drawAdhes: 1
   solverIterations: 3
   gravity: {x: 0, y: -0.5, z: 0}
   globalDamping: 0.99
+  particleDeleteRadius: 1
   latticeOrigin: {x: -0.07, y: -0.1, z: 0.129}
   latticeParticleCount: 8
   latticeLength: 0.065
@@ -1511,7 +1512,7 @@ MonoBehaviour:
   distOn: 1
   yieldStrain: 0.2
   plasticFlow: 1
-  breakStrain: 0.4
+  breakStrain: 0.3
   adaptRate: 3
   recoveryRate: 0.3
   denseOn: 1
@@ -2365,7 +2366,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1512853517609805530, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8688419052629784098, guid: 16e7c68bdb88b954e9a971787fb005c7, type: 3}
       propertyPath: m_Enabled

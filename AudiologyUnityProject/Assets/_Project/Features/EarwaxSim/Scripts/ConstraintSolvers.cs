@@ -111,6 +111,16 @@ namespace EarwaxSim
                 DistanceConstraint constraint = this.constraints[index];
 
                 if (!constraint.active) continue;
+
+                // If one or both of the particles in a constraint are inactive, break the constraint
+                if (!ps.active[constraint.i] || !ps.active[constraint.j])
+                {
+                    constraint.active = false;
+                    this.constraints[index] = constraint;
+                    continue;
+                }
+
+
                 if (constraint.targetRestLength <= Constants.EPS) continue;
 
                 float currLength = Vector3.Distance(ps.currentPosition[constraint.i], ps.currentPosition[constraint.j]);
@@ -171,13 +181,13 @@ namespace EarwaxSim
             this.poly6GradCoef = (float)(945f / (32f * Mathf.PI * Mathf.Pow(h, 9)));
         }
 
-        private void EnsureCapacity(int count)
+        private void EnsureCapacity(int particleCount)
         {
-            if (this.deltaX == null || this.deltaX.Length != count)
-                this.deltaX = new Vector3[count];
+            if (this.deltaX == null || this.deltaX.Length != particleCount)
+                this.deltaX = new Vector3[particleCount];
 
-            if (this.lambda == null || this.lambda.Length != count)
-                this.lambda = new float[count];
+            if (this.lambda == null || this.lambda.Length != particleCount)
+                this.lambda = new float[particleCount];
 
             if (this.gradBuffer == null || this.gradBuffer.Length < Constants.MAX_NEIGHBORS)
                 this.gradBuffer = new Vector3[Constants.MAX_NEIGHBORS];
@@ -191,13 +201,14 @@ namespace EarwaxSim
 
         public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
-            EnsureCapacity(ps.count);
-            Array.Clear(this.deltaX, 0, ps.count);
+            EnsureCapacity(ps.maxCount);
+            Array.Clear(this.deltaX, 0, ps.maxCount);
 
             float alpha = this.compliance / (dt * dt);
 
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
+                if (!ps.active[i]) continue; // Skip inactive particles
                 if (ps.invMass[i] <= 0) continue;
 
                 int[] js;
@@ -249,7 +260,7 @@ namespace EarwaxSim
             }
 
             // Jacobi structure
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
                 ps.currentPosition[i] += deltaX[i];
             }
@@ -275,11 +286,6 @@ namespace EarwaxSim
         public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
 
 
-        //Force feedback
-        // private Vector3 _toolImpulseAccum;
-        // public Vector3 ToolImpulseAccum => _toolImpulseAccum;
-        // public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
-
         public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
             this.objects = new(1);
@@ -295,7 +301,6 @@ namespace EarwaxSim
             this.isContacting = false;
             this.toolCorrection = Vector3.zero;
         }
-        
         
         public void NewSolveOnce(ParticleSet ps, float dt)
         {
@@ -314,8 +319,9 @@ namespace EarwaxSim
             float wo = obj.invMass;
             // Only the tool feeds force feedback. Canal collisions go through the same function
             // bool accumImpulse = (obj == this.tool);
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
+                if (!ps.active[i]) continue; // Skip inactive particles
                 if (ps.invMass[i] == 0) continue;
 
 
@@ -575,13 +581,13 @@ namespace EarwaxSim
             this.constraints = constraints;
         }
 
-        private void EnsureCapacity(int count)
+        private void EnsureCapacity(int particleCount)
         {
-            if (this.constraints == null || this.constraints.Length != count)
-                this.constraints = new AdhesionConstraint[count];
+            if (this.constraints == null || this.constraints.Length != particleCount)
+                this.constraints = new AdhesionConstraint[particleCount];
 
-            if (this.lambdas == null || this.lambdas.Length != count)
-                this.lambdas = new float[count];
+            if (this.lambdas == null || this.lambdas.Length != particleCount)
+                this.lambdas = new float[particleCount];
         }
 
         public void ResetLambda()
@@ -592,12 +598,18 @@ namespace EarwaxSim
 
         public void SolveOnce(ParticleSet ps, float dt, SpatialHash grid)
         {
-            this.EnsureCapacity(ps.count);
+            this.EnsureCapacity(ps.maxCount);
 
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
-                if (ps.invMass[i] <= Constants.EPS) continue;
-                if (!constraints[i].isActive) continue;
+                if (!this.constraints[i].isActive) continue;
+
+                // If the particle is inactive or has infinite mass, turn the constraint off
+                if (!ps.active[i] || ps.invMass[i] == 0)
+                {
+                    this.constraints[i].isActive = false;
+                    continue;
+                }
                 
                 Vector3 anchorPos = this.constraints[i].GetWorldAnchorPos();
 

@@ -24,11 +24,15 @@ namespace EarwaxSim
         public float[] invMass;
         public float[] mass;
 
+        public bool[] active;
+
         public float radius;
+        public int maxCount;
         public int count;
 
         public ParticleSet(int count, float radius)
         {
+            this.maxCount = count;
             this.count = count;
             this.radius = radius;
 
@@ -37,6 +41,12 @@ namespace EarwaxSim
             this.velocity = new Vector3[count];
             this.invMass = new float[count];
             this.mass = new float[count];
+
+            this.active = new bool[count];
+            for (int i = 0; i < count; i++)
+            {
+                this.active[i] = true;
+            }
         }
     }
 
@@ -84,8 +94,10 @@ namespace EarwaxSim
         {
             bucketHeads.Clear();
 
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
+
                 (int x, int y, int z) = CalcCellCoord(ps.currentPosition[i]);
                 long key = HashCoord(x, y, z);
                 if (!this.bucketHeads.TryGetValue(key, out int oldHead))

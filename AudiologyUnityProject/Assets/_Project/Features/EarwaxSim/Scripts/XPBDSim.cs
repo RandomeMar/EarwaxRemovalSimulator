@@ -30,6 +30,8 @@ namespace EarwaxSim
         public Vector3 gravity = new Vector3(0, -9.8f, 0);
         [Range(0, 1)]
         public float globalDamping = 1f; // 0 to 1
+        [Min(0)]
+        public float particleDeleteRadius = 10f;
 
         [Header("Lattice Settings")]
         public Vector3 latticeOrigin = Vector3.zero;
@@ -378,33 +380,42 @@ namespace EarwaxSim
                 (ps, grid, dist, dense) = GenerateLattice();
             }
 
-            anchors = new AdhesionConstraint[ps.count];
+            anchors = new AdhesionConstraint[ps.maxCount];
             adhes = new AdhesionConstraintSolver(anchors);
             coll = new CollisionConstraintSolver(collCompliance, anchors);
         }
+        
 
         public float GetPercentWaxRemoved()
         {
-            if (dist == null || dist.constraints == null)
-                return 0f;
+            if (ps == null) return 0.0f;
+            return (ps.count / (float)ps.maxCount) * 100f; // NOTE: It might make more sense if this is a method of the ParticleSet class
 
-            int total = dist.constraints.Length;
-            int broken = 0;
+            // NOTE: The problem with this was that it gets the percentage if distance constraints removed. The earwax is actually the particles.
 
-            for (int i = 0; i < total; i++)
-            {
-                if (!dist.constraints[i].active)
-                    broken++;
-            }
+            //if (dist == null || dist.constraints == null)
+            //    return 0f;
 
-            return (broken / (float)total) * 100f;
+            //int total = dist.constraints.Length;
+            //int total = ps.active.Length;
+            //int broken = 0;
+
+            //for (int i = 0; i < total; i++)
+            //{
+            //    if (!dist.constraints[i].active)
+            //        broken++;
+            //}
+
+            //return (broken / (float)total) * 100f;
         }
         
+
         // Updates particle velocity based on gravity
         void ApplyForces(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
                 if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
                 ps.velocity[i] += gravity * dt;
             }
@@ -415,6 +426,7 @@ namespace EarwaxSim
         {
             for (int i = 0; i < ps.velocity.Length; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
                 if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
                 ps.previousPosition[i] = ps.currentPosition[i];
                 ps.currentPosition[i] += ps.velocity[i] * dt;
@@ -426,10 +438,23 @@ namespace EarwaxSim
         {
             for (int i = 0; i < ps.velocity.Length; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
                 if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
                 ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
 
                 ps.velocity[i] *= globalDamping; // Velocity damping
+            }
+        }
+
+        // Deactivates particles outside of the particleDeleteRadius
+        void RemoveParticles(ParticleSet ps)
+        {
+            for (int i = 0; i < ps.maxCount; i++)
+            {
+                if (!ps.active[i]) continue;
+
+                Vector3 distVec = ps.currentPosition[i] - this.transform.position; // Vector from XPBDSim origin to particle position
+                if (distVec.magnitude >= this.particleDeleteRadius) ps.active[i] = false;
             }
         }
 
@@ -447,8 +472,10 @@ namespace EarwaxSim
             int closestIndex = -1;
             float radius = ps.radius; // same as Gizmo sphere size
 
-            for (int i = 0; i < ps.count; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
+
                 Vector3 center = ps.currentPosition[i];
 
                 // Ray-sphere intersection test
@@ -486,6 +513,7 @@ namespace EarwaxSim
         void DragUpdate(int selectedIndex)
         {
             if (selectedIndex == -1) return;
+            if (!ps.active[selectedIndex]) return; // Ignore not active particles
 
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (dragPlane.Raycast(ray, out float enter))
@@ -598,6 +626,8 @@ namespace EarwaxSim
 
             coll.SolvePSCollider(ps, coll.canal, collAlpha); // Run canal collisions only once per frame for performance
 
+            this.RemoveParticles(ps);
+
             if (distOn) dist.UpdateRestLengths(ps, dt); // Update rest lengths after solving
 
             // ------ 6. Update velocities ------
@@ -617,8 +647,10 @@ namespace EarwaxSim
 
             // Draw particles
             Gizmos.color = Color.black;
-            for (int i = 0; i < ps.currentPosition.Length; i++)
+            for (int i = 0; i < ps.maxCount; i++)
             {
+                if (!ps.active[i]) continue; // Ignore not active particles
+
                 if (drawParticles) Gizmos.DrawSphere(ps.currentPosition[i], ps.radius * particleViewRadius);
 
                 // Draw adhesion constraints
@@ -635,6 +667,12 @@ namespace EarwaxSim
                         anchorPos);
                     Gizmos.color = Color.black;
                 }
+            }
+
+            if (drawParticles)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(this.transform.position, this.particleDeleteRadius);
             }
 
             // Draw distance constraints
