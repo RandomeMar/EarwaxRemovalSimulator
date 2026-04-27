@@ -23,7 +23,7 @@ This virtual reality application is designed to provide medical professionals an
 - Configure Haply as needed
 
 ### Running the project
-- Make sure Haply and VR are connected to the computer
+- Make sure Haply and VR are connected to the computer using USB connections
 - In Unity, open the TestScenes Folder and select FullScene
 - Press the play button
 - Directional Keys turn viewpoint and ASDW moves viewpoint forward, backwards, left and right.
@@ -34,6 +34,23 @@ This virtual reality application is designed to provide medical professionals an
 - The earwax cube blockage works as intended in the ear canal.
 - After the Unity update, the Meta Quest controllers and VR headset no longer controls the look angle and move the simulated hands.
 - Previous project build has been thoroughly reviewed.
+
+### Code Milestone 2
+- Title, settings, simulation, and end scenes are now connected.
+- Created new softbody earwax.
+- Developing new main scene to replace the simulation scene to use new earwax and ear model.
+- Meta VR headset functionality is still not functioning properly after Unity update. Troubleshooting.
+
+### Code Milestone 3
+- Added friction to earwax
+- Added tearing to earwax
+- Added SDF based colliders
+- Added SDF collider viewers
+- Added adhesion constraints (stickiness)
+- Colliders are now affected by earwax
+- Added Haply controller collision and feedback with ear model
+- Added mouse controls to currette to aid code development when Haply controller is absent
+
 
 ## Changelog
 ### Version 0.9.1

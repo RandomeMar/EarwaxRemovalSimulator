@@ -1,622 +1,712 @@
 using System;
 using System.Collections.Generic;
-using System.IO.Pipes;
-using UnityEditor.Rendering.Universal.ShaderGUI;
 using UnityEngine;
-using UnityEngine.UIElements;
-using UnityEngine.XR.Interaction.Toolkit.AffordanceSystem.Receiver.Primitives;
+using UnityEngine.InputSystem;
 
-public class XPBDSim : MonoBehaviour
+
+namespace EarwaxSim
 {
-    #region
-    [Range(1, 30)]
-    public int solverIterations;
-    public Vector3 gravity = new Vector3(0, -9.8f, 0);
-
-    [Header("Lattice Settings")]
-    public Vector3 latticeOrigin = Vector3.zero;
-    [Range(2, 30)]
-    public int latticeParticleCount = 3;
-    [Range(.5f, 30f)]
-    public float latticeLength = 2.0f;
-    [Range(0f, 1f)]
-    public float invMass;
-
-    [Header("Distance Constraint Settings")]
-    [Range(0f, 1f)]
-    public float distCompliance;
-    
-    [Header("Density Constraint Settings")]
-    public float cellSize = .5f;
-    public float restDensity;
-    public float denseCompliance;
-
-    #endregion
-
-    const float EPS = 1e-6f;
-
-    ParticleSet ps;
-    SpacialHash grid;
-    DistanceConstraintSet dist;
-    DensityConstraintSolver dense;
-
-
-    // Classes/Structs:
-    class ParticleSet
+    // Owns the full XPBD loop
+    public class XPBDSim : MonoBehaviour
     {
-        public Vector3[] currentPosition;
-        public Vector3[] previousPosition;
-        public Vector3[] velocity;
-        public float[] invMass;
+        #region Public Parameters
+        [Header("Haptic Manager")]
+        public NewHapticManager hapticManager;
 
-        public int count;
+        [Header("Collision Objects")]
+        public DynamicCollisionObject tool;
+        public CollisionObjectBase canal;
 
-        public ParticleSet(int count)
+        [Header("Gizmo Debug Settings")]
+        public bool drawParticles = true;
+        [Min(0)]
+        public float particleViewRadius = .5f;
+        public bool drawDist = true;
+        public bool drawAdhes = true;
+
+        [Header("Solver Settings")]
+        [Min(1f)]
+        public int solverIterations;
+        public Vector3 gravity = new Vector3(0, -9.8f, 0);
+        [Range(0, 1)]
+        public float globalDamping = 1f; // 0 to 1
+        [Min(0)]
+        public float particleDeleteRadius = 10f;
+
+        [Header("Lattice Settings")]
+        public Vector3 latticeOrigin = Vector3.zero;
+        [Min(2f)]
+        public int latticeParticleCount = 3;
+        [Min(.01f)]
+        public float latticeLength = 2.0f;
+        [Min(0f)]
+        public float particleRadius = .5f;
+
+        [Header("Material Settings")]
+        [Min(0f)]
+        public float materialDensity;
+        [Min(0f)]
+        public float baseBondCompliance; // NOTE: Although distance constraint compliance is based on lattice scale, it does not scale perfectly with it.
+        // This means compliance will need to be adjusted when the lattice is scaled.
+
+        [Header("Adhesion Constraint Settings")]
+        public bool adhesOn;
+
+        [Header("Distance Constraint Settings")]
+        public bool distOn = true;
+        public float yieldStrain = .5f; // At what strain distance constraints begin permanently deforming
+        public float plasticFlow = 1f; // The rate that distance constraints permanently deform
+        public float breakStrain = 1f; // At what strain distance constraints break
+
+        [Header("Visco-elasticity Settings")]
+        [Min(0f)]
+        public float adaptRate; // How much distance constraints give based on temporary deformation
+        [Min(0f)]
+        public float recoveryRate; // How quickly particles return to their original position
+
+        [Header("Density Constraint Settings")]
+        public bool denseOn = true;
+        [Min(0f)]
+        public float denseCompliance;
+        [Min(1f)]
+        public float hMult = 1.25f; // Distance that density constraints are applied. Scales with particle spacing
+
+        [Header("Collision Constraint Settings")]
+        public bool collOn = true;
+        public bool colliderCollOn = true; // Whether collider vs. collider collisions happen
+        [Min(0f)]
+        public float collCompliance;
+
+        [Header("Procedural Earwax Shape")]
+        [Tooltip("Use procedural noise-based shape instead of uniform lattice.")]
+        public bool useProceduralShape = false;
+        [Tooltip("Seed for reproducible shapes. Same seed = same earwax.")]
+        public int proceduralSeed = 42;
+        [Tooltip("Base ellipsoid radii (x, y, z) before noise displacement.")]
+        public Vector3 proceduralRadii = new Vector3(0.5f, 0.3f, 0.4f);
+        [Tooltip("How much noise displaces the surface (fraction of radius).")]
+        [Range(0f, 0.8f)]
+        public float proceduralNoiseStrength = 0.3f;
+        [Tooltip("Noise frequency. Higher = more bumps.")]
+        [Range(0.5f, 8f)]
+        public float proceduralNoiseFrequency = 2.0f;
+        [Tooltip("Number of noise octaves for detail.")]
+        [Range(1, 5)]
+        public int proceduralNoiseOctaves = 3;
+
+        [Header("Wax Preset")]
+        [Tooltip("Quick presets for different wax types. Custom = keep inspector values as-is; " +
+                 "any other preset overwrites material + noise fields when the sim builds.")]
+        public WaxPreset waxPreset = WaxPreset.Custom;
+
+        [Header("Procedural Parametric Ranges")]
+        [Tooltip("If on, the seed also rolls the ACTUAL radii/noise values from the ranges below. " +
+                 "Each seed then produces a different silhouette — tall/skinny/bumpy vs. wide/smooth, etc.")]
+        public bool useParametricRanges = false;
+        [Tooltip("Per-axis minimum radius when parametric ranges are on.")]
+        public Vector3 proceduralRadiiMin = new Vector3(0.3f, 0.2f, 0.3f);
+        [Tooltip("Per-axis maximum radius when parametric ranges are on.")]
+        public Vector3 proceduralRadiiMax = new Vector3(0.6f, 0.5f, 0.5f);
+        [Tooltip("Min/max noise strength (x=min, y=max).")]
+        public Vector2 proceduralNoiseStrengthRange = new Vector2(0.15f, 0.45f);
+        [Tooltip("Min/max noise frequency (x=min, y=max).")]
+        public Vector2 proceduralNoiseFrequencyRange = new Vector2(1.5f, 3.5f);
+
+        [Header("Procedural Asymmetry / Lobes")]
+        [Tooltip("Pushes noise bumps toward one side of the blob. 0 = uniform, 1 = fully biased.")]
+        [Range(0f, 1f)]
+        public float proceduralBumpinessBias = 0f;
+        [Tooltip("Direction the bumpiness gets biased toward.")]
+        public Vector3 proceduralBumpinessBiasAxis = Vector3.up;
+        [Tooltip("Low-frequency sine warp magnitude. Bends/lobes the overall shape. 0 = straight.")]
+        [Range(0f, 1f)]
+        public float proceduralStretchAmount = 0f;
+        [Tooltip("Sine wave frequency for the stretch warp.")]
+        public float proceduralStretchFrequency = 3f;
+        [Tooltip("Flattens one side of the blob, as if pressed against the canal wall. 0 = none, 1 = fully flat.")]
+        [Range(0f, 1f)]
+        public float proceduralSquashAmount = 0f;
+        [Tooltip("Direction that gets squashed. Default -Y = flatten the bottom.")]
+        public Vector3 proceduralSquashAxis = Vector3.down;
+        #endregion
+
+        #region Solver Objects
+        public ParticleSet ps;
+        SpatialHash grid;
+        AdhesionConstraint[] anchors;
+
+        // Solvers
+        DistanceConstraintSet dist;
+        DensityConstraintSolver dense;
+        CollisionConstraintSolver coll;
+        AdhesionConstraintSolver adhes;
+        #endregion
+
+
+        // ------ Functions ------
+
+        // Smoothing kernel for calculating density
+        static float Poly6(float r2, float h)
         {
-            this.count = count;
-            this.currentPosition = new Vector3[count];
-            this.previousPosition = new Vector3[count];
-            this.velocity = new Vector3[count];
-            this.invMass = new float[count];
+            float h2 = h * h;
+            if (h2 < r2) return 0;
+
+            float h4 = h2 * h2;
+
+            float term = h2 - r2;
+
+            return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
         }
-    }
 
-    class SpacialHash
-    {
-        float cellSize;
-        Dictionary<long, List<int>> buckets;
-
-        public SpacialHash(float cellSize)
+        // Estimates rest density of particles in a lattice. NOTE: Needs to be different if particle set is not a lattice
+        float CalcRestDensity(ParticleSet ps, SpatialHash grid, float h)
         {
-            this.cellSize = cellSize;
-            this.buckets = new();
-        }
+            int n = latticeParticleCount;
+            int i = CalcIndex(n / 2, n / 2, n / 2, n);
+            float density = 0f;
 
-        public Vector3Int CalcCellCoord(Vector3 position)
+            int[] js;
+            int jCount;
+            (js, jCount) = grid.GetNeighbors(ps, i, h);
+
+            for (int iter = 0; iter < jCount; iter++)
             {
-                return new Vector3Int(
-                    Mathf.FloorToInt(position.x / cellSize),
-                    Mathf.FloorToInt(position.y / cellSize),
-                    Mathf.FloorToInt(position.z / cellSize)
-                    );
+                int j = js[iter];
+
+                if (ps.invMass[j] <= 0) continue;
+                float mj = 1f / ps.invMass[j];
+
+                Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
+
+                density += mj * Poly6(distVec.sqrMagnitude, h);
             }
 
-        public long HashCoord(Vector3Int cellCoord)
-        {
-            const int SHIFT = 20;
-
-            long x = (long)(cellCoord.x + (1 << SHIFT));
-            long y = (long)(cellCoord.y + (1 << SHIFT));
-            long z = (long)(cellCoord.z + (1 << SHIFT));
-
-            return (x << 42) | (y << 21) | z;
+            return density;
         }
 
-        public void BuildGrid(ParticleSet ps)
+        // Calculates index in a 1d array of particles based on a x, y, z coordinate in a 3d lattice
+        int CalcIndex(int x, int y, int z, int n)
         {
-            buckets.Clear();
+            return n * (n * x + y) + z;
+        }
 
-            for (int i = 0; i < ps.count; i++)
+        // Builds a particle set that is a lattice along with all necessary constraint solvers for the lattice
+        (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice()
+        {
+            int n = latticeParticleCount; // Number of particles in a single row/column
+            int particleCount = n * n * n; // Total particle count
+            float length = latticeLength;
+            float spacing = length / (n - 1);
+            float h = spacing * hMult; // Distance that density constraint looks for neighbors. Higher means more neighbors to search through
+
+            float totalVolume = length * length * length;
+            float totalMass = materialDensity * totalVolume;
+            float particleMass = totalMass / particleCount;
+            float invMass = 1f / particleMass;
+            float bondCompliance = baseBondCompliance * spacing;
+
+            ParticleSet lattice = new(particleCount, particleRadius * (spacing / 2f));
+            List<DistanceConstraint> dist = new();
+
+            for (int i = 0; i < n; i++)
             {
-                Vector3Int cellCoord = CalcCellCoord(ps.currentPosition[i]);
-                long key = HashCoord(cellCoord);
-                if (!buckets.TryGetValue(key, out var bucket))
+                for (int j = 0; j < n; j++)
                 {
-                    bucket = new List<int>(8); // 8 seems like a good starting value for bucket size
-                    buckets[key] = bucket;
-                }
-                bucket.Add(i);
-            }
-        }
-
-        public List<int> GetNeighbors(ParticleSet ps, int i)
-        {
-            Vector3Int baseCell = CalcCellCoord(ps.currentPosition[i]);
-            List<int> js = new();
-            for (int dx = -1; dx <= 1; dx++)
-                for (int dy = -1; dy <= 1; dy++)
-                    for (int dz = -1; dz <= 1; dz++)
+                    for (int k = 0; k < n; k++)
                     {
-                        Vector3Int c = new(
-                            baseCell.x + dx,
-                            baseCell.y + dy,
-                            baseCell.z + dz
-                            );
-
-                        long key = HashCoord(c);
-
-                        if (!buckets.TryGetValue(key, out var bucket)) continue;
-
-                        for (int b = 0; b < bucket.Count; b++)
-                        {
-                            int j = bucket[b];
-                            if (j == i) continue;
-                            // For each neighbor j of particle i
-                            js.Add(j);
-                        }
-                    }
-            return js;
-        }
-
-    }
-
-    interface IConstraintSolver
-    {
-        void ResetLambda();
-        void SolveOnce(ParticleSet ps, float dt, SpacialHash grid);
-    }
-
-    struct DistanceConstraint
-    {
-        public int i, j;
-        public float restLength;
-        public float compliance;
-        public float lambda;
-
-        public DistanceConstraint(int i, int j, float restLength, float compliance, float lambda)
-        {
-            this.i = i;
-            this.j = j;
-            this.restLength = restLength;
-            this.compliance = compliance;
-            this.lambda = lambda;
-        }
-    }
-
-    class DistanceConstraintSet : IConstraintSolver
-    {
-        public DistanceConstraint[] constraints;
-
-        public DistanceConstraintSet(DistanceConstraint[] constraints)
-        {
-            this.constraints = constraints;
-        }
-
-        public void ResetLambda()
-        {
-            for (int i = 0; i < this.constraints.Length; i++)
-            {
-                this.constraints[i].lambda = 0;
-            }
-        }
-
-        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
-        {
-            for (int index = 0; index < this.constraints.Length; index++)
-            {
-                DistanceConstraint constraint = this.constraints[index];
-                int i = constraint.i;
-                int j = constraint.j;
-                Vector3 d = ps.currentPosition[i] - ps.currentPosition[j]; // Vector from j to i
-                float l = d.magnitude; // Distance between i and j
-                float c = l - constraint.restLength; // C
-
-                // if l is close to 0: continue
-                if (l <= EPS) { continue; }
-
-                Vector3 n = d / l; // Normalized direction from j to i
-
-                float alpha = constraint.compliance / (dt * dt);
-
-                // If the denominator is close to 0: continue
-                float denom = (ps.invMass[i] + ps.invMass[j] + alpha);
-                if (denom <= EPS) { continue; }
-
-                float deltaLambda = (-c - alpha * constraint.lambda) / denom;
-
-                constraint.lambda += deltaLambda;
-                this.constraints[index] = constraint;
-
-                ps.currentPosition[i] += ps.invMass[i] * n * deltaLambda;
-                ps.currentPosition[j] -= ps.invMass[j] * n * deltaLambda;
-            }
-        }
-    }
-
-    class DensityConstraintSolver : IConstraintSolver
-    {
-        public float restDensity;
-        public float h;
-        public float compliance;
-        private Vector3[] deltaX; // Used for Jacobi structure
-        private float[] lambda;
-
-        public DensityConstraintSolver(float restDensity, float h, float compliance)
-        {
-            this.restDensity = restDensity;
-            this.h = h;
-            this.compliance = compliance;
-        }
-
-        private void EnsureCapacity(int count)
-        {
-            if (this.deltaX == null || this.deltaX.Length != count)
-                this.deltaX = new Vector3[count];
-
-            if (this.lambda == null || this.lambda.Length != count)
-                this.lambda = new float[count];
-        }
-
-        public void ResetLambda()
-        {
-            if (this.lambda == null) return;
-            Array.Clear(this.lambda, 0, this.lambda.Length);
-        }
-
-        public void SolveOnce(ParticleSet ps, float dt, SpacialHash grid)
-        {
-            EnsureCapacity(ps.count);
-            Array.Clear(this.deltaX, 0, ps.count);
-
-            float alpha = this.compliance / (dt * dt);
-
-            for (int i = 0; i < ps.count; i++)
-            {
-                if (ps.invMass[i] <= 0) continue;
-
-                int[] js = grid.GetNeighbors(ps, i).ToArray();
-
-                float density = 0f;
-                Vector3 gradi = Vector3.zero;
-                float denom = 0f;
-
-                foreach (int j in js)
-                {
-                    if (ps.invMass[j] <= 0) continue;
-                    float mj = 1f / ps.invMass[j];
-
-                    Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
-
-                    density += mj * Poly6(distVec.sqrMagnitude, this.h);
-                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
-                    gradi -= gradj;
-
-                    denom += gradj.sqrMagnitude * ps.invMass[j];
-                }
-
-                float c = density - this.restDensity;
-                denom += gradi.sqrMagnitude * ps.invMass[i];
-
-                // If the denominator is close to 0: continue
-                if (denom + alpha <= EPS) continue;
-
-                float deltaLambda = (-c - alpha * this.lambda[i]) / (denom + alpha);
-                this.lambda[i] += deltaLambda;
-
-                deltaX[i] += ps.invMass[i] * gradi * deltaLambda;
-
-                foreach (int j in js)
-                {
-                    if (ps.invMass[j] <= 0) continue;
-
-                    float mj = 1 / ps.invMass[j];
-                    Vector3 distVec = ps.currentPosition[i] - ps.currentPosition[j];
-                    Vector3 gradj = -mj * GradPoly6(distVec, this.h);
-
-                    deltaX[j] += ps.invMass[j] * gradj * deltaLambda;
-                }
-            }
-
-            // Jacobi structure
-            for (int i = 0; i < ps.count; i++)
-            {
-                ps.currentPosition[i] += deltaX[i];
-            }
-
-        }
-    }
-
-    
-    // Functions
-
-    // Smoothing kernel for calculating density
-    static float Poly6(float r2, float h)
-    {
-        float h2 = h * h;
-        if (r2 < 0 || h2 < r2) return 0;
-
-        return 315 / (64 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 3);
-    }
-
-    // Gradient of Poly6
-    static Vector3 GradPoly6(Vector3 rVec, float h)
-    {
-        float r2 = rVec.sqrMagnitude;
-        float h2 = h * h;
-
-        if (r2 <= 0 || h2 < r2) return Vector3.zero;
-
-        return -945 / (32 * Mathf.PI * Mathf.Pow(h, 9)) * Mathf.Pow(h2 - r2, 2) * rVec;
-    }
+                        // ------ Particles ------
+                        int curr = CalcIndex(i, j, k, n);
+                        lattice.currentPosition[curr] = new(-length / 2 + i * spacing, -length / 2 + j * spacing, -length / 2 + k * spacing);
+                        lattice.currentPosition[curr] += latticeOrigin;
 
 
-    int calcIndex(int i, int j, int k, int n)
-    {
-        return n * (n * i + j) + k;
-    }
+                        lattice.previousPosition[curr] = lattice.currentPosition[curr];
+                        lattice.velocity[curr] = new(0, 0, 0);
+                        lattice.invMass[curr] = invMass;
+                        lattice.mass[curr] = particleMass;
 
-    (ParticleSet, SpacialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice(int n)
-    {
-        float length = latticeLength;
-        float invMass = this.invMass;
-
-        int particleCount = n * n * n;
-        float offset = length / (n - 1);
-
-        ParticleSet lattice = new(particleCount);
-        SpacialHash grid = new SpacialHash(cellSize);
-
-        List<DistanceConstraint> dist = new();
-        DensityConstraintSolver dense = new(restDensity, offset * 1.5f, denseCompliance);
-
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                for(int k = 0; k < n; k++)
-                {
-                    // Particles
-                    int curr = calcIndex(i, j, k, n);
-                    lattice.currentPosition[curr] = new(-length / 2 + i * offset, -length / 2 + j * offset, -length / 2 + k * offset);
-                    lattice.currentPosition[curr] += latticeOrigin;
-
-
-                    lattice.previousPosition[curr] = lattice.currentPosition[curr];
-                    lattice.velocity[curr] = new(0, 0, 0);
-                    lattice.invMass[curr] = invMass;
-
-                    // Constraints
-                    if (i + 1 < n)
-                    {
-                        int iPlus = calcIndex(i + 1, j, k, n);
-                        dist.Add(new DistanceConstraint(curr, iPlus, offset, distCompliance, 0f));
-
-                        if (j + 1 < n)
-                        {
-                            int jPlus = calcIndex(i, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int ijPlus = calcIndex(i + 1, j + 1, k, n);
-                            dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                        }
-
-                    }
-                    if (j + 1 < n)
-                    {
-                        int jPlus = calcIndex(i, j + 1, k, n);
-                        dist.Add(new DistanceConstraint(curr, jPlus, offset, distCompliance, 0f));
-
-                        if (k + 1 < n)
-                        {
-                            int kPlus = calcIndex(i, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int jkPlus = calcIndex(i, j + 1, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                        }
-                    }
-                    if (k + 1 < n)
-                    {
-                        int kPlus = calcIndex(i, j, k + 1, n);
-                        dist.Add(new DistanceConstraint(curr, kPlus, offset, distCompliance, 0f));
-
+                        // ------ Constraints ------
                         if (i + 1 < n)
                         {
-                            int iPlus = calcIndex(i + 1, j, k, n);
-                            dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
-                            int kiPlus = calcIndex(i + 1, j, k + 1, n);
-                            dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * offset, distCompliance, 0f));
+                            int iPlus = CalcIndex(i + 1, j, k, n);
+                            dist.Add(new DistanceConstraint(curr, iPlus, spacing, bondCompliance));
+
+                            if (j + 1 < n)
+                            {
+                                int jPlus = CalcIndex(i, j + 1, k, n);
+                                dist.Add(new DistanceConstraint(iPlus, jPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                                int ijPlus = CalcIndex(i + 1, j + 1, k, n);
+                                dist.Add(new DistanceConstraint(curr, ijPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                            }
+
+                        }
+                        if (j + 1 < n)
+                        {
+                            int jPlus = CalcIndex(i, j + 1, k, n);
+                            dist.Add(new DistanceConstraint(curr, jPlus, spacing, bondCompliance));
+
+                            if (k + 1 < n)
+                            {
+                                int kPlus = CalcIndex(i, j, k + 1, n);
+                                dist.Add(new DistanceConstraint(jPlus, kPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                                int jkPlus = CalcIndex(i, j + 1, k + 1, n);
+                                dist.Add(new DistanceConstraint(curr, jkPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                            }
+                        }
+                        if (k + 1 < n)
+                        {
+                            int kPlus = CalcIndex(i, j, k + 1, n);
+                            dist.Add(new DistanceConstraint(curr, kPlus, spacing, bondCompliance));
+
+                            if (i + 1 < n)
+                            {
+                                int iPlus = CalcIndex(i + 1, j, k, n);
+                                dist.Add(new DistanceConstraint(kPlus, iPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                                int kiPlus = CalcIndex(i + 1, j, k + 1, n);
+                                dist.Add(new DistanceConstraint(curr, kiPlus, Mathf.Sqrt(2) * spacing, bondCompliance));
+                            }
                         }
                     }
                 }
             }
+
+            DistanceConstraintSet dcs = new(dist.ToArray(), yieldStrain, plasticFlow, breakStrain, adaptRate, recoveryRate);
+
+            SpatialHash grid = new SpatialHash(h, particleCount);
+
+            grid.BuildGrid(lattice);
+
+            float restDensity = CalcRestDensity(lattice, grid, h);
+
+            DensityConstraintSolver dense = new(restDensity, h, denseCompliance);
+
+            print("GENERATED LATTICE!!!");
+
+            return (lattice, grid, dcs, dense);
         }
-        DistanceConstraintSet dcs = new(dist.ToArray());
 
-        return (lattice, grid, dcs, dense);
-    }
-
-    void ApplyForces(ParticleSet ps, float dt)
-    {
-        for (int i = 0; i < ps.velocity.Length; i++)
+        // Feature 3: Wax presets. Overwrites material + noise params with canned values for
+        // different wax types so the sponsor demo has easy variety. Custom = no-op.
+        void ApplyWaxPreset()
         {
-            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
-            ps.velocity[i] += gravity * dt;
-        }
-    }
-
-    void PredictPositions(ParticleSet ps, float dt)
-    {
-        for (int i = 0; i < ps.velocity.Length; i++)
-        {
-            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
-            ps.previousPosition[i] = ps.currentPosition[i];
-            ps.currentPosition[i] += ps.velocity[i] * dt;
-        }
-    }
-    
-    void SolveFloorCollision(ParticleSet ps)
-    {
-        float floorValue = 0;
-
-        for (int i = 0; i < ps.currentPosition.Length; i++)
-        {
-            if (ps.currentPosition[i].y < floorValue)
+            switch (waxPreset)
             {
-                ps.currentPosition[i].y = floorValue;
-                ps.velocity[i].y = 0;
-            }
-        }
-    }
-    
-    void UpdateVelocities(ParticleSet ps, float dt)
-    {
-        for (int i = 0; i < ps.velocity.Length; i++)
-        {
-            if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
-            ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
-        }
-    }
+                case WaxPreset.DryCrumbly:
+                    // Hard, brittle, breaks apart under light pressure.
+                    materialDensity = 1.2f;
+                    yieldStrain = 0.1f;   // yields almost immediately
+                    plasticFlow = 0.3f;   // very little flow
+                    breakStrain = 0.3f;   // shatters
+                    proceduralNoiseStrength = 0.45f;
+                    proceduralNoiseFrequency = 3.5f;
+                    proceduralNoiseOctaves = 4;
+                    break;
 
-    private int grabbedParticle = -1;
-    Plane dragPlane;
-    private int selectedParticle = -1;
+                case WaxPreset.SoftSticky:
+                    // Pliable, stretches, hard to break.
+                    materialDensity = 0.8f;
+                    yieldStrain = 0.8f;   // stretches a lot before yielding
+                    plasticFlow = 1.2f;   // flows easily
+                    breakStrain = 2.0f;   // very hard to break
+                    proceduralNoiseStrength = 0.2f;
+                    proceduralNoiseFrequency = 1.5f;
+                    proceduralNoiseOctaves = 2;
+                    break;
 
-    // Mouse interaction functions
-    int SelectParticle()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                case WaxPreset.OldImpacted:
+                    // Dense, stuck, moderately stiff — the "hard case" the student has to work for.
+                    materialDensity = 1.5f;
+                    yieldStrain = 0.3f;
+                    plasticFlow = 0.5f;
+                    breakStrain = 0.8f;
+                    proceduralNoiseStrength = 0.35f;
+                    proceduralNoiseFrequency = 2.5f;
+                    proceduralNoiseOctaves = 3;
+                    break;
 
-        float closestDist = float.MaxValue;
-        int closestIndex = -1;
-        float radius = 0.1f; // same as Gizmo sphere size
-
-        for (int i = 0; i < ps.count; i++)
-        {
-            Vector3 center = ps.currentPosition[i];
-
-            // Ray-sphere intersection test
-            Vector3 oc = ray.origin - center;
-            float a = Vector3.Dot(ray.direction, ray.direction);
-            float b = 2.0f * Vector3.Dot(oc, ray.direction);
-            float c = Vector3.Dot(oc, oc) - radius * radius;
-            float discriminant = b * b - 4 * a * c;
-
-            if (discriminant < 0) continue;
-
-            float t = (-b - Mathf.Sqrt(discriminant)) / (2.0f * a);
-
-            if (t > 0 && t < closestDist)
-            {
-                closestDist = t;
-                closestIndex = i;
+                case WaxPreset.Custom:
+                default:
+                    // Leave everything alone.
+                    break;
             }
         }
 
-        return closestIndex;
-    }
-
-    void BeginDrag(int selectedIndex)
-    {
-        // Get drag plane
-        Vector3 planeNormal = Camera.main.transform.forward;
-        Vector3 planePoint = ps.currentPosition[selectedIndex];
-        dragPlane = new(planeNormal, planePoint);
-    }
-
-    void DragUpdate(int selectedIndex)
-    {
-        if (selectedIndex == -1) return;
-
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (dragPlane.Raycast(ray, out float enter))
+        // Creates lattice, room, and sphere tool
+        void BuildSimulation()
         {
-            Vector3 target = ray.GetPoint(enter);
+            // Apply wax preset first so procedural/material fields reflect the selected type.
+            ApplyWaxPreset();
 
-            // TODO: I may later change this to a constraint instead of manually altering particle values
-            ps.currentPosition[selectedIndex] = target;
-            ps.previousPosition[selectedIndex] = target;
-            ps.velocity[selectedIndex] = Vector3.zero;
+            if (useProceduralShape) // If true, generates a procedural earwax shape instead of a uniform lattice. See ProceduralEarwax.cs for details.
+            {
+                var gen = new ProceduralEarwax
+                {
+                    seed = proceduralSeed,
+                    baseRadii = proceduralRadii,
+                    resolution = latticeParticleCount,
+                    origin = latticeOrigin,
+                    noiseStrength = proceduralNoiseStrength,
+                    noiseFrequency = proceduralNoiseFrequency,
+                    noiseOctaves = proceduralNoiseOctaves,
+                    materialDensity = materialDensity,
+                    baseBondCompliance = baseBondCompliance,
+                    hMult = hMult,
+                    denseCompliance = denseCompliance,
+                    yieldStrain = yieldStrain,
+                    plasticFlow = plasticFlow,
+                    breakStrain = breakStrain,
+                    adaptRate = adaptRate,
+                    recoveryRate = recoveryRate,
+
+                    // Feature 1: parametric ranges
+                    useParametricRanges = useParametricRanges,
+                    radiiMin = proceduralRadiiMin,
+                    radiiMax = proceduralRadiiMax,
+                    noiseStrengthRange = proceduralNoiseStrengthRange,
+                    noiseFrequencyRange = proceduralNoiseFrequencyRange,
+
+                    // Feature 2: asymmetry / lobes
+                    bumpinessBias = proceduralBumpinessBias,
+                    bumpinessBiasAxis = proceduralBumpinessBiasAxis,
+                    stretchAmount = proceduralStretchAmount,
+                    stretchFrequency = proceduralStretchFrequency,
+                    squashAmount = proceduralSquashAmount,
+                    squashAxis = proceduralSquashAxis,
+                };
+                (ps, grid, dist, dense) = gen.Generate();
+            }
+            else
+            {
+                (ps, grid, dist, dense) = GenerateLattice();
+            }
+
+            anchors = new AdhesionConstraint[ps.maxCount];
+            adhes = new AdhesionConstraintSolver(anchors);
+            coll = new CollisionConstraintSolver(collCompliance, anchors);
         }
-    }
+        
 
-
-    private void Start()
-    {
-        // Initialize particle set and constraint set.
-        (ps, grid, dist, dense) = GenerateLattice(latticeParticleCount);
-    }
-
-
-    private void Update()
-    {
-        if (Input.GetMouseButtonUp(0))
+        public float GetPercentWaxRemoved()
         {
-            grabbedParticle = -1;
-            return;
+            if (ps == null) return 0.0f;
+            return (ps.count / (float)ps.maxCount) * 100f; // NOTE: It might make more sense if this is a method of the ParticleSet class
+
+            // NOTE: The problem with this was that it gets the percentage if distance constraints removed. The earwax is actually the particles.
+
+            //if (dist == null || dist.constraints == null)
+            //    return 0f;
+
+            //int total = dist.constraints.Length;
+            //int total = ps.active.Length;
+            //int broken = 0;
+
+            //for (int i = 0; i < total; i++)
+            //{
+            //    if (!dist.constraints[i].active)
+            //        broken++;
+            //}
+
+            //return (broken / (float)total) * 100f;
         }
+        
 
-        if (grabbedParticle != -1)
+        // Updates particle velocity based on gravity
+        void ApplyForces(ParticleSet ps, float dt)
         {
-            BeginDrag(grabbedParticle);
-            DragUpdate(grabbedParticle);
-            return;
-        }
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            grabbedParticle = SelectParticle();
-        }
-
-        if (Input.GetMouseButtonDown(1))
-        {
-            selectedParticle = SelectParticle();
-        }
-    }
-
-    // Sim Loop
-    private void FixedUpdate()
-    {
-        float dt = Time.fixedDeltaTime;
-
-        // 1. Reset lambda
-        dist.ResetLambda();
-        dense.ResetLambda();
-
-        // 2. Apply external forces
-        ApplyForces(ps, dt);
-
-        // 3. Predict positions
-        PredictPositions(ps, dt);
-
-        // 4. Build spatial grid
-        grid.BuildGrid(ps);
-
-        // 5. Solve constraints
-        for (int i = 0; i < solverIterations; i++)
-        {
-            dist.SolveOnce(ps, dt, grid);
-            dense.SolveOnce(ps, dt, grid);
-            SolveFloorCollision(ps);
-        }
-
-        // 6. Update velocities
-        UpdateVelocities(ps, dt);
-    }
-
-    
-
-    // Draws particles and constraints for debugging.
-    private void OnDrawGizmos()
-    {
-        if (ps == null) return;
-        if (ps.currentPosition == null) return;
-
-        for (int i = 0; i < ps.currentPosition.Length; i++)
-        {
-            Gizmos.color = (selectedParticle != i) ? Color.black : Color.purple;
-            Gizmos.DrawSphere(ps.currentPosition[i], .08f);
+            for (int i = 0; i < ps.velocity.Length; i++)
+            {
+                if (!ps.active[i]) continue; // Ignore not active particles
+                if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
+                ps.velocity[i] += gravity * dt;
+            }
         }
 
-        for (int i = 0; i < dist.constraints.Length; i++)
+        // Updates particle positions without taking into account collisions or other constraints
+        void PredictPositions(ParticleSet ps, float dt)
         {
-            int from = dist.constraints[i].i;
-            int to = dist.constraints[i].j;
-            Gizmos.color = new(1f, 1f, 1f, .5f);
-            Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
+            for (int i = 0; i < ps.velocity.Length; i++)
+            {
+                if (!ps.active[i]) continue; // Ignore not active particles
+                if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
+                ps.previousPosition[i] = ps.currentPosition[i];
+                ps.currentPosition[i] += ps.velocity[i] * dt;
+            }
         }
 
-        if (grabbedParticle != -1)
+        // Updates velocities based on change in position on the current frame
+        void UpdateVelocities(ParticleSet ps, float dt)
         {
-            Gizmos.color = new(0f, 0f, 1f, .5f);
-            Gizmos.DrawWireSphere(ps.currentPosition[grabbedParticle], dense.h);
+            for (int i = 0; i < ps.velocity.Length; i++)
+            {
+                if (!ps.active[i]) continue; // Ignore not active particles
+                if (ps.invMass[i] == 0) continue; // Particles with invMass 0 should not move
+                ps.velocity[i] = (ps.currentPosition[i] - ps.previousPosition[i]) / dt;
+
+                ps.velocity[i] *= globalDamping; // Velocity damping
+            }
         }
 
-        if (selectedParticle != -1)
+        // Deactivates particles outside of the particleDeleteRadius
+        void RemoveParticles(ParticleSet ps)
         {
-            var js = grid.GetNeighbors(ps, selectedParticle);
-            foreach (int j in js)
+            for (int i = 0; i < ps.maxCount; i++)
+            {
+                if (!ps.active[i]) continue;
+
+                Vector3 distVec = ps.currentPosition[i] - this.transform.position; // Vector from XPBDSim origin to particle position
+                if (distVec.magnitude >= this.particleDeleteRadius) ps.active[i] = false;
+            }
+        }
+
+        #region Mouse Interaction Functions
+        private int grabbedParticle = -1;
+        Plane dragPlane;
+        private int selectedParticle = -1;
+
+        // Finds closest particle to mouse position and returns its index
+        int SelectParticle()
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            float closestDist = float.MaxValue;
+            int closestIndex = -1;
+            float radius = ps.radius; // same as Gizmo sphere size
+
+            for (int i = 0; i < ps.maxCount; i++)
+            {
+                if (!ps.active[i]) continue; // Ignore not active particles
+
+                Vector3 center = ps.currentPosition[i];
+
+                // Ray-sphere intersection test
+                Vector3 oc = ray.origin - center;
+                float a = Vector3.Dot(ray.direction, ray.direction);
+                float b = 2.0f * Vector3.Dot(oc, ray.direction);
+                float c = Vector3.Dot(oc, oc) - radius * radius;
+                float discriminant = b * b - 4 * a * c;
+
+                if (discriminant < 0) continue;
+
+                float t = (-b - Mathf.Sqrt(discriminant)) / (2.0f * a);
+
+                if (t > 0 && t < closestDist)
+                {
+                    closestDist = t;
+                    closestIndex = i;
+                }
+            }
+
+            return closestIndex;
+        }
+
+        // Creates a drag plane aligned with the selected particle
+        Plane GetDragPlane(int selectedIndex)
+        {
+            // Get drag plane
+            Vector3 planeNormal = Camera.main.transform.forward;
+            Vector3 planePoint = ps.currentPosition[selectedIndex];
+
+            return new(planeNormal, planePoint);
+        }
+
+        // Drags particle across drag plane based on mouse movement
+        void DragUpdate(int selectedIndex)
+        {
+            if (selectedIndex == -1) return;
+            if (!ps.active[selectedIndex]) return; // Ignore not active particles
+
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (dragPlane.Raycast(ray, out float enter))
+            {
+                Vector3 target = ray.GetPoint(enter);
+
+                // TODO: I may later change this to a constraint instead of manually altering particle values
+                ps.currentPosition[selectedIndex] = target;
+                ps.previousPosition[selectedIndex] = target;
+                ps.velocity[selectedIndex] = Vector3.zero;
+            }
+        }
+        #endregion
+
+
+        // ------ Monobehaviour Methods ------
+
+        // Rebuilds the sim anytime parameters are changed in the editor
+        private void OnValidate()
+        {
+            if (Application.isPlaying) return;
+            BuildSimulation();
+        }
+
+        // Called when the script instance is first initialized
+        private void Awake()
+        {
+            BuildSimulation();
+        }
+
+        // Called before the first frame
+        private void Start()
+        {
+            // TODO: Remove when coll.objects is deprecated
+            coll.objects.Add(tool);
+            coll.objects.Add(canal);
+
+            coll.tool = tool;
+            coll.canal = canal;
+        }
+
+        // User input loop
+        private void Update()
+        {
+            // Mouse manipulation
+             if (Input.GetMouseButtonUp(0))
+            {
+                grabbedParticle = -1;
+                return;
+            }
+
+            if (grabbedParticle != -1)
+            {
+                DragUpdate(grabbedParticle);
+                return;
+            }
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                grabbedParticle = SelectParticle();
+                if (grabbedParticle != -1)
+                {
+                    dragPlane = GetDragPlane(grabbedParticle);
+                }
+            }
+
+            if (Input.GetMouseButtonDown(1))
+            {
+                selectedParticle = SelectParticle();
+            }
+        }
+
+        // Sim physics Loop
+        private void FixedUpdate()
+        {
+            float dt = Time.fixedDeltaTime;
+            float collAlpha = coll.compliance / (dt * dt);
+
+            // ------ 1. Reset lambda ------
+            if (distOn) dist.ResetLambda();
+            if (denseOn) dense.ResetLambda();
+            if (adhesOn) adhes.ResetLambda();
+            if (collOn) coll.ResetLambda(); // Also resets haptic message
+
+            // ------ 2. Apply external forces ------
+            ApplyForces(ps, dt);
+
+            // ------ 3. Predict positions ------
+            PredictPositions(ps, dt);
+
+            if (tool != null)
+            {
+                tool.previousPosition = tool.transform.position;
+                tool.MoveTool(dt);
+            }
+
+            // ------ 4. Build spatial grid. ------
+            if (denseOn) grid.BuildGrid(ps);
+
+            // ------ 5. Solve constraints ------
+            coll.SolveColliderCollider(collAlpha); // Run tool vs. canal collisions only once per frame for stability
+
+            for (int i = 0; i < solverIterations; i++)
+            {
+                if (distOn) dist.SolveOnce(ps, dt, grid);
+                if (denseOn) dense.SolveOnce(ps, dt, grid);
+                if (collOn) coll.NewSolveOnce(ps, dt); // NOTE: This does not solve particle vs. canal collisions
+                if (adhesOn) adhes.SolveOnce(ps, dt, grid);
+            }
+
+            coll.SolvePSCollider(ps, coll.canal, collAlpha); // Run canal collisions only once per frame for performance
+
+            this.RemoveParticles(ps);
+
+            if (distOn) dist.UpdateRestLengths(ps, dt); // Update rest lengths after solving
+
+            // ------ 6. Update velocities ------
+            UpdateVelocities(ps, dt);
+            tool.velocity = (tool.transform.position - tool.previousPosition) / dt;
+
+            // ------ 7. Send HapticMessage to NewHapticManager from the collision solver ------
+            if (tool != null && tool.keyboardOn) tool.ResetTarget(); // If using keyboard, just reset target
+            else hapticManager.SetHapticMessage(coll.GetHapticMessage());
+        }
+
+        // Draws particles and constraints for debugging.
+        private void OnDrawGizmos()
+        {
+            if (ps == null) return;
+            if (ps.currentPosition == null) return;
+
+            // Draw particles
+            Gizmos.color = Color.black;
+            for (int i = 0; i < ps.maxCount; i++)
+            {
+                if (!ps.active[i]) continue; // Ignore not active particles
+
+                if (drawParticles) Gizmos.DrawSphere(ps.currentPosition[i], ps.radius * particleViewRadius);
+
+                // Draw adhesion constraints
+                if (adhesOn && anchors[i].isActive && drawAdhes)
+                {
+                    Gizmos.color = Color.green;
+
+                    Vector3 anchorPos = anchors[i].shape.GetWorldPos(anchors[i].localAnchorPos);
+
+                    Gizmos.DrawSphere(anchorPos, ps.radius * particleViewRadius);
+
+                    Gizmos.DrawLine(
+                        ps.currentPosition[i],
+                        anchorPos);
+                    Gizmos.color = Color.black;
+                }
+            }
+
+            if (drawParticles)
             {
                 Gizmos.color = Color.red;
-                Gizmos.DrawLine(ps.currentPosition[selectedParticle], ps.currentPosition[j]);
+                Gizmos.DrawWireSphere(this.transform.position, this.particleDeleteRadius);
+            }
+
+            // Draw distance constraints
+            if (drawDist)
+            {
+                Gizmos.color = new(1f, 1f, 1f, .5f);
+                for (int i = 0; i < dist.constraints.Length; i++)
+                {
+                    if (!dist.constraints[i].active) continue;
+                    int from = dist.constraints[i].i;
+                    int to = dist.constraints[i].j;
+                    Gizmos.DrawLine(ps.currentPosition[from], ps.currentPosition[to]);
+                }
+            }
+
+            // Draw grabbed particle
+            Gizmos.color = new(0f, 0f, 1f, .5f);
+            if (grabbedParticle != -1)
+            {
+                Gizmos.DrawWireSphere(ps.currentPosition[grabbedParticle], dense.h);
+            }
+
+            // Draw selected particle's density constraints
+            Gizmos.color = Color.red;
+            if (selectedParticle != -1)
+            {
+                int[] js;
+                int jCount;
+                (js, jCount) = grid.GetNeighbors(ps, selectedParticle, dense.h);
+                for (int iter = 0; iter < jCount; iter++)
+                {
+                    int j = js[iter];
+                    Gizmos.DrawLine(ps.currentPosition[selectedParticle], ps.currentPosition[j]);
+                }
             }
         }
     }

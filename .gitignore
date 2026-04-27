@@ -1,6 +1,6 @@
-*/Assets/Samples/*
+# */Assets/Samples/*
 
-/AudiologyUnityProject/Assets/Samples/*
+# /AudiologyUnityProject/Assets/Samples/*
 
 # This .gitignore file should be placed at the root of your Unity project directory
 #

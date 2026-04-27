@@ -9,8 +9,14 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
-        PlayerPrefs.SetString("headType", "Center");
-        PlayerPrefs.SetInt("cerumenAmount", 15);
+        // Old main menu settings
+        // PlayerPrefs.SetString("headType", "Center");
+        // PlayerPrefs.SetInt("cerumenAmount", 15);
+
+        // New Main Menu settings
+        PlayerPrefs.SetString("earType", "1");
+        PlayerPrefs.SetString("blockType", "1");
+        PlayerPrefs.SetString("waxType", "1");
         settingsCanvas.gameObject.SetActive(false);
     }
     public void StartGame()
