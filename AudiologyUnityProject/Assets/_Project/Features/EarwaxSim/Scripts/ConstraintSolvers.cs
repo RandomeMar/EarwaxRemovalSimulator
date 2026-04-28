@@ -5,14 +5,33 @@ using UnityEngine;
 
 namespace EarwaxSim
 {
-    // Interface for all constraint solvers
+    /// <summary>
+    /// Interface for all constraint solvers
+    /// </summary>
     interface IConstraintSolver
     {
+        /// <summary>
+        /// Resets various values for the solver
+        /// </summary>
+        /// <remarks>This method should only be called once per FixedUpdate frame.</remarks>
         void ResetLambda();
+
+        /// <summary>
+        /// Single iteration of constraint solving
+        /// </summary>
+        /// <param name="ps">Input particle set</param>
+        /// <param name="dt">Delta time</param>
+        /// <param name="grid">Input spatial hash grid</param>
+        /// <remarks>This method will update particle positions in order to attempt to solve all constraints contained in this solver.
+        /// This method should be called once per solver iteration per FixedUpdate frame.
+        /// </remarks>
         void SolveOnce(ParticleSet ps, float dt, SpatialHash grid);
     }
 
-    // Single distance constraint between two particles
+    /// <summary>
+    /// Single distance constraint between two particles.
+    /// </summary>
+    /// <remarks>Distance constraints try to keep two particles at a specified rest length.</remarks>
     public struct DistanceConstraint
     {
         public int i, j;
@@ -35,7 +54,10 @@ namespace EarwaxSim
         }
     }
 
-    // Solves distance constraints
+    /// <summary>
+    /// XPBD solver for distance constraints.
+    /// </summary>
+    /// <remarks>Distance constraints try to keep two particles at a specified rest length.</remarks>
     public class DistanceConstraintSet : IConstraintSolver
     {
         public DistanceConstraint[] constraints;
@@ -103,7 +125,12 @@ namespace EarwaxSim
             }
         }
 
-        // Updates rest lengths based on principles of plasticity and viscoelasticity
+        /// <summary>
+        /// Updates rest lengths based on principles of plasticity and viscoelasticity
+        /// </summary>
+        /// <param name="ps">Particle set interacting with distance constraints</param>
+        /// <param name="dt">Delta time</param>
+        /// <remarks>This method is responsible for plastic deformation, viscoelastic temporary deformation, and tearing of distance constraints</remarks>
         public void UpdateRestLengths(ParticleSet ps, float dt)
         {
             for (int index = 0; index < this.constraints.Length; index++)
@@ -143,7 +170,10 @@ namespace EarwaxSim
         }
     }
 
-    // Prevents particles from getting too close together
+    /// <summary>
+    /// XPBD solver for global density constraint.
+    /// </summary>
+    /// <remarks>The global density constraint tries to keep neighboring particles from getting too close to eachother.</remarks>
     public class DensityConstraintSolver : IConstraintSolver
     {
         public float restDensity;
@@ -171,6 +201,10 @@ namespace EarwaxSim
             this.poly6GradCoef = (float)(945f / (32f * Mathf.PI * Mathf.Pow(h, 9)));
         }
 
+        /// <summary>
+        /// Ensures arrays for deltaX, lambda, and the gradient buffer exist and have a specified capacity.
+        /// </summary>
+        /// <param name="count">A capacity to ensure</param>
         private void EnsureCapacity(int count)
         {
             if (this.deltaX == null || this.deltaX.Length != count)
@@ -257,7 +291,10 @@ namespace EarwaxSim
         }
     }
 
-    // Solves collisions between particles and collision shapes
+    /// <summary>
+    /// XPBD solver for global collision constraint.
+    /// </summary>
+    /// <remarks>The global collision constraint tries to keep particles from colliding with collision objects, and collision objects from colliding with eachother.</remarks>
     public class CollisionConstraintSolver : IConstraintSolver
     {
         public List<CollisionObjectBase> objects; // TODO: Remove
@@ -273,12 +310,6 @@ namespace EarwaxSim
         public float compliance;
 
         public AdhesionConstraint[] adhesConstraints; // For adhesion constraint
-
-
-        //Force feedback
-        // private Vector3 _toolImpulseAccum;
-        // public Vector3 ToolImpulseAccum => _toolImpulseAccum;
-        // public void ClearToolImpulse() { _toolImpulseAccum = Vector3.zero; }
 
         public CollisionConstraintSolver(float compliance, AdhesionConstraint[] adhesConstraints)
         {
@@ -296,7 +327,11 @@ namespace EarwaxSim
             this.toolCorrection = Vector3.zero;
         }
         
-        
+        /// <summary>
+        /// TODO: Rename this method to "SolveOnce" and make sure it complies with the interface
+        /// </summary>
+        /// <param name="ps"></param>
+        /// <param name="dt"></param>
         public void NewSolveOnce(ParticleSet ps, float dt)
         {
             float alpha = this.compliance / (dt * dt);
@@ -308,7 +343,13 @@ namespace EarwaxSim
             SolvePSCollider(ps, this.tool, alpha);
         }
 
-        // Solves particle vs. sdf based collider collisions
+        /// <summary>
+        /// Solves particle vs. collision object collisions
+        /// </summary>
+        /// <param name="ps">Particle set to test for collisions against</param>
+        /// <param name="obj">Collision object to test for collisions against</param>
+        /// <param name="alpha">Alpha term for XPBD formula</param>
+        /// <remarks>This call can be expensive on collision objects with intricate collision shape trees</remarks>
         public void SolvePSCollider(ParticleSet ps, CollisionObjectBase obj, float alpha)
         {
             float wo = obj.invMass;
@@ -399,7 +440,10 @@ namespace EarwaxSim
             }
         }
 
-        // Solves unity based collider vs unity based collider collisions
+        /// <summary>
+        /// Solves collision object vs. collision object collisions
+        /// </summary>
+        /// <param name="alpha">Alpha term for XPBD formula</param>
         public void SolveColliderCollider(float alpha)
         {
             foreach (Collider toolColl in this.tool.unityColliders)
@@ -443,7 +487,11 @@ namespace EarwaxSim
             }
         }
 
-        // Returns haptic message. Called after solving in XPBDSim
+        /// <summary>
+        /// Creates a haptic message to send to the haptic thread
+        /// </summary>
+        /// <returns>HapticMessage containing collision info</returns>
+        /// <remarks>This method should be called after all XPBD steps inside of FixedUpdate.</remarks>
         public HapticMessage GetHapticMessage()
         {
             return new HapticMessage(
@@ -539,7 +587,10 @@ namespace EarwaxSim
         }
     }
 
-    // Single adhesion constraint between a particle and an anchor position
+    /// <summary>
+    /// Single adhesion constraint between a particle and an anchor position.
+    /// </summary>
+    /// <remarks>Adhesion constraints try to pull a particle to a target position.</remarks>
     public struct AdhesionConstraint
     {
         public Vector3 localAnchorPos; // NOTE: This uses local anchor position, because otherwise if a collider moved, the anchor would be in the air
@@ -557,14 +608,21 @@ namespace EarwaxSim
             this.breakDist = breakDist;
         }
 
-        public Vector3 GetWorldAnchorPos()
+        /// <summary>
+        /// Gets the anchor's position in world space.
+        /// </summary>
+        /// <returns>Anchor position in world space.</returns>
+        public readonly Vector3 GetWorldAnchorPos()
         {
             return this.shape.GetWorldPos(this.localAnchorPos);
         }
 
     }
 
-    // Solves adhesion constraints
+    /// <summary>
+    /// XPBD solver for adhesion constraints.
+    /// </summary>
+    /// <remarks>Adhesion constraints try to pull a particle to a target position.</remarks>
     public class AdhesionConstraintSolver : IConstraintSolver
     {
         public float[] lambdas;
@@ -575,6 +633,10 @@ namespace EarwaxSim
             this.constraints = constraints;
         }
 
+        /// <summary>
+        /// Ensures arrays for lambdas and constraints exist and have a specified capacity.
+        /// </summary>
+        /// <param name="count">A capacity to ensure</param>
         private void EnsureCapacity(int count)
         {
             if (this.constraints == null || this.constraints.Length != count)

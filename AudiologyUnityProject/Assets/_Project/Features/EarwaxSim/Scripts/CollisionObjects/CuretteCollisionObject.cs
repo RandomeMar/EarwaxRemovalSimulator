@@ -2,6 +2,9 @@ using EarwaxSim;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Collision object representing the curette.
+/// </summary>
 public class CuretteCollisionObject : DynamicCollisionObject
 {
     [Header("Torus Settings")]

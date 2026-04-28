@@ -2,6 +2,10 @@ using EarwaxSim;
 using System.Xml.Serialization;
 using UnityEngine;
 
+/// <summary>
+/// Game object manager of particle rendering.
+/// </summary>
+/// <remarks>This game object is responsible for initializing and updating the particle position buffer.</remarks>
 public class ParticleRenderer : MonoBehaviour
 {
     public XPBDSim sim;
@@ -30,6 +34,9 @@ public class ParticleRenderer : MonoBehaviour
         if (current = this) current = null;
     }
 
+    /// <summary>
+    /// Initializes particle position buffer between CPU and GPU.
+    /// </summary>
     private void Start()
     {
         if (sim == null) return;
@@ -42,6 +49,9 @@ public class ParticleRenderer : MonoBehaviour
         material.SetBuffer("_Positions", positionBuffer); // Buffer is called "_Positions" inside shader
     }
 
+    /// <summary>
+    /// Updates the particle position buffer with new particle positions.
+    /// </summary>
     private void LateUpdate()
     {
         if (positionBuffer == null || sim == null) return;

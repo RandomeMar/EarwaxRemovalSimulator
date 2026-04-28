@@ -4,6 +4,9 @@ using UnityEngine.InputSystem.XR.Haptics;
 
 namespace EarwaxSim
 {
+    /// <summary>
+    /// Collision object that moves through user input.
+    /// </summary>
     public abstract class DynamicCollisionObject : CollisionObjectBase
     {
         [Header("Tool Movement Settings")]
@@ -29,7 +32,11 @@ namespace EarwaxSim
         protected InputAction moveToolAction;
 
 
-        // Update target position and rotation using keyboard or haply cursor
+        /// <summary>
+        /// Update target position and rotation using keyboard or haply cursor.
+        /// </summary>
+        /// <param name="dt">Delta time</param>
+        /// <remarks>If the bool "keyboardOn" is true, keyboard input will move the target.</remarks>
         public virtual void MoveTarget(float dt)
         {
             if (moveToolAction == null) return;
@@ -47,13 +54,19 @@ namespace EarwaxSim
             this.targetRotation = haplyCursor.transform.rotation;
         }
 
-        // Resets target position to the curette's position. (Keyboard only)
+        /// <summary>
+        /// Resets target position to the curette's position.
+        /// </summary>
+        /// <remarks>This method should only be called if the user is using keyboard input.</remarks>
         public void ResetTarget()
         {
             this.targetPosition = this.transform.position;
         }
 
-        // Moves tool position based on target position
+        /// <summary>
+        /// Moves tool position based on target position.
+        /// </summary>
+        /// <param name="dt">Delta time.</param>
         public void MoveTool(float dt)
         {
             Vector3 delta = this.targetPosition - this.transform.position;

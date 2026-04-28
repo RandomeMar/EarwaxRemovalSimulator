@@ -30,6 +30,9 @@ public class CanalNode : MonoBehaviour
         NotifyParent();
     }
 
+    /// <summary>
+    /// Notifies parent EarCollisionObject that the canal node was updated.
+    /// </summary>
     private void NotifyParent()
     {
         if (earColl == null)

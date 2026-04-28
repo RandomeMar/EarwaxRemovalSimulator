@@ -1,6 +1,9 @@
 using UnityEngine;
 using EarwaxSim;
 
+/// <summary>
+/// Test box shaped room collision object.
+/// </summary>
 public class RoomObject : CollisionObjectBase
 {
     public bool drawRoom;

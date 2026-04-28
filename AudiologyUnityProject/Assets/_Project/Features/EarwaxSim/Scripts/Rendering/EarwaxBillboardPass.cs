@@ -6,6 +6,9 @@ using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
+/// <summary>
+/// Custom render pass for rendering billboarded earwax particles.
+/// </summary>
 public class EarwaxBillboardPass : ScriptableRenderPass
 {
     const string m_PassName = "EarwaxBillboardPass";
@@ -14,8 +17,10 @@ public class EarwaxBillboardPass : ScriptableRenderPass
 
     public EarwaxBillboardPass() { }
 
-    // Class defining what will be passed into the pass when it actually runs.
-    // Goes into ExecutePass()
+    /// <summary>
+    /// Input data for billboard pass step.
+    /// </summary>
+    /// <remarks>This class should be passed into ExecutePass.</remarks>
     class PassData
     {
         internal Material material;
@@ -23,18 +28,31 @@ public class EarwaxBillboardPass : ScriptableRenderPass
         internal int particleCount;
     }
 
+    /// <summary>
+    /// Input data for composite pass step.
+    /// </summary>
     class CompositePassData
     {
         internal TextureHandle inputTexture;
         internal Material material;
     }
 
+    /// <summary>
+    /// Sets up necessary references.
+    /// </summary>
+    /// <param name="particleRenderer"></param>
+    /// <param name="compositeMaterial"></param>
     public void Setup(ParticleRenderer particleRenderer, Material compositeMaterial)
     {
         this.particleRenderer = particleRenderer;
         this.compositeMaterial = compositeMaterial;
     }
 
+    /// <summary>
+    /// Render function used by the billboard pass step.
+    /// </summary>
+    /// <param name="data">Input data to the render function.</param>
+    /// <param name="context"></param>
     static void ExecutePass(PassData data, RasterGraphContext context)
     {
         if (data.mesh == null || data.material == null || data.particleCount <= 0)
