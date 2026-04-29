@@ -4,14 +4,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class ScoreScript : MonoBehaviour
+public class ScoreUI : MonoBehaviour
 {
+    public ScoreManager scoreManager;
 
     [SerializeField] Text scoreText;
     private bool isRunning = false;
-    // float elapsedTime;
-    float score;
-    public string endGameScene;
+    float score; // TODO: Remove this
 
     [SerializeField] GameObject statsManager;
 
@@ -19,7 +18,7 @@ public class ScoreScript : MonoBehaviour
     {
         if (isRunning)
         {
-            scoreText.text = "Score: " + score.ToString("F1");
+            scoreText.text = "Score: " + scoreManager.score.ToString("F1"); // Read score from scoreManager
         }
     }
 

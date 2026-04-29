@@ -21,10 +21,8 @@ public class StatsManager : MonoBehaviour
 
     private string filePathforDelete;
 
-    public string currentName;
-
+    public string currentName { get; set; }
     public float currentScore;
-
 	public float currentElapsedTime;
 
     void Awake() {
@@ -61,10 +59,6 @@ public class StatsManager : MonoBehaviour
 
     public void setName(string n) {
 		currentName = n;
-	}
-
-	public string getName() {
-		return currentName;
 	}
 
     public void setScore(float score) {
@@ -150,16 +144,16 @@ public class StatsManager : MonoBehaviour
 
     public bool IsDisqualified() => disqualified;
 
-    public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
-    {
-        if (disqualified)
-            return 0f;
+    //public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
+    //{
+    //    if (disqualified)
+    //        return 0f;
 
-        float waxScore = (percentWaxRemoved / 100f) * 50f;
-        float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
+    //    float waxScore = (percentWaxRemoved / 100f) * 50f;
+    //    float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
 
-        return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
-    }
+    //    return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
+    //}
 
     // For deleteing and reseting stats
     public void ResetStats()

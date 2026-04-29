@@ -175,8 +175,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 200d5c8c99df82d409e07da9abb1c75d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreScript
+  scoreManager: {fileID: 0}
   scoreText: {fileID: 1265137490}
-  endGameScene: EndSceneVR
   statsManager: {fileID: 461389742}
 --- !u!114 &23300754
 MonoBehaviour:
@@ -840,8 +840,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 200d5c8c99df82d409e07da9abb1c75d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreScript
+  scoreManager: {fileID: 0}
   scoreText: {fileID: 1265137490}
-  endGameScene: EndSceneVR
   statsManager: {fileID: 461389742}
 --- !u!114 &141742120
 MonoBehaviour:
@@ -1044,7 +1044,7 @@ MonoBehaviour:
   solverIterations: 3
   gravity: {x: 0, y: -0.5, z: 0}
   globalDamping: 0.99
-  particleDeleteRadius: 1
+  particleDeleteRadius: 0.4
   latticeOrigin: {x: -0.045, y: 1.36, z: -0.4}
   latticeParticleCount: 8
   latticeLength: 0.025
@@ -3147,6 +3147,55 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   rx: 0
   rz: 0
+--- !u!1 &581830367
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 581830369}
+  - component: {fileID: 581830368}
+  m_Layer: 0
+  m_Name: ScoreManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &581830368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581830367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 981e7793379b2f14ab2ec589b9fbda10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
+  xpbdSim: {fileID: 199498264}
+  hapticManager: {fileID: 76785270}
+  statsManager: {fileID: 461389743}
+  forceLimit: 100
+  score: 0
+--- !u!4 &581830369
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 581830367}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -5.60657, y: 3.04998, z: -0.14989}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &583146585
 GameObject:
   m_ObjectHideFlags: 0
@@ -3640,7 +3689,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06895b160462f034394f04c3baef87ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  xpbdSim: {fileID: 0}
   timerText: {fileID: 1185066762}
   XRCameraEar: {fileID: 0}
   endGameScene: EndScene
@@ -8066,7 +8114,7 @@ MonoBehaviour:
   keyboardInputManager: {fileID: 1037107500}
   cam: {fileID: 987848627}
   haplyCursor: {fileID: 1816530966}
-  keyboardOn: 0
+  keyboardOn: 1
   toolSpeed: 0.1
   maxSpeed: 20
   viewSize: {x: 1.2, y: 0.5, z: 1.2}
@@ -10102,6 +10150,10 @@ PrefabInstance:
       value: EndSceneVR
       objectReference: {fileID: 0}
     - target: {fileID: 6419924007960028485, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
+      propertyPath: scoreManager
+      value: 
+      objectReference: {fileID: 581830368}
+    - target: {fileID: 6419924007960028485, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
       propertyPath: statsManager
       value: 
       objectReference: {fileID: 461389742}
@@ -10726,3 +10778,4 @@ SceneRoots:
   - {fileID: 413805093}
   - {fileID: 1803406133}
   - {fileID: 2023846071}
+  - {fileID: 581830369}

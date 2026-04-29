@@ -520,7 +520,11 @@ namespace EarwaxSim
                 if (!ps.active[i]) continue;
 
                 Vector3 distVec = ps.currentPosition[i] - this.transform.position; // Vector from XPBDSim origin to particle position
-                if (distVec.magnitude >= this.particleDeleteRadius) ps.active[i] = false;
+                if (distVec.magnitude >= this.particleDeleteRadius)
+                {
+                    ps.active[i] = false;
+                    ps.count--;
+                }
             }
         }
 

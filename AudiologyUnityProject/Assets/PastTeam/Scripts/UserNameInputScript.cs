@@ -25,7 +25,7 @@ public class UserNameInputScript : MonoBehaviour
             {
                 //resultText.text = input;
                 statsManager.GetComponent<StatsManager>().setName(input);
-                resultText.text = statsManager.GetComponent<StatsManager>().getName();
+                resultText.text = statsManager.GetComponent<StatsManager>().currentName;
                 inputField.gameObject.SetActive(false);
                 submitButton.gameObject.SetActive(false);
 

@@ -24,13 +24,13 @@ public class NewHapticManager : MonoBehaviour
     [Min(0)]
     public float minPenetration = .01f;
 
-    // SAFETY FLAG: Stops the loop instantly if the object is dying
-    private bool _isDestroyed = false;
+    private bool _isDestroyed = false; // SAFETY FLAG: Stops the loop instantly if the object is dying
 
     private HapticMessage _hapticMessage;
     public readonly object _hapticLock = new object();
 
-    private StatsManager _statsManager;
+    private Vector3 _currForce;
+    public readonly object _forceLock = new object();
 
 
     /// <summary>
@@ -59,15 +59,26 @@ public class NewHapticManager : MonoBehaviour
     }
 
 
+    private void SetForce(Vector3 force)
+    {
+        lock (_forceLock)
+        {
+            _currForce = force;
+        }
+    }
+
+    public Vector3 GetForce()
+    {
+        lock (_forceLock)
+        {
+            return _currForce;
+        }
+    }
+
 
     private void OnEnable()
     {
         _isDestroyed = false;
-
-        if (_statsManager == null)
-        {
-            _statsManager = FindFirstObjectByType<StatsManager>();
-        }
 
         if (_inverse3 == null) _inverse3 = GetComponentInChildren<Inverse3Controller>();
 
@@ -85,6 +96,8 @@ public class NewHapticManager : MonoBehaviour
             0f,
             Vector3.zero,
             Vector3.zero);
+
+        _currForce = Vector3.zero;
     }
 
     private void OnDisable() { Cleanup(); }
@@ -122,16 +135,7 @@ public class NewHapticManager : MonoBehaviour
     private Vector3 CalculateForce(HapticMessage msg, Vector3 cursorPos, Vector3 cursorVel)
     {
         if (!msg.isContact) return Vector3.zero;
-
-        //float relVelNorm = Vector3.Dot(msg.toolVelocity - cursorVel, msg.collisionNorm); // Get relative velocity in the normal direction
-
-        // Based on F = (k * d -b * Vn) * collisionNormal
-        //Vector3 force = (this.stiffness * msg.penetrationDepth - this.damping * relVelNorm) * msg.collisionNorm;
-
         Vector3 force = msg.collisionNorm * msg.penetrationDepth * stiffness - cursorVel * damping;
-        
-        if (force.magnitude >= MAX_FORCE && _statsManager != null && !_statsManager.IsDisqualified())
-            _statsManager.Disqualify();
         return force;
     }
 
@@ -155,6 +159,9 @@ public class NewHapticManager : MonoBehaviour
 
 
         Vector3 force = this.CalculateForce(msg, inverse3.CursorPosition, inverse3.CursorVelocity);
+
+        SetForce(force); // Thread safe public force set
+
         inverse3.SetCursorLocalForce(Vector3.ClampMagnitude(force, MAX_FORCE));
     }
 

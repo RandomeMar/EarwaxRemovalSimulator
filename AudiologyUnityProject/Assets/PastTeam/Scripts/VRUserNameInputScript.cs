@@ -8,7 +8,7 @@ public class VRUserNameInputScript : MonoBehaviour
 {
     [SerializeField] InputField inputField;
     [SerializeField] TimerScript timerScript;
-    [SerializeField] ScoreScript scoreScript;
+    [SerializeField] ScoreUI scoreScript;
     [SerializeField] ClockScript clockScript;
     //[SerializeField] GameObject statsManager;
     [SerializeField] GameObject keyboardUI;
