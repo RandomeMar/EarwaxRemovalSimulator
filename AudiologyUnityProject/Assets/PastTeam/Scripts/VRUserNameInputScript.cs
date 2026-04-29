@@ -55,8 +55,5 @@ public class VRUserNameInputScript : MonoBehaviour
                 Debug.LogWarning("StatsManager not found or has been destroyed.");
             }
         }
-
-   
     }
-    
 }

@@ -29,7 +29,7 @@ public class TimerScript : MonoBehaviour
 
             Debug.Log($"Wax removed: {xpbdSim.GetPercentWaxRemoved():F1}%");
             
-            if (elapsedTime >= 20f || xpbdSim.GetPercentWaxRemoved() >= 100f)
+            if (elapsedTime >= 60f || xpbdSim.GetPercentWaxRemoved() >= 99f)
             {
                 elapsedTime = Mathf.Min(elapsedTime, 20f);
                 isRunning = false;
