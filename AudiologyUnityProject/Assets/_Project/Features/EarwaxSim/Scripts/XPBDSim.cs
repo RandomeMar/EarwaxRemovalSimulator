@@ -6,7 +6,10 @@ using UnityEngine.InputSystem;
 
 namespace EarwaxSim
 {
-    // Owns the full XPBD loop
+    /// <summary>
+    /// Manager of the XPBD simulation loop.
+    /// </summary>
+    /// <remarks>This class is responsible for getting reference to necessary game objects, initializing the simulation, and running the simulation each FixedUpdate frame.</remarks>
     public class XPBDSim : MonoBehaviour
     {
         #region Public Parameters
@@ -145,7 +148,12 @@ namespace EarwaxSim
 
         // ------ Functions ------
 
-        // Smoothing kernel for calculating density
+        /// <summary>
+        /// Smoothing kernel for calculating density.
+        /// </summary>
+        /// <param name="r2">Squared distance between two particles.</param>
+        /// <param name="h">Smoothing radius.</param>
+        /// <returns>Density contibution percentage.</returns>
         static float Poly6(float r2, float h)
         {
             float h2 = h * h;
@@ -158,7 +166,13 @@ namespace EarwaxSim
             return 315 / (64 * Mathf.PI * h4 * h4 * h) * term * term * term;
         }
 
-        // Estimates rest density of particles in a lattice. NOTE: Needs to be different if particle set is not a lattice
+        /// <summary>
+        /// Estimates rest density of particles in a lattice.
+        /// </summary>
+        /// <param name="ps">Particle set housing the lattice.</param>
+        /// <param name="grid">Spatial hash grid storing neighboring particles.</param>
+        /// <param name="h">Smoothing radius.</param>
+        /// <returns>Estimated rest density for all particles in the lattice.</returns>
         float CalcRestDensity(ParticleSet ps, SpatialHash grid, float h)
         {
             int n = latticeParticleCount;
@@ -184,13 +198,23 @@ namespace EarwaxSim
             return density;
         }
 
-        // Calculates index in a 1d array of particles based on a x, y, z coordinate in a 3d lattice
+        /// <summary>
+        /// Calculates a particle's index in its particle set based on its position in a 3D lattice.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="z">Z coordinate.</param>
+        /// <param name="n">Number of particles per row in the lattice.</param>
+        /// <returns>Index for the particle set.</returns>
         int CalcIndex(int x, int y, int z, int n)
         {
             return n * (n * x + y) + z;
         }
 
-        // Builds a particle set that is a lattice along with all necessary constraint solvers for the lattice
+        /// <summary>
+        /// Builds a lattice particle set along with all necessary constraint solvers for the lattice
+        /// </summary>
+        /// <returns>The lattice particle set, a spatial hash grid, a distance constraint solver, and a density solver.</returns>
         (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) GenerateLattice()
         {
             int n = latticeParticleCount; // Number of particles in a single row/column
@@ -285,6 +309,7 @@ namespace EarwaxSim
             return (lattice, grid, dcs, dense);
         }
 
+
         // Feature 3: Wax presets. Overwrites material + noise params with canned values for
         // different wax types so the sponsor demo has easy variety. Custom = no-op.
         void ApplyWaxPreset()
@@ -331,7 +356,10 @@ namespace EarwaxSim
             }
         }
 
-        // Creates lattice, room, and sphere tool
+
+        /// <summary>
+        /// Initializes particle set and constraint solvers.
+        /// </summary>
         void BuildSimulation()
         {
             // Apply wax preset first so procedural/material fields reflect the selected type.
@@ -410,7 +438,11 @@ namespace EarwaxSim
         }
         
 
-        // Updates particle velocity based on gravity
+        /// <summary>
+        /// Updates particle velocities based on gravity.
+        /// </summary>
+        /// <param name="ps">Input particle set</param>
+        /// <param name="dt">Delta time.</param>
         void ApplyForces(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -421,7 +453,11 @@ namespace EarwaxSim
             }
         }
 
-        // Updates particle positions without taking into account collisions or other constraints
+        /// <summary>
+        /// Updates particle positions without taking into account collisions or other constraints.
+        /// </summary>
+        /// <param name="ps">Input particle set.</param>
+        /// <param name="dt">Delta time.</param>
         void PredictPositions(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -433,7 +469,11 @@ namespace EarwaxSim
             }
         }
 
-        // Updates velocities based on change in position on the current frame
+        /// <summary>
+        /// Updates particle velocities based on change in position on the current frame.
+        /// </summary>
+        /// <param name="ps">Input particle set.</param>
+        /// <param name="dt">Delta time.</param>
         void UpdateVelocities(ParticleSet ps, float dt)
         {
             for (int i = 0; i < ps.velocity.Length; i++)
@@ -463,7 +503,10 @@ namespace EarwaxSim
         Plane dragPlane;
         private int selectedParticle = -1;
 
-        // Finds closest particle to mouse position and returns its index
+        /// <summary>
+        /// Finds closest particle to mouse position and returns its index.
+        /// </summary>
+        /// <returns>Index of particle in "this.ps".</returns>
         int SelectParticle()
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -499,7 +542,11 @@ namespace EarwaxSim
             return closestIndex;
         }
 
-        // Creates a drag plane aligned with the selected particle
+        /// <summary>
+        /// Creates a drag plane aligned with the selected particle.
+        /// </summary>
+        /// <param name="selectedIndex">Index of the selected particle.</param>
+        /// <returns>Drag plane pointing towards the camera.</returns>
         Plane GetDragPlane(int selectedIndex)
         {
             // Get drag plane
@@ -509,7 +556,10 @@ namespace EarwaxSim
             return new(planeNormal, planePoint);
         }
 
-        // Drags particle across drag plane based on mouse movement
+        /// <summary>
+        /// Drags particle across drag plane based on mouse movement.
+        /// </summary>
+        /// <param name="selectedIndex">Index of particle selected to be dragged.</param>
         void DragUpdate(int selectedIndex)
         {
             if (selectedIndex == -1) return;
@@ -555,11 +605,13 @@ namespace EarwaxSim
             coll.canal = canal;
         }
 
-        // User input loop
+        /// <summary>
+        /// Loop for mouse user input.
+        /// </summary>
         private void Update()
         {
             // Mouse manipulation
-             if (Input.GetMouseButtonUp(0))
+            if (Input.GetMouseButtonUp(0))
             {
                 grabbedParticle = -1;
                 return;
@@ -586,7 +638,9 @@ namespace EarwaxSim
             }
         }
 
-        // Sim physics Loop
+        /// <summary>
+        /// Main XPBD simulation loop.
+        /// </summary>
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
@@ -639,7 +693,9 @@ namespace EarwaxSim
             else hapticManager.SetHapticMessage(coll.GetHapticMessage());
         }
 
-        // Draws particles and constraints for debugging.
+        /// <summary>
+        /// Draws particles and constraints for debugging.
+        /// </summary>
         private void OnDrawGizmos()
         {
             if (ps == null) return;

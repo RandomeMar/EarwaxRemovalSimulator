@@ -1,6 +1,9 @@
 using EarwaxSim;
 using UnityEngine;
 
+/// <summary>
+/// Test torus shaped tool collision object.
+/// </summary>
 public class TorusToolObject : DynamicCollisionObject
 {
     [Header("Torus Dimensions")]

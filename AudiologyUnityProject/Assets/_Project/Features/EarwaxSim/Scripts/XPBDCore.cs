@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace EarwaxSim
 {
-    // Constants used in various scripts
+    /// <summary>
+    /// Collection of shared constants used throughout the EarwaxSim namespace
+    /// </summary>
     public class Constants
     {
         public const float EPS = 1e-6f; // Used to prevent floating point errors near zero
@@ -12,8 +14,9 @@ namespace EarwaxSim
         public const int MAX_NEIGHBORS = 64; // Maximum neighbor count returned from a neighbor search
     }
 
-
-    // Contains particle positions, velocities, and mass values
+    /// <summary>
+    /// Stores particle states for use by the XPBD simulation
+    /// </summary>
     public class ParticleSet
     {
         public Vector3[] currentPosition;
@@ -50,7 +53,9 @@ namespace EarwaxSim
         }
     }
 
-    // Dict used to store particles in a 3D grid
+    /// <summary>
+    /// 3D grid used to quickly query nearby particles
+    /// </summary>
     public class SpatialHash
     {
         float cellSize;
@@ -67,8 +72,12 @@ namespace EarwaxSim
             this.neighborBuffer = new int[Constants.MAX_NEIGHBORS]; // Array of neighbor ints to be reused for GetNeighbors
         }
 
-        // Calculates the cell a particle is inside based on its position
-        public (int, int, int) CalcCellCoord(Vector3 position)
+        /// <summary>
+        /// Calculates the grid cell a particle is in based on particle position
+        /// </summary>
+        /// <param name="position">Position of the particle</param>
+        /// <returns>x, y, and z coordinates of the grid cell containing the particle</returns>
+        private (int, int, int) CalcCellCoord(Vector3 position)
         {
             return (
                 Mathf.FloorToInt(position.x / cellSize),
@@ -77,8 +86,14 @@ namespace EarwaxSim
                 );
         }
 
-        // Hash function that turns cell coordinate into a key for the spatial hash
-        public long HashCoord(int x_coord, int y_coord, int z_coord)
+        /// <summary>
+        /// Hash function that turns cell coordinate into a key for the spatial hash
+        /// </summary>
+        /// <param name="x_coord">x coordinate of the cell</param>
+        /// <param name="y_coord">y coordinate of the cell</param>
+        /// <param name="z_coord">z coordinate of the cell</param>
+        /// <returns>64 bit key for the spatial hash</returns>
+        private long HashCoord(int x_coord, int y_coord, int z_coord)
         {
             const int SHIFT = 20;
 
@@ -89,7 +104,10 @@ namespace EarwaxSim
             return (x << 42) | (y << 21) | z;
         }
 
-        // Rebuilds grid housing particles
+        /// <summary>
+        /// Makes a new spatial hash grid using the current positions of the particle set
+        /// </summary>
+        /// <param name="ps">Particle set the grid will be based on</param>
         public void BuildGrid(ParticleSet ps)
         {
             bucketHeads.Clear();
@@ -113,7 +131,13 @@ namespace EarwaxSim
             }
         }
 
-        // Returns the indexes of neighbors to particle i along with the amount of neighbors
+        /// <summary>
+        /// Queries the spatial hash grid for neighboring particles
+        /// </summary>
+        /// <param name="ps">The particle set to look for neighbors in</param>
+        /// <param name="i">Index of the particle to find neighbors of</param>
+        /// <param name="h">The max distance to search for neighbors</param>
+        /// <returns>The spatial hash's neighbor buffer along with a count of neighbors found</returns>
         public (int[], int) GetNeighbors(ParticleSet ps, int i, float h)
         {
             (int base_x, int base_y, int base_z) = CalcCellCoord(ps.currentPosition[i]);
@@ -173,6 +197,9 @@ namespace EarwaxSim
         }
     }
 
+    /// <summary>
+    /// A collection of data to be sent from the XPBD sim to the haptic loop
+    /// </summary>
     public struct HapticMessage
     {
         public bool isContact;
@@ -182,6 +209,10 @@ namespace EarwaxSim
         public Vector3 toolPosition;
         public Vector3 toolVelocity;
 
+        /// <summary>
+        /// Creates blank haptic message
+        /// </summary>
+        /// <returns>HapticMessage with default values</returns>
         static public HapticMessage Default()
         {
             return new HapticMessage(

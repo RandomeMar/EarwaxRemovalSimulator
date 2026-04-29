@@ -2,6 +2,9 @@ using EarwaxSim;
 using Haply.Inverse.DeviceCursors;
 using UnityEngine;
 
+/// <summary>
+/// Collision object representing the curette. (DEPRECATED)
+/// </summary>
 public class CuretteCollisionObjectHaply : CuretteCollisionObject
 {
     Transform haplyCursorTransform;

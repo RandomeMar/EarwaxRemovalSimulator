@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace EarwaxSim
 {
+    /// <summary>
+    /// Game object that interacts with the XPBD sim.
+    /// </summary>
     public abstract class CollisionObjectBase : MonoBehaviour
     {
         #region Public Parameters
@@ -25,12 +28,16 @@ namespace EarwaxSim
 
         public MaterialProperties matProps;
 
-        //public Collider unityCollider;
         public List<Collider> unityColliders = new List<Collider>(2);
         protected CollisionShape shape;
 
-        
-        // Returns signed distance and collision normal from a particle vs. collider collision
+
+        /// <summary>
+        /// Returns collision info from a particle vs. collider collision.
+        /// </summary>
+        /// <param name="particlePos">World space particle position.</param>
+        /// <param name="particleRadius">Radius of particle interacting with this collision object.</param>
+        /// <returns>Collision info about the particle and this collision object.</returns>
         public CollisionInfo GetCollisionInfo(Vector3 particlePos, float particleRadius)
         {
             Vector3 pLocal = this.transform.InverseTransformPoint(particlePos); // Convert to local space
@@ -43,7 +50,12 @@ namespace EarwaxSim
             return localHit;
         }
 
-        // Returns signed distance from a particle vs. collider collision
+        /// <summary>
+        /// Returns signed distance from a particle vs. collider collision.
+        /// </summary>
+        /// <param name="particlePos">World space particle position.</param>
+        /// <param name="particleRadius">Radius of particle interacting with this collision object.</param>
+        /// <returns>Signed distance from particle to the surface of this collision object.</returns>
         public float GetSignedDistance(Vector3 particlePos, float particleRadius)
         {
             Vector3 pLocal = this.transform.InverseTransformPoint(particlePos); // Convert to local space
@@ -53,6 +65,9 @@ namespace EarwaxSim
             return sdLocal * this.transform.lossyScale.x - particleRadius; // Particle offset
         }
 
+        /// <summary>
+        /// Initializes kinematic properties, initializes material properties, and builds CollisionShape tree.
+        /// </summary>
         protected virtual void Awake()
         {
             this.previousPosition = this.transform.position;
@@ -77,7 +92,10 @@ namespace EarwaxSim
             };
         }
 
-        // Method responsible for building SDF shape tree
+        /// <summary>
+        /// Builds SDF based CollisionShapeTree.
+        /// </summary>
+        /// <returns>Root node of CollisionShapeTree.</returns>
         protected abstract CollisionShape BuildShapeTree();
     }
 }

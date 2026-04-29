@@ -8,7 +8,9 @@ namespace EarwaxSim
 {
     // ------ Structs ------
 
-    // Material properties used by collision objects
+    /// <summary>
+    /// Material properties used by collision objects
+    /// </summary>
     public struct MaterialProperties
     {
         public float dynamicFriction;
@@ -16,7 +18,9 @@ namespace EarwaxSim
         public float adhesBreakDist;
     }
 
-    // Houses info returned from a collision query
+    /// <summary>
+    /// Houses info returned from a collision query
+    /// </summary>
     public struct CollisionInfo
     {
         public float signedDistance;
@@ -33,8 +37,10 @@ namespace EarwaxSim
 
 
     // ------ Collision Shape Viewers ------
-    
-    // Used for viewing a 2d slice of a collision shape
+
+    /// <summary>
+    /// Used for viewing a 2D slice of a collision shape. (Deprecated).
+    /// </summary>
     public class ViewingSlice
     {
         public Vector3 position;
@@ -82,7 +88,9 @@ namespace EarwaxSim
         }
     }
 
-    // Used for viewing the 3d volume of a collision shape
+    /// <summary>
+    /// Used for viewing the 3D volume of a collision shape.
+    /// </summary>
     public class ViewingLattice
     {
         public Vector3 size;
@@ -97,6 +105,12 @@ namespace EarwaxSim
             this.particleSize = particleSize;
         }
 
+        /// <summary>
+        /// Draws the collision shape of the given object using particles.
+        /// </summary>
+        /// <param name="obj">The collision object with the shape to be drawn.</param>
+        /// <param name="cutoff">A cutoff value for rendering particles.</param>
+        /// <remarks>This method should be called from within OnDrawGizmos. Cutoff values closer to 0 will only show the surface of the shape.</remarks>
         public void DrawLattice(CollisionObjectBase obj, float cutoff)
         {
             float xSpacing = this.size.x / (this.resolution.x - 1); // Length / (n - 1)
@@ -135,14 +149,16 @@ namespace EarwaxSim
 
     // ------ Collision Shapes ------
 
-    // Collision shapes only define shape
+    /// <summary>
+    /// An SDF based shape for collision handling.
+    /// </summary>
     public abstract class CollisionShape
     {
         public Vector3 position;
         public Quaternion rotation;
         public CollisionObjectBase owner;
         public CollisionShape parent;
-        
+
 
         protected CollisionShape(Vector3 position, Quaternion rotation)
         {
@@ -150,11 +166,16 @@ namespace EarwaxSim
             this.rotation = rotation;
         }
 
+        /// <summary>
+        /// Converts a particle's position from world space to this shape's local space.
+        /// </summary>
+        /// <param name="worldPos">World space position of a particle.</param>
+        /// <returns>Local space position of particle.</returns>
         public Vector3 GetLocalPos(Vector3 worldPos)
         {
             Stack<CollisionShape> stack = new();
             CollisionShape curr = this;
-            
+
             // Add parent nodes to the stack
             while (curr != null)
             {
@@ -175,6 +196,11 @@ namespace EarwaxSim
             return localPos;
         }
 
+        /// <summary>
+        /// Converts a particle's position from this shape's local space to world space.
+        /// </summary>
+        /// <param name="localPos">Local space position of a particle relative to this shape.</param>
+        /// <returns>World space position of a particle.</returns>
         public Vector3 GetWorldPos(Vector3 localPos)
         {
             CollisionShape curr = this;
@@ -187,10 +213,15 @@ namespace EarwaxSim
                 curr = curr.parent;
             }
 
-            return 
+            return
                this.owner.transform.TransformPoint(ownerLocalPos);
         }
 
+        /// <summary>
+        /// Converts a direction from this shape's local space to world space.
+        /// </summary>
+        /// <param name="localDir">Direction relative to this shape's local space.</param>
+        /// <returns>World space direction.</returns>
         public Vector3 GetWorldDir(Vector3 localDir)
         {
             CollisionShape curr = this;
@@ -206,6 +237,12 @@ namespace EarwaxSim
             return this.owner.transform.TransformVector(ownerLocalDir);
         }
 
+        /// <summary>
+        /// Gets collision info of a parent space particle point and this shape.
+        /// </summary>
+        /// <param name="particlePos">Parent space particle position.</param>
+        /// <returns>Collision info about the particle position and this shape.</returns>
+        /// <remarks>This method should only be called by the shape's owning CollisionObject from the root CollisionShape.</remarks>
         public CollisionInfo GetCollisionInfoPoint(Vector3 particlePos)
         {
             Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position); // Convert particle position to local space
@@ -216,12 +253,23 @@ namespace EarwaxSim
             return localHit;
         }
 
+        /// <summary>
+        /// Gets the signed distance between a parent space particle point and this shape's surface.
+        /// </summary>
+        /// <param name="particlePos">Parent space particle position.</param>
+        /// <returns>Signed distance from particle position to shape's surface.</returns>
+        /// <remarks>This method should only be called by the shape's owning CollisionObject from the root CollisionShape.</remarks>
         public float GetSignedDistancePoint(Vector3 particlePos)
         {
             Vector3 pLocal = Quaternion.Inverse(this.rotation) * (particlePos - this.position); // Convert particle position to local space
             return this.GetSignedDistanceLocal(pLocal);
         }
 
+        /// <summary>
+        /// Recursive setup method for initializing a CollisionShape tree.
+        /// </summary>
+        /// <param name="owner">Collision object that owns the shape tree this shape is in.</param>
+        /// <param name="parent">Collision shape that has reference to this shape.</param>
         public virtual void RecurseSetup(CollisionObjectBase owner, CollisionShape parent)
         {
             this.owner = owner;
@@ -229,18 +277,30 @@ namespace EarwaxSim
             return;
         }
 
-
+        /// <summary>
+        /// Gets collision info of a local space particle point and this shape.
+        /// </summary>
+        /// <param name="pLocal">Local space particle position.</param>
+        /// <returns>Local collision info about the particle position and this shape.</returns>
         protected abstract CollisionInfo GetCollisionInfoLocal(Vector3 pLocal);
+
+        /// <summary>
+        /// Gets the signed distance between a local particle point and this shape's surface.
+        /// </summary>
+        /// <param name="particlePos">Local space particle position.</param>
+        /// <returns>Signed distance from particle position to shape's surface.</returns>
         protected abstract float GetSignedDistanceLocal(Vector3 particlePos);
     }
 
-    // Defines plane collision shape
+    /// <summary>
+    /// Plane primitive collision shape.
+    /// </summary>
     public class PlaneShape : CollisionShape
     {
         public Vector3 normal;
 
 
-        public PlaneShape(Vector3 position, Quaternion rotation) : base(position, rotation) 
+        public PlaneShape(Vector3 position, Quaternion rotation) : base(position, rotation)
         {
             this.normal = Vector3.up;
         }
@@ -261,7 +321,9 @@ namespace EarwaxSim
         }
     }
 
-    // Defines sphere collision shape
+    /// <summary>
+    /// Sphere primitive collision shape.
+    /// </summary>
     public class SphereShape : CollisionShape
     {
         public float radius;
@@ -290,7 +352,9 @@ namespace EarwaxSim
         }
     }
 
-    // Defines capsule collision shape
+    /// <summary>
+    /// Capsule primitive collision shape.
+    /// </summary>
     public class CapsuleShape : CollisionShape
     {
         public float height;
@@ -345,7 +409,9 @@ namespace EarwaxSim
         }
     }
 
-    // Defines box collision shape
+    /// <summary>
+    /// Box primitive collision shape.
+    /// </summary>
     public class BoxShape : CollisionShape
     {
         public Vector3 b; // half-extents
@@ -417,7 +483,9 @@ namespace EarwaxSim
         }
     }
 
-    // Defines torus collision shape
+    /// <summary>
+    /// Torus primitive collision shape.
+    /// </summary>
     public class TorusShape : CollisionShape
     {
         public float rMajor;
@@ -463,7 +531,9 @@ namespace EarwaxSim
         }
     }
 
-    // Defines an oval cross section cylinder collision shape
+    /// <summary>
+    /// An oval cross section cylinder collision shape.
+    /// </summary>
     public class OvalCylinderShape : CollisionShape
     {
         public float height;
@@ -574,13 +644,20 @@ namespace EarwaxSim
 
     // ------ Boolean Operations ------
 
-    // Class defining boolean operations performed on collision shapes
+    /// <summary>
+    /// A boolean operation to be performed on CollisionShapes
+    /// </summary>
     public abstract class BooleanShape : CollisionShape
     {
         protected BooleanShape(Vector3 position, Quaternion rotation) : base(position, rotation)
         {
         }
 
+        /// <summary>
+        /// Estimates the collision normal of a colliding particle using the gradient of the shape's signed distance field.
+        /// </summary>
+        /// <param name="pLocal">Local particle position.</param>
+        /// <returns>Estimated collision normal.</returns>
         protected Vector3 EstimateNormal(Vector3 pLocal)
         {
             float e = .001f;
@@ -598,10 +675,15 @@ namespace EarwaxSim
             return new Vector3(dx, dy, dz).normalized;
         }
 
+        /// <summary>
+        /// Gives children shapes reference to this boolean operation.
+        /// </summary>
         protected abstract void AssignParents();
     }
 
-    // Unions two collision shapes
+    /// <summary>
+    /// Unions two collision shapes.
+    /// </summary>
     public class UnionShape : BooleanShape
     {
         public CollisionShape a;
@@ -655,7 +737,9 @@ namespace EarwaxSim
         }
     }
 
-    // Intersects two collision shapes
+    /// <summary>
+    /// Intersects two collision shapes.
+    /// </summary>
     public class IntersectShape : BooleanShape
     {
         public CollisionShape a;
@@ -709,7 +793,10 @@ namespace EarwaxSim
         }
     }
 
-    // Subtracts shape b from a: a - b
+    /// <summary>
+    /// Subtracts shape b from a.
+    /// </summary>
+    /// <remarks>a - b</remarks>
     public class DifferenceShape : BooleanShape
     {
         public CollisionShape a;
@@ -765,7 +852,9 @@ namespace EarwaxSim
         }
     }
 
-    // Inverses a collision shape
+    /// <summary>
+    /// Inverses a collision shape.
+    /// </summary>
     public class InverseShape : BooleanShape
     {
         public CollisionShape shape;

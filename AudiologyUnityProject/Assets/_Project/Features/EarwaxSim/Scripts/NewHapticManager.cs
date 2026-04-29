@@ -4,6 +4,9 @@ using Haply.Inverse.DeviceData;
 using UnityEditor;
 using UnityEngine;
 
+/// <summary>
+/// Manager of the haptic loop.
+/// </summary>
 public class NewHapticManager : MonoBehaviour
 {
     public Inverse3Controller _inverse3;
@@ -29,8 +32,12 @@ public class NewHapticManager : MonoBehaviour
 
     private StatsManager _statsManager;
 
-    
-    // Thread-safe setter called by XPBDSim
+
+    /// <summary>
+    /// Thread-safe setter for updating haptic message.
+    /// </summary>
+    /// <param name="value">Value to update haptic message to.</param>
+    /// <remarks>This method should be called inside of the main XPBD sim loop.</remarks>
     public void SetHapticMessage(HapticMessage value)
     {
         lock (_hapticLock)
@@ -39,7 +46,10 @@ public class NewHapticManager : MonoBehaviour
         }
     }
 
-    // Thread-safe getter called by NewHapticManager
+    /// <summary>
+    /// Thread-safe getter for reading haptic message.
+    /// </summary>
+    /// <returns>Last haptic message sent from the XPBD sim.</returns>
     private HapticMessage GetHapticMessage()
     {
         lock (_hapticLock)
@@ -81,6 +91,9 @@ public class NewHapticManager : MonoBehaviour
     private void OnDestroy() {  Cleanup(); }
     private void OnApplicationQuit() {  Cleanup(); }
 
+    /// <summary>
+    /// Handles clean up between Unity and haptic device.
+    /// </summary>
     private void Cleanup()
     {
         _isDestroyed = true;
@@ -99,7 +112,13 @@ public class NewHapticManager : MonoBehaviour
         }
     }
 
-
+    /// <summary>
+    /// Calculates force feedback the haptic device should receive. 
+    /// </summary>
+    /// <param name="msg">Last received haptic message from XPBD sim.</param>
+    /// <param name="cursorPos">Current cursor position.</param>
+    /// <param name="cursorVel">Current cursor velocity.</param>
+    /// <returns>Force input for the haptic controller.</returns>
     private Vector3 CalculateForce(HapticMessage msg, Vector3 cursorPos, Vector3 cursorVel)
     {
         if (!msg.isContact) return Vector3.zero;
@@ -116,6 +135,11 @@ public class NewHapticManager : MonoBehaviour
         return force;
     }
 
+    /// <summary>
+    /// Main haptic thread.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
     void OnDeviceStateChanged(object sender, Inverse3EventArgs args)
     {
         // DEADMAN SWITCH: If the object is deleted, STOP immediately.

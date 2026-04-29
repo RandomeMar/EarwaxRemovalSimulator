@@ -5,6 +5,9 @@ using Unity.Burst.CompilerServices;
 using UnityEditor.Compilation;
 using UnityEngine;
 
+/// <summary>
+/// Collision object representing the ear.
+/// </summary>
 public class EarCollisionObject : CollisionObjectBase
 {
     [Header("Collider Node Guides")]
@@ -24,7 +27,14 @@ public class EarCollisionObject : CollisionObjectBase
     BoxCollider boxCollider;
     ViewingLattice viewer;
 
-    // This method is evil incarnate. It builds the canal shape defined using CanalNodes
+    /// <summary>
+    /// Builds the SDF based CollisionShape tree.
+    /// </summary>
+    /// <returns>Root node of the CollisionShape tree.</returns>
+    /// <remarks>
+    /// In order to build the shape tree, this method utilizes lists of canal nodes in order to define the shape canal.
+    /// In order to edit the shape, the canal nodes must be moved in editor.
+    /// </remarks>
     protected override CollisionShape BuildShapeTree()
     {
         if (canalNodes == null)
@@ -153,7 +163,11 @@ public class EarCollisionObject : CollisionObjectBase
         return diff;
     }
 
-    // Builds balanced union shape trees
+    /// <summary>
+    /// Builds balanced union shape trees.
+    /// </summary>
+    /// <param name="shapes">List of shape primitives to union together in a balanced tree.</param>
+    /// <returns>Root node of the balanced union CollisionShape tree.</returns>
     private CollisionShape BuildBalancedUnion(List<CollisionShape> shapes)
     {
         if (shapes == null || shapes.Count == 0) return null;
@@ -188,7 +202,11 @@ public class EarCollisionObject : CollisionObjectBase
     }
 
 
-    // Draws the bounds of an oval cylinder
+    /// <summary>
+    /// Draws the bounds of an oval cylinder.
+    /// </summary>
+    /// <param name="shape">Shape to be drawn.</param>
+    /// <remarks>This method should only be called from OnDrawGizmos.</remarks>
     private void DrawCylinder(OvalCylinderShape shape)
     {
         // Get local positions
@@ -217,6 +235,11 @@ public class EarCollisionObject : CollisionObjectBase
         Gizmos.DrawLine(a - zOffset, b - zOffset);
     }
 
+    /// <summary>
+    /// Draws the bounds of a capsule.
+    /// </summary>
+    /// <param name="shape">Shape to be drawn.</param>
+    /// <remarks>This method should only be called from OnDrawGizmos.</remarks>
     private void DrawCapsule(CapsuleShape shape)
     {
         // Get local positions
@@ -249,7 +272,11 @@ public class EarCollisionObject : CollisionObjectBase
         Gizmos.DrawLine(a - zOffset, b - zOffset);
     }
 
-    // Recursively walks through the tree, drawing cylinders and spheres
+    /// <summary>
+    /// Recursively walks through the tree, drawing collision shapes.
+    /// </summary>
+    /// <remarks>This method should only be called from OnDrawGizmos.</remarks>
+    /// <param name="curr">The current node being visited.</param>
     private void DrawShapeTree(CollisionShape curr)
     {
         Gizmos.color = Color.yellow;
