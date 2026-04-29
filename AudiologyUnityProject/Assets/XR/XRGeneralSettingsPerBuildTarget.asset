@@ -14,6 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_LoaderManagerInstance: {fileID: -5845703169184794272}
   m_InitManagerOnStart: 1
+--- !u!114 &-7420198629076919843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d236b7d11115f2143951f1e14045df39, type: 3}
+  m_Name: WebGL Settings
+  m_EditorClassIdentifier: Unity.XR.Management::UnityEngine.XR.Management.XRGeneralSettings
+  m_LoaderManagerInstance: {fileID: 7672570444838654678}
+  m_InitManagerOnStart: 1
 --- !u!114 &-6346145097950545563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60,11 +74,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2dc886499c26824283350fa532d087d, type: 3}
   m_Name: XRGeneralSettingsPerBuildTarget
   m_EditorClassIdentifier: 
-  Keys: 01000000070000000e000000
+  Keys: 01000000070000000e0000000d000000
   Values:
   - {fileID: 7411744777478668626}
   - {fileID: 8490781815834786117}
   - {fileID: -7541082207500432175}
+  - {fileID: -7420198629076919843}
 --- !u!114 &1669287461833463011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -82,6 +97,7 @@ MonoBehaviour:
   m_AutomaticRunning: 0
   m_Loaders:
   - {fileID: 11400000, guid: a268bddc5139f3c4eb0a35f8085ad250, type: 2}
+  - {fileID: 11400000, guid: 753e08e6f0062474eaa1fed5f8e16aa2, type: 2}
 --- !u!114 &7411744777478668626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -96,6 +112,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_LoaderManagerInstance: {fileID: 1669287461833463011}
   m_InitManagerOnStart: 1
+--- !u!114 &7672570444838654678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4c3631f5e58749a59194e0cf6baf6d5, type: 3}
+  m_Name: WebGL Providers
+  m_EditorClassIdentifier: Unity.XR.Management::UnityEngine.XR.Management.XRManagerSettings
+  m_RequiresSettingsUpdate: 0
+  m_AutomaticLoading: 0
+  m_AutomaticRunning: 0
+  m_Loaders: []
 --- !u!114 &8490781815834786117
 MonoBehaviour:
   m_ObjectHideFlags: 0
