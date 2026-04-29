@@ -610,32 +610,32 @@ namespace EarwaxSim
         /// </summary>
         private void Update()
         {
-            // Mouse manipulation
-            if (Input.GetMouseButtonUp(0))
-            {
-                grabbedParticle = -1;
-                return;
-            }
+            //// Mouse manipulation
+            //if (Input.GetMouseButtonUp(0))
+            //{
+            //    grabbedParticle = -1;
+            //    return;
+            //}
 
-            if (grabbedParticle != -1)
-            {
-                DragUpdate(grabbedParticle);
-                return;
-            }
+            //if (grabbedParticle != -1)
+            //{
+            //    DragUpdate(grabbedParticle);
+            //    return;
+            //}
 
-            if (Input.GetMouseButtonDown(0))
-            {
-                grabbedParticle = SelectParticle();
-                if (grabbedParticle != -1)
-                {
-                    dragPlane = GetDragPlane(grabbedParticle);
-                }
-            }
+            //if (Input.GetMouseButtonDown(0))
+            //{
+            //    grabbedParticle = SelectParticle();
+            //    if (grabbedParticle != -1)
+            //    {
+            //        dragPlane = GetDragPlane(grabbedParticle);
+            //    }
+            //}
 
-            if (Input.GetMouseButtonDown(1))
-            {
-                selectedParticle = SelectParticle();
-            }
+            //if (Input.GetMouseButtonDown(1))
+            //{
+            //    selectedParticle = SelectParticle();
+            //}
         }
 
         /// <summary>

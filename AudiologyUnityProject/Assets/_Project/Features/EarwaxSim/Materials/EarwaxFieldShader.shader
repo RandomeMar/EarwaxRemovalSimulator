@@ -14,11 +14,7 @@ Shader "Custom/EarwaxFieldShader"
             ZWrite On
             ZTest LEqual
             Cull Off
-
-            //ColorMask R // Only outputs to red channel
             Blend Off
-            //Blend One One
-            //BlendOp Min
 
 
             HLSLPROGRAM
