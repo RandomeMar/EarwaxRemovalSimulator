@@ -1523,14 +1523,14 @@ MonoBehaviour:
   collCompliance: 0
   useProceduralShape: 0
   proceduralSeed: 42
-  proceduralRadii: {x: 0.5, y: 0.3, z: 0.4}
+  proceduralRadii: {x: 0.028, y: 0.02, z: 0.025}
   proceduralNoiseStrength: 0.3
   proceduralNoiseFrequency: 2
   proceduralNoiseOctaves: 3
   waxPreset: 0
   useParametricRanges: 0
-  proceduralRadiiMin: {x: 0.3, y: 0.2, z: 0.3}
-  proceduralRadiiMax: {x: 0.6, y: 0.5, z: 0.5}
+  proceduralRadiiMin: {x: 0.016, y: 0.012, z: 0.016}
+  proceduralRadiiMax: {x: 0.034, y: 0.028, z: 0.03}
   proceduralNoiseStrengthRange: {x: 0.15, y: 0.45}
   proceduralNoiseFrequencyRange: {x: 1.5, y: 3.5}
   proceduralBumpinessBias: 0

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace EarwaxSim
 {
-    // Quick-pick wax types. Applied by XPBDSim.ApplyWaxPreset() before BuildSimulation.
+    // Quickpick wax type applied by XPBDSim.ApplyWaxPreset() before BuildSimulation.
     // Custom = leave all inspector values alone.
     public enum WaxPreset
     {
@@ -20,7 +20,7 @@ namespace EarwaxSim
         public int seed = 42;
 
         //Base radius of the ellipsoid before noise
-        public Vector3 baseRadii = new Vector3(0.5f, 0.3f, 0.4f);
+        public Vector3 baseRadii = new Vector3(0.028f, 0.020f, 0.025f);
 
         //num of particles along each axis of the sampling grid
         public int resolution = 6;
@@ -57,9 +57,9 @@ namespace EarwaxSim
         public bool useParametricRanges = false;
 
         //min radius when useParametricRanges is on
-        public Vector3 radiiMin = new Vector3(0.3f, 0.2f, 0.3f);
+        public Vector3 radiiMin = new Vector3(0.016f, 0.012f, 0.016f);
         //max radius when useParametricRanges is on
-        public Vector3 radiiMax = new Vector3(0.6f, 0.5f, 0.5f);
+        public Vector3 radiiMax = new Vector3(0.034f, 0.028f, 0.030f);
 
         //Min/max noise strength range (x = min, y = max)
         public Vector2 noiseStrengthRange = new Vector2(0.15f, 0.45f);
@@ -81,6 +81,14 @@ namespace EarwaxSim
         public float squashAmount = 0f; //0 = no squash, 1 = fully flatten
         //Direction that gets squashed. Default -Y = flatten the bottom
         public Vector3 squashAxis = Vector3.down;
+
+        // Domain warping
+        // Offsets the noise sample coordinates using a second noise evaluation before the main lookup. Makes shapes look more organic/fluid instead of smoothly bumpy.
+        // 0 = off, higher = more swirly distortion.
+        [Range(0f, 1f)]
+        public float domainWarpStrength = 0f;
+        // Frequency of the warp field itself. Lower = broad sweeping distortion, higher ==- tighter swirls.
+        public float domainWarpFrequency = 1.5f;
 
 
         public (ParticleSet, SpatialHash, DistanceConstraintSet, DensityConstraintSolver) Generate()
@@ -117,20 +125,20 @@ namespace EarwaxSim
 
             Random.state = prevState;
 
-            //prenormalize asymmetry axes
             Vector3 biasAxisN = bumpinessBiasAxis.sqrMagnitude > 1e-6f ? bumpinessBiasAxis.normalized : Vector3.up;
             Vector3 squashAxisN = squashAxis.sqrMagnitude > 1e-6f ? squashAxis.normalized : Vector3.down;
 
             float maxRadius = Mathf.Max(actualRadii.x, actualRadii.y, actualRadii.z);
-            // Grid extent also has to account for the stretch warp pushing particles outward.
+
             float gridExtent = maxRadius * (1f + actualNoiseStrength + stretchAmount) * 1.2f;
-            float spacing = (gridExtent * 2f) / (resolution - 1);
+            int safeResolution = Mathf.Max(resolution, 6);
+            float spacing = (gridExtent * 2f) / (safeResolution - 1);
 
             List<Vector3> positions = new List<Vector3>();
 
-            for (int ix = 0; ix < resolution; ix++)
-            for (int iy = 0; iy < resolution; iy++)
-            for (int iz = 0; iz < resolution; iz++)
+            for (int ix = 0; ix < safeResolution; ix++)
+            for (int iy = 0; iy < safeResolution; iy++)
+            for (int iz = 0; iz < safeResolution; iz++)
             {
                 // Grid position centered at origin
                 Vector3 gridPos = new Vector3(
@@ -139,41 +147,34 @@ namespace EarwaxSim
                     -gridExtent + iz * spacing
                 );
 
-                // Apply random rotation
-                Vector3 rotatedPos = randomRot * gridPos;
-
-                // bends the blob so it isn't a straight ellipsoid.
-                Vector3 warpedPos = rotatedPos;
-                if (stretchAmount > 0f)
-                {
-                    float s = stretchAmount * maxRadius;
-                    warpedPos.y += Mathf.Sin(rotatedPos.x * stretchFrequency) * s;
-                    warpedPos.x += Mathf.Sin(rotatedPos.z * stretchFrequency) * s * 0.5f;
-                }
-
-                //Squash one end as if pressed against the earcanal wall
-                if (squashAmount > 0f)
-                {
-                    float t = Vector3.Dot(warpedPos, squashAxisN) / maxRadius; // ~[-1, 1]
-                    if (t > 0f)
-                    {
-                        warpedPos -= squashAxisN * (t * maxRadius * squashAmount);
-                    }
-                }
-
-                // Normalize to ellipsoid space
                 Vector3 ellipNorm = new Vector3(
-                    warpedPos.x / actualRadii.x,
-                    warpedPos.y / actualRadii.y,
-                    warpedPos.z / actualRadii.z
+                    gridPos.x / actualRadii.x,
+                    gridPos.y / actualRadii.y,
+                    gridPos.z / actualRadii.z
                 );
                 float ellipDist = ellipNorm.magnitude; // <1 means inside ellipsoid
 
-                //Perlin noise at this point to deform the surface
-                float noiseVal = SampleNoise(gridPos, noiseOffset, actualNoiseFrequency, actualNoiseStrength);
+                // Rotate for noise / bias direction 
+                Vector3 rotatedPos = randomRot * gridPos;
 
-                // amplify noise on one side of the blob, suppress on the other.
-                // Uses the rotated grid position projected onto biasAxis to pick a side.
+                // Squash one side carved away from there. Doesn't affect the base ellipsoid shape.
+                if (squashAmount > 0f)
+                {
+                    float t = Vector3.Dot(rotatedPos, squashAxisN) / maxRadius;
+                    if (t > 0f) ellipDist += t * squashAmount;
+                }
+
+                //Perlin noise at this point to deform the surface.
+                Vector3 noisePos = rotatedPos;
+                if (domainWarpStrength > 0f)
+                {
+                    Vector3 warpOffset = noiseOffset + new Vector3(100f, 100f, 100f);
+                    Vector3 warp = SampleNoiseVec3(rotatedPos, warpOffset, domainWarpFrequency, domainWarpStrength * maxRadius);
+                    noisePos += warp;
+                }
+                float noiseVal = SampleNoise(noisePos, noiseOffset, actualNoiseFrequency, actualNoiseStrength);
+
+                // Amplify noise on one side of the blob, suppress on the other.
                 if (bumpinessBias > 0f && maxRadius > 1e-6f)
                 {
                     float bt = Vector3.Dot(rotatedPos, biasAxisN) / maxRadius;
@@ -181,7 +182,17 @@ namespace EarwaxSim
                     noiseVal *= Mathf.Max(0f, biasFactor);
                 }
 
-                float surfaceThreshold = 1.0f + noiseVal;
+                // Stretch effect on the threshold: lets the wave-warp expand surface in some
+                // directions and contract in others. Applied to threshold so it doesn't move
+                // particles, only changes which grid cells survive.
+                float stretchVal = 0f;
+                if (stretchAmount > 0f)
+                {
+                    stretchVal = (Mathf.Sin(rotatedPos.x * stretchFrequency) +
+                                  Mathf.Sin(rotatedPos.z * stretchFrequency) * 0.5f) * stretchAmount * 0.3f;
+                }
+
+                float surfaceThreshold = 1.0f + noiseVal + stretchVal;
 
                 if (ellipDist < surfaceThreshold)
                 {
@@ -191,13 +202,14 @@ namespace EarwaxSim
 
             if (positions.Count < 2)
             {
-                Debug.LogWarning("[ProceduralEarwax] try increasing radii.");// Fallback: at least put one particle at origin
+                Debug.LogWarning($"[ProceduralEarwax] only {positions.Count} cells passed the test (out of {safeResolution * safeResolution * safeResolution}). Try increasing radii or resolution.");
+                // Fallback at least put one particle at origin, usually anything over 20 resolution will cause lag so I dont recommend anything higher.
                 positions.Add(origin);
                 positions.Add(origin + Vector3.right * spacing);
             }
 
             int particleCount = positions.Count;
-            float particleRad = .1f;
+            float particleRad = spacing * 0.5f; // Proportional to grid spacing so it scales with resolution/radii
 
             //ParticleSet
             float totalVolume = (4f / 3f) * Mathf.PI * actualRadii.x * actualRadii.y * actualRadii.z;
@@ -284,6 +296,15 @@ namespace EarwaxSim
             }
 
             return (total / maxAmplitude) * strength;
+        }
+
+        // Samples SampleNoise independently along three offset directions to produce a warp vector.
+        private Vector3 SampleNoiseVec3(Vector3 pos, Vector3 offset, float frequency, float strength)
+        {
+            float nx = SampleNoise(pos, offset,                                  frequency, strength);
+            float ny = SampleNoise(pos, offset + new Vector3(43.3f,  17.9f,  0f), frequency, strength);
+            float nz = SampleNoise(pos, offset + new Vector3( 0f,   91.7f, 33.1f), frequency, strength);
+            return new Vector3(nx, ny, nz);
         }
 
         // Calculates rest density from the most central particle (same approach as XPBDSim).
