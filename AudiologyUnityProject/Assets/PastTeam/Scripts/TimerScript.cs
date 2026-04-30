@@ -30,7 +30,7 @@ public class TimerScript : MonoBehaviour
             {
                 isRunning = false;
 
-                statsManager.GetComponent<StatsManager>().setElapsedTime(elapsedTime);
+                statsManager.GetComponent<StatsManager>().ElapsedTime = elapsedTime;
                 statsManager.GetComponent<StatsManager>().SaveCurrentRecord();
                 Debug.Log("EAR SIM OFF\n");
 

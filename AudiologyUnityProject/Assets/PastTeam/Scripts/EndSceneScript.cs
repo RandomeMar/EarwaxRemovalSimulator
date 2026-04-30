@@ -16,9 +16,9 @@ public class EndSceneScript : MonoBehaviour
 
         if (statsManager != null )
         {
-            string name = statsManager.GetComponent<StatsManager>().currentName;
-            float score = statsManager.GetComponent<StatsManager>().getScore();
-            float elapsedTime = statsManager.GetComponent<StatsManager>().getElapsedTime();
+            string name = statsManager.GetComponent<StatsManager>().Name;
+            float score = statsManager.GetComponent<StatsManager>().Score;
+            float elapsedTime = statsManager.GetComponent<StatsManager>().ElapsedTime;
 
             int minutes = Mathf.FloorToInt(elapsedTime / 60);
             int seconds = Mathf.FloorToInt(elapsedTime % 60);

@@ -16,14 +16,13 @@ public class StatsManager : MonoBehaviour
     private StatsData statsData = new StatsData();
     private string filePath;
 
-    private bool disqualified = false;
     public float maxScore = 100f;
 
     private string filePathforDelete;
 
-    public string currentName { get; set; }
-    public float currentScore;
-	public float currentElapsedTime;
+    public string Name { get; set; }
+    public float Score { get; set; }
+	public float ElapsedTime { get; set; }
 
     void Awake() {
 
@@ -57,35 +56,13 @@ public class StatsManager : MonoBehaviour
         SaveStats();
     }
 
-    public void setName(string n) {
-		currentName = n;
-	}
-
-    public void setScore(float score) {
-		currentScore = score;
-	}
-
-	public float getScore() {
-		return currentScore;
-	}
-
-    public void setElapsedTime(float time)
-    {
-        currentElapsedTime = time;
-    }
-
-    public float getElapsedTime()
-    {
-        return currentElapsedTime;
-    }
-
     public void SaveCurrentRecord()
     {
-        if (!string.IsNullOrEmpty(currentName))
+        if (!string.IsNullOrEmpty(Name))
         {
-            statsData.playerNames.Add(currentName);
-            statsData.playerScores.Add(currentScore);
-            statsData.times.Add(currentElapsedTime);
+            statsData.playerNames.Add(Name);
+            statsData.playerScores.Add(Score);
+            statsData.times.Add(ElapsedTime);
             SaveStats();
         }
     }
@@ -121,28 +98,28 @@ public class StatsManager : MonoBehaviour
 
             if (statsData.playerNames.Count > 0)
             {
-                currentName = statsData.playerNames[statsData.playerNames.Count - 1];
-                currentScore = statsData.playerScores[statsData.playerScores.Count - 1];
-                currentElapsedTime = statsData.times[statsData.times.Count - 1];
+                Name = statsData.playerNames[statsData.playerNames.Count - 1];
+                Score = statsData.playerScores[statsData.playerScores.Count - 1];
+                ElapsedTime = statsData.times[statsData.times.Count - 1];
             }
         }
     }
 
     // New scoring algorithm methods
     
-    public void InitializeScore()
-    {
-        currentScore = maxScore;
-        disqualified = false;
-    }
+    //public void InitializeScore()
+    //{
+    //    Score = maxScore;
+    //    disqualified = false;
+    //}
 
-    public void Disqualify()
-    {
-        disqualified = true;
-        Debug.Log("[StatsManager] Player disqualified - too much pressure!");
-    }
+    //public void Disqualify()
+    //{
+    //    disqualified = true;
+    //    Debug.Log("[StatsManager] Player disqualified - too much pressure!");
+    //}
 
-    public bool IsDisqualified() => disqualified;
+    //public bool IsDisqualified() => disqualified;
 
     //public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
     //{

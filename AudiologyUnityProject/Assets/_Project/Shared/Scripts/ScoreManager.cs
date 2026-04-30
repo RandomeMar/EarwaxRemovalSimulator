@@ -35,7 +35,7 @@ public class ScoreManager : MonoBehaviour
         }
 
         score = CalculateScore(percentWaxRemoved, 0f);
-        statsManager.setScore(score);
+        statsManager.Score = score;
     }
 
     private float CalculateScore(float percentWaxRemoved, float elapsedTime)

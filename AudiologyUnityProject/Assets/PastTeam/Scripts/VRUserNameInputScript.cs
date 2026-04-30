@@ -32,8 +32,8 @@ public class VRUserNameInputScript : MonoBehaviour
             {
                 // After user inputs name into keyboardUI, set score to 0 and start clock and timer.
                 // Activate clock and timer game ogjects and deactivate keyboardUI game object
-                statsManager.GetComponent<StatsManager>().setName(input);
-                statsManager.GetComponent<StatsManager>().setScore(0);
+                statsManager.GetComponent<StatsManager>().Name = input;
+                statsManager.GetComponent<StatsManager>().Score = 0;
                 keyboardUI.gameObject.SetActive(false);
 
                 timerUI.gameObject.SetActive(true);

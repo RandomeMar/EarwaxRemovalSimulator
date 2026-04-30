@@ -25,7 +25,7 @@ public class ScoreUI : MonoBehaviour
     public void StartScore()
     {
         isRunning = true;
-        score = statsManager.GetComponent<StatsManager>().getScore();
+        score = statsManager.GetComponent<StatsManager>().Score;
     }
 
     public bool IsScoreRunning()
