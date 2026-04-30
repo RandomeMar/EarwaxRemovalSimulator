@@ -40,6 +40,7 @@ public class ScoreManager : MonoBehaviour
     // Constantly checks for if the wax count was updated and if the force against the wall of the canal was too high.
     private void Update()
     {
+        if (GameManager.Instance.State != GameState.SimRunning) return;
         float percentWaxRemoved = 0f;
         Vector3 force = Vector3.zero;
 
@@ -57,7 +58,7 @@ public class ScoreManager : MonoBehaviour
         Score = CalculateScore(percentWaxRemoved, StatsManager.Instance.ElapsedTime);
         StatsManager.Instance.Score = Score;
 
-        if (percentWaxRemoved == 100f)
+        if (xpbdSim.ps.count == 0)
         {
             Debug.Log("YOU CLEARED ALL THE WAX!!!");
             GameManager.Instance.EndSimulationRun(Score);
