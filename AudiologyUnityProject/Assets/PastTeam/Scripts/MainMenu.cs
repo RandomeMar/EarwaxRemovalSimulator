@@ -4,8 +4,6 @@ using UnityEngine.SceneManagement;
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] Canvas settingsCanvas;
-    public string startGameScene;
-    public string statsScene;
 
     private void Start()
     {
@@ -21,12 +19,12 @@ public class MainMenu : MonoBehaviour
     }
     public void StartGame()
     {
-        SceneManager.LoadScene(startGameScene);
+        GameManager.Instance.LoadSimulation();
     }
 
     public void GoToStatsScene()
     {
-        SceneManager.LoadScene(statsScene);
+        GameManager.Instance.LoadStatsMenu();
     }
 
     public void  OpenSettings()

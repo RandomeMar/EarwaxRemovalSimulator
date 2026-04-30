@@ -14,7 +14,6 @@ public class StatsSceneScript : MonoBehaviour
     public Dropdown sortDropdown;
 
     private string filePath;
-    public string mainMenuScene;
 
     private enum SortMode { HighestScore, Fastest, LastCompleted}
     private SortMode currentSortMode = SortMode.HighestScore;
@@ -134,15 +133,17 @@ public class StatsSceneScript : MonoBehaviour
     // Back to main menu button ends all StatManger game objects from running and loads the main scene
     public void BackToMainMenu()
     {
-        // Destroy all old StatManagers as a new Statmanager is made to track new player stats
-        StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
-        if (all.Length > 0)
-        {
-            for (int i = 0; i < all.Length; i++)
-            {
-                Destroy(all[i].gameObject);
-            }
-        }
-        SceneManager.LoadScene(mainMenuScene);
+        //// Destroy all old StatManagers as a new Statmanager is made to track new player stats
+        //StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
+        //if (all.Length > 0)
+        //{
+        //    for (int i = 0; i < all.Length; i++)
+        //    {
+        //        Destroy(all[i].gameObject);
+        //    }
+        //}
+        //SceneManager.LoadScene(mainMenuScene);
+
+        GameManager.Instance.LoadStartMenu();
     }
 }

@@ -22,6 +22,7 @@ public class VRUserNameInputScript : MonoBehaviour
 
     public void ValidateInput()
     {
+        // NOTE: This should probably be handled by a SimulationSceneManager or something.
 
         GameObject statsManager = GameObject.Find("StatsManager");
         string input = inputField.text;
@@ -29,17 +30,13 @@ public class VRUserNameInputScript : MonoBehaviour
         if (!string.IsNullOrEmpty(input))
         {
             if (statsManager != null)
-            {
-                // After user inputs name into keyboardUI, set score to 0 and start clock and timer.
-                // Activate clock and timer game ogjects and deactivate keyboardUI game object
-                statsManager.GetComponent<StatsManager>().PlayerName = input;
-                statsManager.GetComponent<StatsManager>().Score = 0;
+            {                
                 keyboardUI.gameObject.SetActive(false);
 
                 timerUI.gameObject.SetActive(true);
                 scoreUI.gameObject.SetActive(true);
 
-                // Disbale inital camera and enable ear sim Camera and ear model
+                // Disable inital camera and enable ear sim Camera and ear model
                 XRCameraEar.gameObject.SetActive(true);
                 XRCameraManagerInitial.gameObject.SetActive(false);
                 XRCameraInitial.gameObject.SetActive(false);
@@ -48,7 +45,8 @@ public class VRUserNameInputScript : MonoBehaviour
                 timerScript.StartTimer();
                 scoreScript.StartScore();
                 clockScript.StartClock();
-                Time.timeScale = 1;
+
+                GameManager.Instance.StartSimulationRun(input);
             }
             else
             {

@@ -11,9 +11,6 @@ public class TimerScript : MonoBehaviour
     float elapsedTime;
     private bool isRunning = false;
 
-
-    public string endGameScene;
-
     [SerializeField] GameObject statsManager;
 
     void Update()
@@ -25,17 +22,18 @@ public class TimerScript : MonoBehaviour
             int seconds = Mathf.FloorToInt(elapsedTime % 60);
             timerText.text = string.Format("Time: {0:00}:{1:00}", minutes, seconds);
 
-            // Game ends in 20 seconds
+            // Game ends in 20 seconds for debugging
             if (elapsedTime >= 20f)
             {
                 isRunning = false;
 
-                statsManager.GetComponent<StatsManager>().ElapsedTime = elapsedTime;
-                statsManager.GetComponent<StatsManager>().SaveCurrentRecord();
-                Debug.Log("EAR SIM OFF\n");
+                //statsManager.GetComponent<StatsManager>().ElapsedTime = elapsedTime;
+                //statsManager.GetComponent<StatsManager>().SaveCurrentRecord();
+                //Debug.Log("EAR SIM OFF\n");
 
-                Destroy(XRCameraEar.gameObject);
-                SceneManager.LoadScene(endGameScene);
+                //Destroy(XRCameraEar.gameObject);
+                //SceneManager.LoadScene(endGameScene);
+                GameManager.Instance.EndSimulationRun(ScoreManager.Instance.Score);
             }
         }
 

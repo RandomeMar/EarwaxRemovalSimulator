@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Windows;
 
 public enum GameState
 {
@@ -35,37 +36,64 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-
+    // Loads the start menu
     public void LoadStartMenu()
     {
+        if (StatsManager.Instance != null)
+        {
+            Destroy(StatsManager.Instance.gameObject);
+        }
+
         State = GameState.StartMenu;
         SceneManager.LoadScene(startScene);
     }
 
+    /// <summary>
+    /// Loads the simulation scene
+    /// </summary>
     public void LoadSimulation()
     {
         State = GameState.SimSetup;
         SceneManager.LoadScene(simulationScene);
     }
 
-    public void StartSimulationRun()
+    /// <summary>
+    /// Begins the simulation
+    /// </summary>
+    public void StartSimulationRun(string playerName)
     {
         State = GameState.SimRunning;
-        // DO whatever to start the simulation
+        StatsManager.Instance.PlayerName = playerName;
+        StatsManager.Instance.Score = 0;
+
+        Time.timeScale = 1;
     }
 
-    public void EndSimulationRun()
+    /// <summary>
+    /// Ends the simulation and loads the results screen
+    /// </summary>
+    public void EndSimulationRun(float score)
     {
+        StatsManager.Instance.Score = score;
+        StatsManager.Instance.SaveCurrentRecord();
+        Debug.Log("EAR SIM OFF\n");
+
         State = GameState.ResultsMenu;
         SceneManager.LoadScene(endScene);
     }
 
+    /// <summary>
+    /// Loads the stats menu
+    /// </summary>
     public void LoadStatsMenu()
     {
         State = GameState.StatsMenuScene;
         SceneManager.LoadScene(statsScene);
     }
 
+    /// <summary>
+    /// Ends the game
+    /// </summary>
     public void QuitGame()
     {
         Application.Quit();

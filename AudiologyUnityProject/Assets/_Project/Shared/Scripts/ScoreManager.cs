@@ -20,7 +20,7 @@ public class ScoreManager : MonoBehaviour
         float score = percentWaxRemoved;
 
         // A player can receive a max of +10 points for finishing quickly.
-        score += elapsedTime < 60f ? elapsedTime / 60f : 0f;
+        score += elapsedTime < 60f ? (1 - elapsedTime / 60f) * 10 : 0f;
 
         return score;
     }
@@ -47,16 +47,25 @@ public class ScoreManager : MonoBehaviour
         if (xpbdSim != null) percentWaxRemoved = xpbdSim.GetPercentWaxRemoved();
         if (hapticManager != null) force = hapticManager.GetForce();
 
+        // If force is too high, game ends
         if (force.magnitude > forceLimit)
         {
-            // Do what ever happens when you mess up
             Debug.Log("YOU PRESSED TOO HARD!!!");
-
-
+            GameManager.Instance.EndSimulationRun(0f);
         }
 
         Score = CalculateScore(percentWaxRemoved, StatsManager.Instance.ElapsedTime);
         StatsManager.Instance.Score = Score;
+
+        if (percentWaxRemoved == 100f)
+        {
+            Debug.Log("YOU CLEARED ALL THE WAX!!!");
+            GameManager.Instance.EndSimulationRun(Score);
+        }
+
+        
+
+        
     }
 
     private void OnDestroy()
