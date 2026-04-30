@@ -22,8 +22,8 @@ public class TimerScript : MonoBehaviour
             int seconds = Mathf.FloorToInt(elapsedTime % 60);
             timerText.text = string.Format("Time: {0:00}:{1:00}", minutes, seconds);
 
-            // Game ends in 20 seconds for debugging
-            if (elapsedTime >= 20f)
+            // Game ends in 180 seconds
+            if (elapsedTime >= 180f)
             {
                 isRunning = false;
 
