@@ -32,32 +32,31 @@ public class StatsData
 
 public class StatsManager : MonoBehaviour
 {
+    public float maxScore = 100f;
+
+    // Current player stats
+    public string PlayerName { get; set; }
+    public float Score { get; set; }
+	public float ElapsedTime { get; set; }
+
+    public static StatsManager Instance { get; private set; } // Current running stats manager
     private StatsData statsData = new();
 
     private string filePath;
     private string filePathforDelete;
 
-    public float maxScore = 100f;
-
-
-    public static StatsManager Instance { get; set; } // Current running stats manager
-
-    public string PlayerName { get; set; }
-    public float Score { get; set; }
-	public float ElapsedTime { get; set; }
 
     void Awake() {
-
-        Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
-        Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
-        Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
-
         // Deletes duplicate StatsManagers
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
+        Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
+        Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
+        Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
 
         StatsManager.Instance = this;
         DontDestroyOnLoad(gameObject); // Don't destroy statmanager so it can carry on to next scene.
