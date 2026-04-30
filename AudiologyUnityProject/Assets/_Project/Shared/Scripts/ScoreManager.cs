@@ -6,7 +6,6 @@ public class ScoreManager : MonoBehaviour
 {
     public XPBDSim xpbdSim;
     public NewHapticManager hapticManager;
-    public StatsManager statsManager;
 
     public float forceLimit = 100f;
 
@@ -35,7 +34,7 @@ public class ScoreManager : MonoBehaviour
         }
 
         score = CalculateScore(percentWaxRemoved, 0f);
-        statsManager.Score = score;
+        StatsManager.Instance.Score = score;
     }
 
     private float CalculateScore(float percentWaxRemoved, float elapsedTime)

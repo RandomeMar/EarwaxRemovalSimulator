@@ -16,7 +16,7 @@ public class EndSceneScript : MonoBehaviour
 
         if (statsManager != null )
         {
-            string name = statsManager.GetComponent<StatsManager>().Name;
+            string name = statsManager.GetComponent<StatsManager>().PlayerName;
             float score = statsManager.GetComponent<StatsManager>().Score;
             float elapsedTime = statsManager.GetComponent<StatsManager>().ElapsedTime;
 

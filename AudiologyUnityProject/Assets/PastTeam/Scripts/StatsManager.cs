@@ -1,26 +1,48 @@
-using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 using UnityEngine.SceneManagement;
+using static UnityEngine.LowLevelPhysics2D.PhysicsLayers;
+
 
 [System.Serializable]
+// Single player stat record
+public class PlayerStatRecord
+{
+    public string name;
+    public float score;
+    public float time;
+
+    public PlayerStatRecord() { }
+    public PlayerStatRecord(string name, float score, float time)
+    {
+        this.name = name;
+        this.score = score;
+        this.time = time;
+    }
+}
+
+[System.Serializable]
+// List of player stat records
 public class StatsData
 {
-    public List<string> playerNames = new List<string>();
-    public List<float> playerScores = new List<float>();
-    public List<float> times = new List<float>();
+    public List<PlayerStatRecord> playerStatRecords = new List<PlayerStatRecord>();
 }
+
 
 public class StatsManager : MonoBehaviour
 {
-    private StatsData statsData = new StatsData();
+    private StatsData statsData = new();
+
     private string filePath;
+    private string filePathforDelete;
 
     public float maxScore = 100f;
 
-    private string filePathforDelete;
 
-    public string Name { get; set; }
+    public static StatsManager Instance { get; set; } // Current running stats manager
+
+    public string PlayerName { get; set; }
     public float Score { get; set; }
 	public float ElapsedTime { get; set; }
 
@@ -30,58 +52,39 @@ public class StatsManager : MonoBehaviour
         Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
         Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
 
-        // This is meant to destroy all old Statmanagers
-        StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
-        if (all.Length > 1)
+        // Deletes duplicate StatsManagers
+        if (Instance != null && Instance != this)
         {
-            for (int i = 0; i < all.Length - 1; i++)
-            {
-                Destroy(all[i].gameObject);
-            }
+            Destroy(gameObject);
+            return;
         }
 
-        // Don't destroy statmanager so it can carry on to next scene.
-        DontDestroyOnLoad(gameObject);
+        StatsManager.Instance = this;
+        DontDestroyOnLoad(gameObject); // Don't destroy statmanager so it can carry on to next scene.
         Debug.Log("StatsManager has been initialized.");
-        filePath = Application.persistentDataPath + "/stats.json";
+
+        filePath = Path.Combine(Application.persistentDataPath, "stats.json");
+
         Debug.Log("Stats saved at: " + filePath);
         LoadStats();
     }
 
     public void AddRecord(string playerName, float playerScore, float elapsedTime)
     {
-        statsData.playerNames.Add(playerName);
-        statsData.playerScores.Add(playerScore);
-        statsData.times.Add(elapsedTime);
+        statsData.playerStatRecords.Add(new PlayerStatRecord(playerName, playerScore, elapsedTime));
         SaveStats();
     }
 
     public void SaveCurrentRecord()
     {
-        if (!string.IsNullOrEmpty(Name))
+        if (!string.IsNullOrEmpty(PlayerName))
         {
-            statsData.playerNames.Add(Name);
-            statsData.playerScores.Add(Score);
-            statsData.times.Add(ElapsedTime);
+            statsData.playerStatRecords.Add(new PlayerStatRecord(this.PlayerName, this.Score, this.ElapsedTime));
             SaveStats();
         }
     }
 
-    public List<string> GetPlayerNames()
-    {
-        return statsData.playerNames;
-    }
-
-    public List<float> GetScores()
-    {
-        return statsData.playerScores;
-    }
-
-    public List<float> GetTimes()
-    {
-        return statsData.times;
-    }
-
+    // For saving player stats to disk
     private void SaveStats()
     {
         string json = JsonUtility.ToJson(statsData, true);
@@ -96,41 +99,17 @@ public class StatsManager : MonoBehaviour
             string json = File.ReadAllText(filePath);
             statsData = JsonUtility.FromJson<StatsData>(json);
 
-            if (statsData.playerNames.Count > 0)
+            if (statsData.playerStatRecords.Count > 0)
             {
-                Name = statsData.playerNames[statsData.playerNames.Count - 1];
-                Score = statsData.playerScores[statsData.playerScores.Count - 1];
-                ElapsedTime = statsData.times[statsData.times.Count - 1];
+                // Load the last player's stats
+                PlayerStatRecord lastPlayer = statsData.playerStatRecords[statsData.playerStatRecords.Count - 1];
+
+                PlayerName = lastPlayer.name;
+                Score = lastPlayer.score;
+                ElapsedTime = lastPlayer.time;
             }
         }
     }
-
-    // New scoring algorithm methods
-    
-    //public void InitializeScore()
-    //{
-    //    Score = maxScore;
-    //    disqualified = false;
-    //}
-
-    //public void Disqualify()
-    //{
-    //    disqualified = true;
-    //    Debug.Log("[StatsManager] Player disqualified - too much pressure!");
-    //}
-
-    //public bool IsDisqualified() => disqualified;
-
-    //public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
-    //{
-    //    if (disqualified)
-    //        return 0f;
-
-    //    float waxScore = (percentWaxRemoved / 100f) * 50f;
-    //    float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
-
-    //    return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
-    //}
 
     // For deleteing and reseting stats
     public void ResetStats()
@@ -146,5 +125,15 @@ public class StatsManager : MonoBehaviour
             Debug.Log("No saved data file to delete!");
     }
 
+    // DEPRECATED
+    //public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
+    //{
+    //    if (disqualified)
+    //        return 0f;
 
+    //    float waxScore = (percentWaxRemoved / 100f) * 50f;
+    //    float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
+
+    //    return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
+    //}
 }

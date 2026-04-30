@@ -63,19 +63,21 @@ public class StatsSceneScript : MonoBehaviour
         List<(string name, float score, float time)> combined = new List<(string, float, float)>();
 
         // Builds full list of stat data
-        for (int i = 0; i < statsData.playerNames.Count; i++)
+        for (int i = 0; i < statsData.playerStatRecords.Count; i++)
         {
-            string player = statsData.playerNames[i];
-            float score = statsData.playerScores[i];
-            float time = statsData.times[i];
+            PlayerStatRecord playerRecord = statsData.playerStatRecords[i];
+
+            string playerName = playerRecord.name;
+            float score = playerRecord.score;
+            float time = playerRecord.time;
             // Debug.Log("Player Stats: " + player + score + time);
             if (!string.IsNullOrEmpty(nameFilter) &&
-                !player.ToLower().Contains(nameFilter.ToLower()))
+                !playerName.ToLower().Contains(nameFilter.ToLower()))
             {
                 continue;
             }
 
-            combined.Add((player, score, time));
+            combined.Add((playerName, score, time));
         }
 
         // Switch statement for the drop down menu
