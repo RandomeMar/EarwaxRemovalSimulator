@@ -1,12 +1,14 @@
+using NUnit.Framework;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using static UnityEngine.LowLevelPhysics2D.PhysicsLayers;
 
-
+/// <summary>
+/// Single player stat record.
+/// </summary>
 [System.Serializable]
-// Single player stat record
 public class PlayerStatRecord
 {
     public string name;
@@ -22,23 +24,21 @@ public class PlayerStatRecord
     }
 }
 
+/// <summary>
+/// List of player stat records.
+/// </summary>
 [System.Serializable]
-// List of player stat records
 public class StatsData
 {
     public List<PlayerStatRecord> playerStatRecords = new List<PlayerStatRecord>();
 }
 
 
+/// <summary>
+/// Responsible for loading and saving player stats to disk.
+/// </summary>
 public class StatsManager : MonoBehaviour
 {
-    public float maxScore = 100f;
-
-    // Current player stats
-    public string PlayerName { get; set; }
-    public float Score { get; set; }
-	public float ElapsedTime { get; set; }
-
     public static StatsManager Instance { get; private set; } // Current running stats manager
     private StatsData statsData = new();
 
@@ -54,52 +54,68 @@ public class StatsManager : MonoBehaviour
             return;
         }
 
-        //Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
-        //Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
-        //Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
-
         StatsManager.Instance = this;
         DontDestroyOnLoad(gameObject); // Don't destroy statmanager so it can carry on to next scene.
 
         filePath = Path.Combine(Application.persistentDataPath, "stats.json");
         Debug.Log("Stats saved at: " + filePath);
-        LoadStats();
     }
 
-    public void SaveCurrentRecord()
+    /// <summary>
+    /// Saves player stats to disk.
+    /// </summary>
+    /// <param name="playerName">Name of the player.</param>
+    /// <param name="score">Player's final score.</param>
+    /// <param name="elapsedTime">Player's final elapsed time.</param>
+    /// <remarks>Saves player stats in JSON format.</remarks>
+    public void SaveRecord(string playerName, float score, float elapsedTime)
     {
-        if (!string.IsNullOrEmpty(PlayerName))
-        {
-            statsData.playerStatRecords.Add(new PlayerStatRecord(this.PlayerName, this.Score, this.ElapsedTime));
-            SaveStats();
-        }
-    }
+        statsData.playerStatRecords.Add(new PlayerStatRecord(playerName, score, elapsedTime));
 
-    // For saving player stats to disk
-    private void SaveStats()
-    {
         string json = JsonUtility.ToJson(statsData, true);
         File.WriteAllText(filePath, json);
         Debug.Log("Saved Stats: " + json + "at location: " + filePath);
     }
 
-    private void LoadStats()
+    /// <summary>
+    /// Loads player data for the last player who was saved.
+    /// </summary>
+    /// <param name="lastPlayer">A collection of stats about the last player.</param>
+    /// <returns>Whether or not the load was successful.</returns>
+    public bool LoadLastPlayer(out PlayerStatRecord lastPlayer)
     {
-        if (File.Exists(filePath))
-        {
-            string json = File.ReadAllText(filePath);
-            statsData = JsonUtility.FromJson<StatsData>(json);
+        lastPlayer = null;
 
-            if (statsData.playerStatRecords.Count > 0)
-            {
-                // Load the last player's stats
-                PlayerStatRecord lastPlayer = statsData.playerStatRecords[statsData.playerStatRecords.Count - 1];
+        if (!File.Exists(filePath)) return false;
 
-                PlayerName = lastPlayer.name;
-                Score = lastPlayer.score;
-                ElapsedTime = lastPlayer.time;
-            }
-        }
+        string json = File.ReadAllText(filePath);
+        StatsData statsData = JsonUtility.FromJson<StatsData>(json);
+
+        if (statsData == null || statsData.playerStatRecords.Count <= 0) return false;
+
+        // Load the last player's stats
+        lastPlayer = statsData.playerStatRecords[statsData.playerStatRecords.Count - 1];
+
+        return true;
+    }
+
+    /// <summary>
+    /// Loads all player data.
+    /// </summary>
+    /// <param name="statsData">List of player stats.</param>
+    /// <returns>Whether or not the load was successful.</returns>
+    public bool LoadStatsData(out StatsData statsData)
+    {
+        statsData = null;
+
+        if (!File.Exists(filePath)) return false;
+
+        string json = File.ReadAllText(filePath);
+        statsData = JsonUtility.FromJson<StatsData>(json);
+
+        if (statsData == null || statsData.playerStatRecords.Count <= 0) return false;
+
+        return true;
     }
 
     // For deleteing and reseting stats

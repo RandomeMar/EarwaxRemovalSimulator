@@ -453,8 +453,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6940d0485a20e9c43b8ff1146b9678e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainMenuScene: StartSceneVR
-  statsScene: StatsSceneVR
   introText: {fileID: 1232450664}
   timeText: {fileID: 314535406}
   scoreText: {fileID: 220495019}
@@ -540,6 +538,63 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
+--- !u!1001 &156851233
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6983136953893699625, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_Name
+      value: StatsManager
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -5.28289
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.12882
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5.66808
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7497098295583798906, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b2b26959258b9454c896c124dc94ddd4, type: 3}
 --- !u!1 &170724363
 GameObject:
   m_ObjectHideFlags: 0
@@ -5266,8 +5321,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6940d0485a20e9c43b8ff1146b9678e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainMenuScene: IntroScene
-  statsScene: StatsScene
   introText: {fileID: 914004567}
   timeText: {fileID: 744768827}
   scoreText: {fileID: 220495019}
@@ -5367,3 +5420,4 @@ SceneRoots:
   - {fileID: 2070004140}
   - {fileID: 590100336}
   - {fileID: 357512371}
+  - {fileID: 156851233}

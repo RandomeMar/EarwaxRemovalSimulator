@@ -100,20 +100,19 @@ public class SimulationManager : MonoBehaviour
         }
 
         // --- END STATE: Game lasts 180 seconds ---
-        if (ElapsedSeconds >= 180)
+        if (ElapsedTime >= 180f)
         {
             IsRunning = false;
             EndSimulation();
         }
     }
 
+    /// <summary>
+    /// Ends sim by saving player stats and loading the next scene.
+    /// </summary>
     private void EndSimulation()
     {
-        // Save state to StatsManager
-        StatsManager.Instance.PlayerName = PlayerName;
-        StatsManager.Instance.Score = Score;
-        StatsManager.Instance.ElapsedTime = ElapsedTime;
-        StatsManager.Instance.SaveCurrentRecord();
+        StatsManager.Instance.SaveRecord(PlayerName, Score, ElapsedTime);
         Debug.Log("EAR SIM OFF\n");
 
         GameManager.Instance.LoadResultsMenu();

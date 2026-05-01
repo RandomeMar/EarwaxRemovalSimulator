@@ -13,17 +13,11 @@ public class StatsSceneScript : MonoBehaviour
     public InputField searchVRInput;
     public Dropdown sortDropdown;
 
-    private string filePath;
-
     private enum SortMode { HighestScore, Fastest, LastCompleted}
     private SortMode currentSortMode = SortMode.HighestScore;
 
     void Start()
     {
-        // Stat data is stored at path:
-        // "C:/Users/ <<your PC username>> /AppData/LocalLow/DefaultCompany/AudiologyUnityProject/stats.json"
-        filePath = Application.persistentDataPath + "/stats.json";
-
         // Starts the drop down menu listener
         if (sortDropdown != null)
         {
@@ -47,17 +41,14 @@ public class StatsSceneScript : MonoBehaviour
         LoadStats(inputVR);
     }
 
-    public void LoadStats(string nameFilter = "")
+    private void LoadStats(string nameFilter = "")
     {
         // Destroy all previous instances of stat data loaded
         foreach (Transform child in contentParent)
             Destroy(child.gameObject);
 
         // Reads from stored stat data to build a list of Playername, Playerscore, and times
-        if (!File.Exists(filePath)) return;
-
-        string json = File.ReadAllText(filePath);
-        StatsData statsData = JsonUtility.FromJson<StatsData>(json);
+        if (!StatsManager.Instance.LoadStatsData(out var statsData)) return;
 
         List<(string name, float score, float time)> combined = new List<(string, float, float)>();
 
@@ -133,17 +124,6 @@ public class StatsSceneScript : MonoBehaviour
     // Back to main menu button ends all StatManger game objects from running and loads the main scene
     public void BackToMainMenu()
     {
-        //// Destroy all old StatManagers as a new Statmanager is made to track new player stats
-        //StatsManager[] all = FindObjectsByType<StatsManager>(FindObjectsSortMode.None);
-        //if (all.Length > 0)
-        //{
-        //    for (int i = 0; i < all.Length; i++)
-        //    {
-        //        Destroy(all[i].gameObject);
-        //    }
-        //}
-        //SceneManager.LoadScene(mainMenuScene);
-
         GameManager.Instance.LoadStartMenu();
     }
 }
