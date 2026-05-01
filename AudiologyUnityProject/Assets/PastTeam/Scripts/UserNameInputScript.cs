@@ -14,7 +14,7 @@ public class UserNameInputScript : MonoBehaviour
 
         if (!string.IsNullOrEmpty(input))
         {
-            GameManager.Instance.StartSimulationRun(input);
+            SimulationManager.Instance.StartSimulation(input);
         }
 
    

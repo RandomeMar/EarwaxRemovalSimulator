@@ -18,7 +18,7 @@ public class ScoreUI : MonoBehaviour
     {
         if (SimulationManager.Instance.IsRunning)
         {
-            scoreText.text = "Score: " + ScoreManager.Instance.Score.ToString("F1"); // Read score from ScoreManager
+            scoreText.text = "Score: " + SimulationManager.Instance.Score.ToString("F1"); // Read score from ScoreManager
         }
     }
 

@@ -7,7 +7,6 @@ public enum GameState
     StartMenu,
     StatsMenuScene,
     SimSetup,
-    SimRunning,
     ResultsMenu
 }
 
@@ -60,25 +59,10 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Begins the simulation.
+    /// Loads the results menu.
     /// </summary>
-    public void StartSimulationRun(string playerName)
+    public void LoadResultsMenu()
     {
-        State = GameState.SimRunning;
-        StatsManager.Instance.PlayerName = playerName;
-        StatsManager.Instance.Score = 0;
-        SimulationManager.Instance.StartSimulation();
-    }
-
-    /// <summary>
-    /// Ends the simulation and loads the results screen.
-    /// </summary>
-    public void EndSimulationRun(float score)
-    {
-        StatsManager.Instance.Score = score;
-        StatsManager.Instance.SaveCurrentRecord();
-        Debug.Log("EAR SIM OFF\n");
-
         State = GameState.ResultsMenu;
         SceneManager.LoadScene(endScene);
     }

@@ -54,24 +54,16 @@ public class StatsManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
-        Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
-        Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
+        //Debug.Log("Get Ear Type: " + int.Parse(PlayerPrefs.GetString("earType")));
+        //Debug.Log("Get Block Type: " + int.Parse(PlayerPrefs.GetString("blockType")));
+        //Debug.Log("Get Wax Type: " + int.Parse(PlayerPrefs.GetString("waxType")));
 
         StatsManager.Instance = this;
         DontDestroyOnLoad(gameObject); // Don't destroy statmanager so it can carry on to next scene.
-        Debug.Log("StatsManager has been initialized.");
 
         filePath = Path.Combine(Application.persistentDataPath, "stats.json");
-
         Debug.Log("Stats saved at: " + filePath);
         LoadStats();
-    }
-
-    public void AddRecord(string playerName, float playerScore, float elapsedTime)
-    {
-        statsData.playerStatRecords.Add(new PlayerStatRecord(playerName, playerScore, elapsedTime));
-        SaveStats();
     }
 
     public void SaveCurrentRecord()

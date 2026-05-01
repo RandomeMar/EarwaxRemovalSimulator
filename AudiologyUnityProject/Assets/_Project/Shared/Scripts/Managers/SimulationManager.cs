@@ -1,3 +1,4 @@
+using EarwaxSim;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SocialPlatforms.Impl;
@@ -12,21 +13,35 @@ public class SimulationManager : MonoBehaviour
 {
     public static SimulationManager Instance {  get; private set; }
 
+    // ------ Simulation State ------
+    public bool IsRunning { get; private set; } = false;
+
+    public string PlayerName { get; private set; } = "";
+
     public float ElapsedTime { get; private set; } = 0f; // Total elapsed time in seconds
     public int ElapsedMinutes => (int)ElapsedTime / 60; // Minutes component of ElapsedTime
     public int ElapsedSeconds => (int)ElapsedTime % 60; // Seconds component of ElapsedTime
 
+    public float Score { get; private set; } = 0f;
+
+
+    // ------ Public Parameters ------
+    [Header("Score Effectors")]
+    public XPBDSim xpbdSim;
+    public NewHapticManager hapticManager;
+    public float forceLimit = 100f;
+
+    [Header("Objects to disable on startup")]
     [SerializeField] GameObject jake;
     [SerializeField] GameObject keyboardUI;
-    [SerializeField] GameObject scoreUI;
-    [SerializeField] GameObject timerUI;
-
     [SerializeField] GameObject XRCameraInitial;
     [SerializeField] GameObject XRCameraManagerInitial;
+
+    [Header("Objects to enable on startup")]
+    [SerializeField] GameObject scoreUI;
+    [SerializeField] GameObject timerUI;
     [SerializeField] GameObject XRCameraEar;
-
-
-    public bool IsRunning { get; private set; } = false;
+    
 
     private void Awake()
     {
@@ -42,8 +57,10 @@ public class SimulationManager : MonoBehaviour
     /// <summary>
     /// Disables and enables specific game objects to prepare the scene for running.
     /// </summary>
-    public void StartSimulation()
+    public void StartSimulation(string playerName)
     {
+        PlayerName = playerName;
+
         // Disable keyboard, jake, and XR Camera
         keyboardUI.gameObject.SetActive(false);
         XRCameraManagerInitial.gameObject.SetActive(false);
@@ -66,15 +83,61 @@ public class SimulationManager : MonoBehaviour
     {
         if (!IsRunning) return;
 
-        ElapsedTime += Time.deltaTime;
+        ElapsedTime += Time.deltaTime; // Increment time
 
-        // Game ends in 180 seconds
+        float percentWaxRemoved = 0f;
+        Vector3 force = Vector3.zero;
+
+        // Get input values
+        if (xpbdSim != null) percentWaxRemoved = xpbdSim.GetPercentWaxRemoved();
+        if (hapticManager != null) force = hapticManager.GetForce();
+
+        // --- END STATE: Force too high ---
+        if (force.magnitude > forceLimit)
+        {
+            Debug.Log("YOU PRESSED TOO HARD!!!");
+            Score = 0f;
+            EndSimulation();
+        }
+
+        Score = CalculateScore(percentWaxRemoved, SimulationManager.Instance.ElapsedTime);
+
+        // --- END STATE: Cleared all wax ---
+        if (xpbdSim.ps.count == 0)
+        {
+            Debug.Log("YOU CLEARED ALL THE WAX!!!");
+            EndSimulation();
+        }
+
+        // --- END STATE: Game lasts 180 seconds ---
         if (ElapsedSeconds >= 180)
         {
             IsRunning = false;
-            GameManager.Instance.EndSimulationRun(ScoreManager.Instance.Score);
+            EndSimulation();
         }
     }
 
+    private void EndSimulation()
+    {
+        // Save state to StatsManager
+        StatsManager.Instance.PlayerName = PlayerName;
+        StatsManager.Instance.Score = Score;
+        StatsManager.Instance.ElapsedTime = ElapsedTime;
+        StatsManager.Instance.SaveCurrentRecord();
+        Debug.Log("EAR SIM OFF\n");
 
+        GameManager.Instance.LoadResultsMenu();
+    }
+
+    // Calculates score.
+    private float CalculateScore(float percentWaxRemoved, float elapsedTime)
+    {
+        // A player can get 100 points for removing all of the wax.
+        float score = percentWaxRemoved;
+
+        // A player can receive a max of +10 points for finishing quickly.
+        score += elapsedTime < 60f ? (1 - elapsedTime / 60f) * 10 : 0f;
+
+        return score;
+    }
 }
