@@ -2222,6 +2222,11 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.3
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &638718182 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7481423071082449774, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
+  m_PrefabInstance: {fileID: 2023846071}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &654536812
 GameObject:
   m_ObjectHideFlags: 0
@@ -4051,6 +4056,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1147530269}
   m_CullTransparentMesh: 1
+--- !u!1 &1149712098
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1149712100}
+  - component: {fileID: 1149712099}
+  m_Layer: 0
+  m_Name: SimulationManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1149712099
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1149712098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58a42320af7a29648bdf02eccd499063, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  jake: {fileID: 16118894}
+  keyboardUI: {fileID: 638718182}
+  scoreUI: {fileID: 1171826760}
+  timerUI: {fileID: 296346240}
+  XRCameraInitial: {fileID: 487980375}
+  XRCameraManagerInitial: {fileID: 1024037020}
+  XRCameraEar: {fileID: 352720857}
+--- !u!4 &1149712100
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1149712098}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.76841, y: 0.05042, z: 3.67272}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1171826760 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7562567825474354782, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
@@ -5675,8 +5731,6 @@ MonoBehaviour:
   timerText: {fileID: 1755968463}
   pauseText: {fileID: 1318651783}
   pauseButtonText: {fileID: 0}
-  endGameScene: EndScene
-  startGameScene: IntroScene
 --- !u!114 &1755968463
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5898,7 +5952,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1468205874808693553, guid: 7012344b92345954fbc417e4ca2f0fa5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.5
+      value: -3.06
       objectReference: {fileID: 0}
     - target: {fileID: 1468205874808693554, guid: 7012344b92345954fbc417e4ca2f0fa5, type: 3}
       propertyPath: m_Name
@@ -6380,6 +6434,24 @@ Transform:
   - {fileID: 806696189}
   m_Father: {fileID: 1803406139}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1949694320 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 718757264630706058, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
+  m_PrefabInstance: {fileID: 2023846071}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1949694327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1949694320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f8941b697c31d84cb708fd2ea586e35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TimerUI
+  timerText: {fileID: 1979508616}
 --- !u!1 &1968067789
 GameObject:
   m_ObjectHideFlags: 0
@@ -7093,13 +7165,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: Score
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4275206743417298881, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1530310430747502676, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
       insertIndex: 1
       addedObject: {fileID: 1746153205}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 718757264630706058, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1949694327}
   m_SourcePrefab: {fileID: 100100000, guid: 61f7be3bc1e685540918011eab8353fe, type: 3}
 --- !u!4 &2023846072 stripped
 Transform:
@@ -7221,3 +7297,4 @@ SceneRoots:
   - {fileID: 2023846071}
   - {fileID: 581830369}
   - {fileID: 8398683357385886776}
+  - {fileID: 1149712100}

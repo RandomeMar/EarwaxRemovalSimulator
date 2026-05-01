@@ -36,7 +36,9 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    // Loads the start menu
+    /// <summary>
+    /// Loads the start menu.
+    /// </summary>
     public void LoadStartMenu()
     {
         if (StatsManager.Instance != null)
@@ -49,7 +51,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Loads the simulation scene
+    /// Loads the simulation scene.
     /// </summary>
     public void LoadSimulation()
     {
@@ -58,19 +60,18 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Begins the simulation
+    /// Begins the simulation.
     /// </summary>
     public void StartSimulationRun(string playerName)
     {
         State = GameState.SimRunning;
         StatsManager.Instance.PlayerName = playerName;
         StatsManager.Instance.Score = 0;
-
-        Time.timeScale = 1;
+        SimulationManager.Instance.StartSimulation();
     }
 
     /// <summary>
-    /// Ends the simulation and loads the results screen
+    /// Ends the simulation and loads the results screen.
     /// </summary>
     public void EndSimulationRun(float score)
     {
@@ -83,7 +84,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Loads the stats menu
+    /// Loads the stats menu.
     /// </summary>
     public void LoadStatsMenu()
     {
@@ -92,7 +93,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Ends the game
+    /// Ends the game.
     /// </summary>
     public void QuitGame()
     {
