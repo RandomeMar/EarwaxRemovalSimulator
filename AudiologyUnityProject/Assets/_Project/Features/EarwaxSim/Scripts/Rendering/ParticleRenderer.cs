@@ -1,4 +1,5 @@
 using EarwaxSim;
+using System;
 using System.Xml.Serialization;
 using UnityEngine;
 
@@ -11,28 +12,32 @@ public class ParticleRenderer : MonoBehaviour
     public XPBDSim sim;
     public Mesh mesh;
     public Material billboardMaterial;
-    public GraphicsBuffer positionBuffer { get; private set; }
+
+    public GraphicsBuffer PositionBuffer { get; private set; }
+    public GraphicsBuffer ActiveBuffer { get; private set; }
+
     public int particleCount => sim ? sim.ps.maxCount : 0;
     public bool isReady =>
         sim != null &&
         mesh != null &&
         billboardMaterial != null &&
-        positionBuffer != null &&
+        PositionBuffer != null &&
         particleCount > 0;
 
-    public static ParticleRenderer current {  get; private set; } // The current running particle renderer. Accessed by render feature
+    public static ParticleRenderer Instance {  get; private set; } // The current running particle renderer. Accessed by render feature
 
     private const int strideInBytes = 12; // Vector 3 is 12 bytes. NOTE: Maybe use vector 4 since 16 bytes is better for GPU
 
-    private void OnEnable()
+    private void Awake()
     {
-        current = this;
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this.gameObject);
+            return;
+        }
+        ParticleRenderer.Instance = this;
     }
 
-    private void OnDisable()
-    {
-        if (current = this) current = null;
-    }
 
     /// <summary>
     /// Initializes particle position buffer between CPU and GPU.
@@ -41,12 +46,18 @@ public class ParticleRenderer : MonoBehaviour
     {
         if (sim == null) return;
 
-        positionBuffer = new(
+        PositionBuffer = new(
             GraphicsBuffer.Target.Structured,
-            sim.ps.count,
+            sim.ps.maxCount,
             strideInBytes); // Buffer for particle positions
 
-        billboardMaterial.SetBuffer("_Positions", positionBuffer); // Buffer is called "_Positions" inside shader
+        ActiveBuffer = new(
+            GraphicsBuffer.Target.Structured,
+            sim.ps.maxCount,
+            sizeof(int)); // Buffer for if particles are active
+
+        billboardMaterial.SetBuffer("_Positions", PositionBuffer); // Buffer is called "_Positions" inside shader
+        billboardMaterial.SetBuffer("_Actives", ActiveBuffer);
     }
 
     /// <summary>
@@ -54,12 +65,17 @@ public class ParticleRenderer : MonoBehaviour
     /// </summary>
     private void LateUpdate()
     {
-        if (positionBuffer == null || sim == null) return;
-        positionBuffer.SetData(sim.ps.currentPosition); // Update positionBuffer with new currentPositions
+        if (PositionBuffer == null || ActiveBuffer == null || sim == null) return;
+
+        PositionBuffer.SetData(sim.ps.currentPosition); // Update PositionBuffer with new currentPositions
+
+        int[] activeInts = Array.ConvertAll(sim.ps.active, b => b ? 1 : 0); // Because bools cannot be passed to a buffer
+        ActiveBuffer.SetData(activeInts); // Update ActiveBuffer
     }
 
     private void OnDestroy()
     {
-        positionBuffer?.Release();
+        PositionBuffer?.Release();
+        ActiveBuffer?.Release();
     }
 }

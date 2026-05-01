@@ -29,6 +29,7 @@ Shader "Custom/EarwaxFieldShader"
 
             // Particle position buffer
             StructuredBuffer<float3> _Positions;
+            StructuredBuffer<int> _Actives;
 
             float _ParticleSize;
 
@@ -45,6 +46,7 @@ Shader "Custom/EarwaxFieldShader"
                 float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float3 centerVS : TEXCOORD1;
+                uint isActive : TEXCOORD2;
             };
 
             struct fragOut
@@ -70,6 +72,7 @@ Shader "Custom/EarwaxFieldShader"
                 o.pos = mul(UNITY_MATRIX_VP, float4(world, 1.0)); // Puts vertex in clip space for the frag shader
                 o.uv = v.uv;
                 o.centerVS = mul(UNITY_MATRIX_V, float4(particlePos, 1.0)).xyz;
+                o.isActive = _Actives[instanceID];
 
                 return o;
             }
@@ -77,6 +80,8 @@ Shader "Custom/EarwaxFieldShader"
             // Fragment Shader
             fragOut frag(v2f i)
             {
+                if (i.isActive == 0) discard;
+
                 fragOut o;
 
                 float2 p = i.uv * 2.0 - 1.0; // Since UVs usually go from 0 to 1, this makes them go -1 to 1. That means (0, 0) is now the center
