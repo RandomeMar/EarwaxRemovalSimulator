@@ -4045,9 +4045,18 @@ MonoBehaviour:
   keyboardUI: {fileID: 638718182}
   XRCameraInitial: {fileID: 487980375}
   XRCameraManagerInitial: {fileID: 1024037020}
+  disabledOnStartup:
+  - {fileID: 16118894}
+  - {fileID: 638718182}
+  - {fileID: 487980375}
+  - {fileID: 1024037020}
   scoreUI: {fileID: 1171826760}
   timerUI: {fileID: 296346240}
   XRCameraEar: {fileID: 352720857}
+  enabledOnStartup:
+  - {fileID: 1171826760}
+  - {fileID: 296346240}
+  - {fileID: 352720857}
 --- !u!4 &1149712100
 Transform:
   m_ObjectHideFlags: 0

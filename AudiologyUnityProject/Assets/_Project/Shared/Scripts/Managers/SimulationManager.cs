@@ -1,9 +1,6 @@
+using System.Collections.Generic;
 using EarwaxSim;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.SocialPlatforms.Impl;
-using UnityEngine.UI;
-using UnityEngine.Windows;
 
 /// <summary>
 /// Handler for the simulation.
@@ -31,17 +28,10 @@ public class SimulationManager : MonoBehaviour
     public NewHapticManager hapticManager;
     public float forceLimit = 100f;
 
-    [Header("Objects to disable on startup")]
-    [SerializeField] GameObject jake;
-    [SerializeField] GameObject keyboardUI;
-    [SerializeField] GameObject XRCameraInitial;
-    [SerializeField] GameObject XRCameraManagerInitial;
+    [Header("Disabled/Enabled on Startup")]
+    public List<GameObject> disabledOnStartup = new List<GameObject>(4);
+    public List<GameObject> enabledOnStartup = new List<GameObject>(3);
 
-    [Header("Objects to enable on startup")]
-    [SerializeField] GameObject scoreUI;
-    [SerializeField] GameObject timerUI;
-    [SerializeField] GameObject XRCameraEar;
-    
 
     private void Awake()
     {
@@ -61,15 +51,15 @@ public class SimulationManager : MonoBehaviour
     {
         PlayerName = playerName;
 
-        // Disable keyboard, jake, and XR Camera
-        keyboardUI.gameObject.SetActive(false);
-        XRCameraManagerInitial.gameObject.SetActive(false);
-        XRCameraInitial.gameObject.SetActive(false);
-        jake.gameObject.SetActive(false);
+        foreach (GameObject obj in disabledOnStartup)
+        {
+            obj.SetActive(false);
+        }
 
-        XRCameraEar.gameObject.SetActive(true);
-        timerUI.gameObject.SetActive(true);
-        scoreUI.gameObject.SetActive(true);
+        foreach (GameObject obj in enabledOnStartup)
+        {
+            obj.SetActive(true);
+        }
 
         Time.timeScale = 1;
 
