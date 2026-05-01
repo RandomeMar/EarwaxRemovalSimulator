@@ -12,7 +12,7 @@ public class ParticleRenderer : MonoBehaviour
     public Mesh mesh;
     public Material billboardMaterial;
     public GraphicsBuffer positionBuffer { get; private set; }
-    public int particleCount => sim ? sim.ps.count : 0;
+    public int particleCount => sim ? sim.ps.maxCount : 0;
     public bool isReady =>
         sim != null &&
         mesh != null &&
