@@ -55,7 +55,7 @@ public class ScoreManager : MonoBehaviour
             GameManager.Instance.EndSimulationRun(0f);
         }
 
-        Score = CalculateScore(percentWaxRemoved, StatsManager.Instance.ElapsedTime);
+        Score = CalculateScore(percentWaxRemoved, SimulationManager.Instance.ElapsedTime);
         StatsManager.Instance.Score = Score;
 
         if (xpbdSim.ps.count == 0)
@@ -63,10 +63,6 @@ public class ScoreManager : MonoBehaviour
             Debug.Log("YOU CLEARED ALL THE WAX!!!");
             GameManager.Instance.EndSimulationRun(Score);
         }
-
-        
-
-        
     }
 
     private void OnDestroy()

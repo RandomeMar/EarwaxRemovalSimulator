@@ -123,16 +123,4 @@ public class StatsManager : MonoBehaviour
         else
             Debug.Log("No saved data file to delete!");
     }
-
-    // DEPRECATED
-    //public float CalculateFinalScore(float percentWaxRemoved, float elapsedTime)
-    //{
-    //    if (disqualified)
-    //        return 0f;
-
-    //    float waxScore = (percentWaxRemoved / 100f) * 50f;
-    //    float timeScore = Mathf.Clamp((1f - (elapsedTime / 20f)) * 50f, 0f, 50f);
-
-    //    return Mathf.Clamp(waxScore + timeScore, 0f, maxScore);
-    //}
 }
