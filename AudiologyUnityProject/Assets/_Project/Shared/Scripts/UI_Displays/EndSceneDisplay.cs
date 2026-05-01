@@ -2,7 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class EndSceneScript : MonoBehaviour
+/// <summary>
+/// Responsible for displaying the end scene results.
+/// </summary>
+public class EndSceneDisplay : MonoBehaviour
 {
     public Text introText;
     public Text timeText;
@@ -23,11 +26,18 @@ public class EndSceneScript : MonoBehaviour
         timeText.text = $"Time Taken: {formattedTime}";
         scoreText.text = $"Score: {lastPlayer.score:F1} pts";
     }
+
+    /// <summary>
+    /// Returns to main menu.
+    /// </summary>
     public void BackToMainMenu()
     {
         GameManager.Instance.LoadStartMenu();
     }
 
+    /// <summary>
+    /// Go's to stats scene.
+    /// </summary>
     public void GoToStatsScene()
     {
         GameManager.Instance.LoadStatsMenu();

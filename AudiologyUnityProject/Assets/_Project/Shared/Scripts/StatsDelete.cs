@@ -15,7 +15,7 @@ public class StatsDelete : MonoBehaviour
 {
     // password input field
     public InputField passInput;
-    private string filePath;
+    private string passFilePath;
     [SerializeField] Canvas statsDeleteCanvas;
     public GameObject statsDeleteButton;
     public GameObject statsDeletedButton;
@@ -27,17 +27,17 @@ public class StatsDelete : MonoBehaviour
     void Start()
     {
         // path of saved password file
-        filePath = Application.persistentDataPath + "/gate.json";
+        passFilePath = Application.persistentDataPath + "/gate.json";
 
         // If password file is not found, create a new one with initial password "Cerumen"
-        if (!File.Exists(filePath)) 
+        if (!File.Exists(passFilePath)) 
         {   
             PassData passwordData = new PassData();
             passwordData.gatePass.Add("Cerumen");
             string json = JsonUtility.ToJson(passwordData, true);
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(passFilePath, json);
 
-            Debug.Log("Password file created\n" + filePath);
+            Debug.Log("Password file created\n" + passFilePath);
         }
 
         // Password file found
@@ -64,8 +64,8 @@ public class StatsDelete : MonoBehaviour
     public void PasswordCheck()
     {
         // load saved password file
-        if (!File.Exists(filePath)) return;
-        string jsonString = File.ReadAllText(filePath);
+        if (!File.Exists(passFilePath)) return;
+        string jsonString = File.ReadAllText(passFilePath);
         PassData passcheckData = JsonUtility.FromJson<PassData>(jsonString);
         // Debug.Log("CHECK: " + passcheckData.gatePass[0] + " INPUT: " + passInput.text);
 
@@ -92,17 +92,17 @@ public class StatsDelete : MonoBehaviour
     // Deletes old password json file and created a new file with a new password
     public void ResetPassword()
     {
-        if (File.Exists(filePath)) 
+        if (File.Exists(passFilePath)) 
         {
-            File.Delete(filePath);
-            Debug.Log("Saved Password file cleared at: " + filePath);
+            File.Delete(passFilePath);
+            Debug.Log("Saved Password file cleared at: " + passFilePath);
             PassData passwordData = new PassData();
             passwordData.gatePass.Add(passInput.text);
             string json = JsonUtility.ToJson(passwordData, true);
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(passFilePath, json);
             statsPassChangedButton.gameObject.SetActive(true);
             statsDeleteButton.gameObject.SetActive(false);
-            Debug.Log("Password file created\n" + filePath);
+            Debug.Log("Password file created\n" + passFilePath);
         }
     }
 

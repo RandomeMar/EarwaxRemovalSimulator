@@ -8,7 +8,7 @@ using UnityEngine;
 /// <remarks>Responsible for setting up game objects when the sim begins running and managing the simulation's time.</remarks>
 public class SimulationManager : MonoBehaviour
 {
-    public static SimulationManager Instance {  get; private set; }
+    public static SimulationManager Instance {  get; private set; } // Current running instance
 
     // ------ Simulation State ------
     public bool IsRunning { get; private set; } = false;
@@ -33,6 +33,9 @@ public class SimulationManager : MonoBehaviour
     public List<GameObject> enabledOnStartup = new List<GameObject>(3);
 
 
+    /// <summary>
+    /// Initializes singleton.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -90,7 +93,7 @@ public class SimulationManager : MonoBehaviour
             EndSimulation();
         }
 
-        Score = CalculateScore(percentWaxRemoved, SimulationManager.Instance.ElapsedTime);
+        Score = CalculateScore(percentWaxRemoved);
 
         // --- END STATE: Cleared all wax ---
         if (xpbdSim.ps.count == 0)
@@ -100,7 +103,7 @@ public class SimulationManager : MonoBehaviour
         }
 
         // --- END STATE: Game lasts 180 seconds ---
-        if (ElapsedTime >= 180f)
+        if (ElapsedTime >= 10f)
         {
             IsRunning = false;
             EndSimulation();
@@ -118,14 +121,19 @@ public class SimulationManager : MonoBehaviour
         GameManager.Instance.LoadResultsMenu();
     }
 
-    // Calculates score.
-    private float CalculateScore(float percentWaxRemoved, float elapsedTime)
+    /// <summary>
+    /// Calculates player score.
+    /// </summary>
+    /// <param name="percentWaxRemoved">Percentage of wax removed.</param>
+    /// <param name="elapsedTime">How much time has passed.</param>
+    /// <returns>Score.</returns>
+    private float CalculateScore(float percentWaxRemoved)
     {
         // A player can get 100 points for removing all of the wax.
         float score = percentWaxRemoved;
 
         // A player can receive a max of +10 points for finishing quickly.
-        score += elapsedTime < 60f ? (1 - elapsedTime / 60f) * 10 : 0f;
+        score += ElapsedTime < 60f ? (1 - ElapsedTime / 60f) * 10 : 0f;
 
         return score;
     }

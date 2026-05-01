@@ -43,9 +43,10 @@ public class StatsManager : MonoBehaviour
     private StatsData statsData = new();
 
     private string filePath;
-    private string filePathforDelete;
 
-
+    /// <summary>
+    /// Initializes StatsManager singleton and establishes path to stats file.
+    /// </summary>
     void Awake() {
         // Deletes duplicate StatsManagers
         if (Instance != null && Instance != this)
@@ -118,17 +119,19 @@ public class StatsManager : MonoBehaviour
         return true;
     }
 
-    // For deleteing and reseting stats
+    /// <summary>
+    /// Deletes stats file.
+    /// </summary>
     public void ResetStats()
     {
-        filePathforDelete = Application.persistentDataPath + "/stats.json";
-        if (File.Exists(filePathforDelete))
+        if (!File.Exists(filePath))
         {
-            File.Delete(filePathforDelete);
-            Debug.Log("Saved data file cleared at: " + filePathforDelete);
-            statsData = new StatsData();
-        }
-        else
             Debug.Log("No saved data file to delete!");
+            return;
+        }
+
+        File.Delete(filePath);
+        Debug.Log("Saved data file cleared at: " + filePath);
+        statsData = new StatsData();
     }
 }

@@ -10,6 +10,9 @@ public enum GameState
     ResultsMenu
 }
 
+/// <summary>
+/// Manager of scene transitions and game state.
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -22,7 +25,9 @@ public class GameManager : MonoBehaviour
     public string simulationScene = "SimulationSceneVR";
     public string endScene = "EndSceneVR";
     
-
+    /// <summary>
+    /// Initializes singleton.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -38,6 +43,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// Loads the start menu.
     /// </summary>
+    /// <remarks>Also deletes any StatsManagers.</remarks>
     public void LoadStartMenu()
     {
         if (StatsManager.Instance != null)
