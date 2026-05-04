@@ -6,7 +6,7 @@ public class CerumenProgressBarScript : MonoBehaviour
 {
     public GameObject bar;
 
-    [SerializeField] TimerScript timerScript;
+    [SerializeField] TimerUI timerScript;
 
     private float elapsedTime = 0f;
 

@@ -443,7 +443,7 @@ namespace EarwaxSim
         public float GetPercentWaxRemoved()
         {
             if (ps == null) return 0.0f;
-            return (ps.count / (float)ps.maxCount) * 100f; // NOTE: It might make more sense if this is a method of the ParticleSet class
+            return (((float)ps.maxCount - ps.count) / ps.maxCount)  * 100f; // NOTE: It might make more sense if this is a method of the ParticleSet class
 
             // NOTE: The problem with this was that it gets the percentage if distance constraints removed. The earwax is actually the particles.
 
@@ -520,7 +520,11 @@ namespace EarwaxSim
                 if (!ps.active[i]) continue;
 
                 Vector3 distVec = ps.currentPosition[i] - this.transform.position; // Vector from XPBDSim origin to particle position
-                if (distVec.magnitude >= this.particleDeleteRadius) ps.active[i] = false;
+                if (distVec.magnitude >= this.particleDeleteRadius)
+                {
+                    ps.active[i] = false;
+                    ps.count--;
+                }
             }
         }
 

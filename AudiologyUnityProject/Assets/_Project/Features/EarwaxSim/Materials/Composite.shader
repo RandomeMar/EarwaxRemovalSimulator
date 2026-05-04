@@ -35,25 +35,12 @@ Shader "Custom/Composite"
                 float2 uv : TEXCOORD0;
             };
 
+            // Input textures
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_SceneColorTex);
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_EarwaxLitTex);
 
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_EarwaxDepthTex);
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_SceneDepthTex);
-
-            // Input textures
-            //TEXTURE2D(_SceneColorTex); // Scene's color texture
-            //SAMPLER(sampler_SceneColorTex);
-
-            //TEXTURE2D(_EarwaxLitTex);
-            //SAMPLER(sampler_EarwaxLitTex);
-
-            //TEXTURE2D(_SceneDepthTex);
-            //SAMPLER(sampler_SceneDepthTex);
-
-            //TEXTURE2D(_EarwaxDepthTex);
-            //SAMPLER(sampler_EarwaxDepthTex);
-
 
 
             Varyings vert(Attributes i)
@@ -79,17 +66,19 @@ Shader "Custom/Composite"
 
             float4 frag(Varyings i) : SV_Target
             {
+                // Sample color textures
                 float4 sceneCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_SceneColorTex, i.uv);
                 float4 waxCol = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_EarwaxLitTex, i.uv);
 
-                float waxDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_EarwaxDepthTex, i.uv);
-                float sceneDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_SceneDepthTex, i.uv);
+                // Sample depth textures
+                float waxDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_EarwaxDepthTex, i.uv).r;
+                float sceneDepth = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_SceneDepthTex, i.uv).r;
 
-                //float4 sceneCol = SAMPLE_TEXTURE2D(_SceneColorTex, sampler_SceneColorTex, i.uv);
-                //float4 waxCol = SAMPLE_TEXTURE2D(_EarwaxLitTex, sampler_EarwaxLitTex, i.uv);
-                
-                //float sceneDepth = SAMPLE_TEXTURE2D(_SceneDepthTex, sampler_SceneDepthTex, i.uv); 
-                //float waxDepth = SAMPLE_TEXTURE2D(_EarwaxDepthTex, sampler_EarwaxDepthTex, i.uv);
+                #if UNITY_REVERSED_Z
+                    if (sceneDepth <= 0.00001) return waxCol;
+                #else
+                    if (sceneDepth >= 0.99999) return waxCol;
+                #endif
 
                 return waxDepth > sceneDepth ? waxCol : sceneCol; // Pick the closer pixel
             }

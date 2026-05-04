@@ -21,7 +21,7 @@ public class EarwaxMetaballFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        particleRenderer = ParticleRenderer.current;
+        particleRenderer = ParticleRenderer.Instance;
 
         if (particleRenderer == null) return;
 
