@@ -23,10 +23,12 @@ This virtual reality application is designed to provide medical professionals an
 - Configure Haply as needed
 
 ### Running the project
-- Make sure Haply and VR are connected to the computer using USB connections
-- In Unity, open the TestScenes Folder and select FullScene
+- Make sure Haply controller is connected to the computer using USB connection and the stylus is on and the USB wireless link is connected to the computer.
+- Make sure VR headset is connected to the computer using a USB connection, or Wireless connection using a local network.
+- In Unity, open the Assets/_Project/Scenes/StartSceneVR
 - Press the play button
-- Directional Keys turn viewpoint and ASDW moves viewpoint forward, backwards, left and right.
+- If using VR Headset, use your hands to move the virtual hands and open and close either your left or right hand to select items.
+- If not using the VR headset, use your mouse and keyboard.
 
 ## Release Notes
 ### Code Milestone 1
@@ -51,6 +53,17 @@ This virtual reality application is designed to provide medical professionals an
 - Added Haply controller collision and feedback with ear model
 - Added mouse controls to currette to aid code development when Haply controller is absent
 
+### Code Milestone 4
+- Revised Stats scene to provide Top 5 scores, Top 5 fastest time, name search features.
+- Added stat data deletion and password functionality.
+- Created new colliders and force feedback functionality between new earwax and curette.
+
+### Code Milestone 5
+- Completed scoring system functionality.
+- Updated simulation scene to include new ear, earwax, curette collision.
+- Finalized ear wax rendering and fixed rendering bugs.
+- Further testing and framerate performance optimization (nominal 90 fps).
+- Optimized scenes code; reducing code in some scripts and creating new script files for better logic flow and usability.
 
 ## Changelog
 ### Version 0.9.1
