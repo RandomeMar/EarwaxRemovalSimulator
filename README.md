@@ -1,10 +1,38 @@
-# Cerumen (Ear Wax) Cleaning Simulation
+# Earwax Removal Simulator
 
-This virtual reality application is designed to provide medical professionals and trainees with a safe, realistic environment for mastering the proper procedure for cleaning cerumen (ear wax) out of patients' ears. It achieves high fidelity through a comprehensive virtual examination room and patient model, along with integration of a Haply precision haptic controller to allow for realistic textures and tactile feedback during instrument interaction.
+This capstone project was a collaboration between Mauricio Alvarado, Edgar Vidales, Andrew Rojas, and Gianpierre Terry made at the University of Nebraska Omaha.
+This application's goal is to provide medical students a safe and realistic way to practice cerumen extraction without a patient necessary. This is achieved through
+the use of a VR headset and the Haply Inverse 3 haptic controller. This project was developed using Unity (URP), the Haply SDK for Unity, and Unity's ShaderLab.
+
+## My Contributions
+
+### XPBD Solver
+I wrote an XPBD-based physics solver for simulating the behavior of earwax in a realistic yet performant way. The solver supports:
+- **Distance Constraints:** Distance constraints are deformable/destroyable. Distance constraints have dynamic rest lengths to simulate viscoelasticity.
+- **Density Constraint:** A global density constraint is used to keep particles from intersecting.
+- **Collision Constraint**: Collision handling for collider vs. particle and collider vs. collider interactions.
+- **Adhesion Constraints:** Used for mimicing stickiness against colliders.
+
+### Screen Space Earwax Render Feature
+I wrote a custom render feature based on screen space techniques used to render fluids. The idea is it blends individual particles into a singular mass. The general pipeline is:
+1. Instance a spherical billboard for each particle position and store it in a depth texture.
+2. Sample the depth texture and approximate a surface normal for each pixel. Apply Lambertian diffuse-style lighting.
+3. Composite the earwax blob image with the main scene's color target.
+
+## Demo and Examples
+[INSERT VIDEO HERE]
+
+![Image Description](images/earwax_frame_1.png)
+
+![Image Description](images/earwax_frame_2.png)
+
+![Image Description](images/earwax_frame_3.png)
+
+![Image Description](images/earwax_frame_4.png)
 
 ## How to Setup
 ### Prerequisites
-- Need: VR headset, Haply device, VR-ready computer/laptop (Windows)
+- Need: VR headset (Meta Quest), Haptic controller (Haply Inverse 3), VR-ready computer/laptop (Windows)
 - Install Unity Hub and Unity version 6000.3.9f1
 - Install the Meta Quest Link app and follow the Quest setup instructions
 - Clone the main branch of this repository
@@ -64,43 +92,3 @@ This virtual reality application is designed to provide medical professionals an
 - Finalized ear wax rendering and fixed rendering bugs.
 - Further testing and framerate performance optimization (nominal 90 fps).
 - Optimized scenes code; reducing code in some scripts and creating new script files for better logic flow and usability.
-
-## Changelog
-### Version 0.9.1
-- Updated Unity to 6000.3.9f1
-
-### Version 0.9.0
- - Replaced the usage of an earwax sphere with an earwax cube, using said cube to create an earwax mass for the player to clear from the ear canal
- - Reworked the scripting of the earwax sphere with a new script, giving a better impression of an earwax material that can stick and does not roll or move freely within the ear canal
- - This reworked and new code for Version 0.9.0 can be found within the Brayson-Dev branch
-   
-### Version 0.8.1
- - Replaced previous patient model (head) with full body patient model
- - New patient model now animates (sitting) within the clinic room
- - Replaced curette model with lower triangle count curette model
- - Yet-to-be-implemented code can found on evie-dev and Brayson-dev branches. In-development features include: Re-working of physics interactions, creation of new FullScene using new patient model
-   
-### Version 0.8.0
-- Finished up scene layout (timer, buttons, XR rig)
-- Polished UI with VR capabilities, completed switch to world space UI
-- Started cerumen functionality in spawn_test branch
-- Fixed Haply device and started testing physics and interactibility
-- Code cleanup
-### Version 0.6.0
-- Added settings UI and refined previous UI
-- Started implementation of world space UI for VR functionality
-- File I/O with user's stats being saved after completing the simulation scene
-- Most updates are in the develop branch + head_models branch
-- Because of Haply limitations (broken part), we are unable to work with the device to have it connected with the curette model
-
-### Version  0.4.0
-- Added VR Functionality
-- Implemented blender models for head and curette
-- Created and tested new Haply script for cube feedback
-- Started UI work in the UI additions branch (UI for moving between scenes, timer, progression bar)
-
-### Version 0.2.0
-- Initial setup for Github (Repository, LFS)
-- Implemented and toyed with Haply samples in the Haply testing branch
-- Laid out assets directory and created initial scenes
-- Uploaded image asset and started UI for title screen
