@@ -7,16 +7,28 @@ the use of a VR headset and the Haply Inverse 3 haptic controller. This project 
 ## My Contributions
 
 ### XPBD Solver
-I wrote an XPBD based physics solver for simulating the behavior of earwax in a realistic yet performant way. The solver supports destroyable/deformable distance constraints, a global density constraint to keep particles from intersecting, collision handling for particle vs. particle and particle vs. collider interactions, and adhesion constraints for mimicing stickiness.
+I wrote an XPBD-based physics solver for simulating the behavior of earwax in a realistic yet performant way. The solver supports:
+- **Distance Constraints:** Distance constraints are deformable/destroyable. Distance constraints have dynamic rest lengths to simulate viscoelasticity.
+- **Density Constraint:** A global density constraint is used to keep particles from intersecting.
+- **Collision Constraint**: Collision handling for collider vs. particle and collider vs. collider interactions.
+- **Adhesion Constraints:** Used for mimicing stickiness against colliders.
 
 ### Screen Space Earwax Render Feature
 I wrote a custom render feature based on screen space techniques used to render fluids. The idea is it blends individual particles into a singular mass. The general pipeline is:
 1. Instance a spherical billboard for each particle position and store it in a depth texture.
-2. Sample the depth texture and approximate a surface normal for each pixel. Apply lambertian diffuse style lighting.
+2. Sample the depth texture and approximate a surface normal for each pixel. Apply Lambertian diffuse-style lighting.
 3. Composite the earwax blob image with the main scene's color target.
 
-## Demo
+## Demo and Examples
 [INSERT VIDEO HERE]
+
+![Image Description](images/earwax_frame_1.png)
+
+![Image Description](images/earwax_frame_2.png)
+
+![Image Description](images/earwax_frame_3.png)
+
+![Image Description](images/earwax_frame_4.png)
 
 ## How to Setup
 ### Prerequisites
