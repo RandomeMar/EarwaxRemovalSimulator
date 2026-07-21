@@ -253,15 +253,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   invMass: 0
   dynamicFriction: 0.95
-  adhesCompliance: 0.001
-  adhesBreakDist: 0.15
+  adhesCompliance: 0.009
+  adhesBreakDist: 0.3
   previousPosition: {x: 0, y: 2, z: 0}
   previousRotation: {x: 0, y: 0, z: 0, w: 1}
   targetPosition: {x: 0, y: 2, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 1}
   velocity: {x: 0, y: 0, z: 0}
   unityColliders: []
-  drawRoom: 0
+  drawRoom: 1
 --- !u!4 &189487208
 Transform:
   m_ObjectHideFlags: 0
@@ -296,7 +296,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 7, y: 4, z: 7}
+  m_Size: {x: 11.45, y: 4, z: 4}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!64 &189487210
 MeshCollider:
@@ -480,8 +480,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   invMass: 0.0009
-  dynamicFriction: 0.5
-  adhesCompliance: 0.009
+  dynamicFriction: 0.2
+  adhesCompliance: 0.09
   adhesBreakDist: 0.7
   previousPosition: {x: -3.8, y: 0, z: 0}
   previousRotation: {x: 0, y: 0, z: -0.19645946, w: 0.98051196}
@@ -491,17 +491,17 @@ MonoBehaviour:
   unityColliders:
   - {fileID: 808136099}
   keyboardInputManager: {fileID: 1455697835}
-  cam: {fileID: 0}
+  cam: {fileID: 2113227065}
   haplyCursor: {fileID: 0}
-  keyboardOn: 0
-  toolSpeed: 5
+  keyboardOn: 1
+  toolSpeed: 3
   maxSpeed: 10
   viewSize: {x: 4, y: 2, z: 4}
   viewResolution: {x: 15, y: 10, z: 15}
   viewParticleSize: 0.1
   viewCutoff: 0.1
   rMajor: 1.2
-  rMinor: 0.5
+  rMinor: 0.3
 --- !u!4 &808136098
 Transform:
   m_ObjectHideFlags: 0
@@ -727,51 +727,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   hapticManager: {fileID: 0}
   tool: {fileID: 808136097}
-  canal: {fileID: 0}
+  canal: {fileID: 189487207}
   drawParticles: 1
   particleViewRadius: 0.5
   drawDist: 1
-  drawAdhes: 1
+  drawAdhes: 0
   solverIterations: 3
   gravity: {x: 0, y: -9.8, z: 0}
   globalDamping: 0.99
-  latticeOrigin: {x: 0, y: 1.43, z: 0}
+  particleDeleteRadius: 10
+  latticeOrigin: {x: 0, y: 1.99, z: 0}
   latticeParticleCount: 8
-  latticeLength: 3
-  particleRadius: 0.5
-  materialDensity: 1.5
-  baseBondCompliance: 0.0003
-  adhesOn: 1
+  latticeLength: 2
+  particleRadius: 1.5
+  materialDensity: 7
+  baseBondCompliance: 0.007
+  adhesOn: 0
   distOn: 1
   yieldStrain: 0.3
-  plasticFlow: 0.5
-  breakStrain: 0.8
-  adaptRate: 3
-  recoveryRate: 0.3
+  plasticFlow: 0.4
+  breakStrain: 0.7
+  adaptRate: 0.5
+  recoveryRate: 0.25
   denseOn: 1
   denseCompliance: 0.05
   hMult: 1.25
   collOn: 1
   colliderCollOn: 1
   collCompliance: 0
-  useProceduralShape: 1
-  proceduralSeed: 252
-  proceduralRadii: {x: -1.74, y: 1.15, z: -1.72}
-  proceduralNoiseStrength: 0.35
-  proceduralNoiseFrequency: 2.5
-  proceduralNoiseOctaves: 3
-  waxPreset: 3
-  useParametricRanges: 0
-  proceduralRadiiMin: {x: 0.3, y: 0.2, z: 0.3}
-  proceduralRadiiMax: {x: 0.6, y: 0.5, z: 0.5}
-  proceduralNoiseStrengthRange: {x: 0.15, y: 0.45}
-  proceduralNoiseFrequencyRange: {x: 1.5, y: 3.5}
-  proceduralBumpinessBias: 0
-  proceduralBumpinessBiasAxis: {x: 0, y: 1, z: 0}
-  proceduralStretchAmount: 0
-  proceduralStretchFrequency: 3
-  proceduralSquashAmount: 0
-  proceduralSquashAxis: {x: 0, y: -1, z: 0}
 --- !u!1 &1105516528
 GameObject:
   m_ObjectHideFlags: 0
@@ -803,7 +786,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   sim: {fileID: 1039142607}
   mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  billboardMaterial: {fileID: 0}
+  billboardMaterial: {fileID: 2100000, guid: ca7f507eff738b64ca955e808c8d0095, type: 2}
 --- !u!4 &1105516530
 Transform:
   m_ObjectHideFlags: 0

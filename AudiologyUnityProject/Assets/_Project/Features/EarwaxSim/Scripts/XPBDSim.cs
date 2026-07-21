@@ -80,68 +80,68 @@ namespace EarwaxSim
         [Min(0f)]
         public float collCompliance;
 
-        [Header("Procedural Earwax Shape")]
-        [Tooltip("Use procedural noise-based shape instead of uniform lattice.")]
-        public bool useProceduralShape = false;
-        [Tooltip("Seed for reproducible shapes. Same seed = same earwax.")]
-        public int proceduralSeed = 42;
-        [Tooltip("Grid resolution for the procedural shape. Higher = more particles and detail, but slower. " +
-                 "Minimum 6 — below that the grid is too coarse to fill small radii.")]
-        [Min(6)]
-        public int proceduralResolution = 8;
-        [Tooltip("Base ellipsoid radii (x, y, z) before noise displacement.")]
-        public Vector3 proceduralRadii = new Vector3(0.028f, 0.020f, 0.025f);
-        [Tooltip("How much noise displaces the surface (fraction of radius).")]
-        [Range(0f, 0.8f)]
-        public float proceduralNoiseStrength = 0.3f;
-        [Tooltip("Noise frequency. Higher = more bumps.")]
-        [Range(0.5f, 8f)]
-        public float proceduralNoiseFrequency = 2.0f;
-        [Tooltip("Number of noise octaves for detail.")]
-        [Range(1, 5)]
-        public int proceduralNoiseOctaves = 3;
+        //[Header("Procedural Earwax Shape")]
+        //[Tooltip("Use procedural noise-based shape instead of uniform lattice.")]
+        //public bool useProceduralShape = false;
+        //[Tooltip("Seed for reproducible shapes. Same seed = same earwax.")]
+        //public int proceduralSeed = 42;
+        //[Tooltip("Grid resolution for the procedural shape. Higher = more particles and detail, but slower. " +
+        //         "Minimum 6 — below that the grid is too coarse to fill small radii.")]
+        //[Min(6)]
+        //public int proceduralResolution = 8;
+        //[Tooltip("Base ellipsoid radii (x, y, z) before noise displacement.")]
+        //public Vector3 proceduralRadii = new Vector3(0.028f, 0.020f, 0.025f);
+        //[Tooltip("How much noise displaces the surface (fraction of radius).")]
+        //[Range(0f, 0.8f)]
+        //public float proceduralNoiseStrength = 0.3f;
+        //[Tooltip("Noise frequency. Higher = more bumps.")]
+        //[Range(0.5f, 8f)]
+        //public float proceduralNoiseFrequency = 2.0f;
+        //[Tooltip("Number of noise octaves for detail.")]
+        //[Range(1, 5)]
+        //public int proceduralNoiseOctaves = 3;
 
-        [Header("Wax Preset")]
-        [Tooltip("Quick presets for different wax types. Custom = keep inspector values as-is; " +
-                 "any other preset overwrites material + noise fields when the sim builds.")]
-        public WaxPreset waxPreset = WaxPreset.Custom;
+        //[Header("Wax Preset")]
+        //[Tooltip("Quick presets for different wax types. Custom = keep inspector values as-is; " +
+        //         "any other preset overwrites material + noise fields when the sim builds.")]
+        //public WaxPreset waxPreset = WaxPreset.Custom;
 
-        [Header("Procedural Parametric Ranges")]
-        [Tooltip("If on, the seed also rolls the ACTUAL radii/noise values from the ranges below. " +
-                 "Each seed then produces a different silhouette — tall/skinny/bumpy vs. wide/smooth, etc.")]
-        public bool useParametricRanges = false;
-        [Tooltip("Per-axis minimum radius when parametric ranges are on.")]
-        public Vector3 proceduralRadiiMin = new Vector3(0.016f, 0.012f, 0.016f);
-        [Tooltip("Per-axis maximum radius when parametric ranges are on.")]
-        public Vector3 proceduralRadiiMax = new Vector3(0.034f, 0.028f, 0.030f);
-        [Tooltip("Min/max noise strength (x=min, y=max).")]
-        public Vector2 proceduralNoiseStrengthRange = new Vector2(0.15f, 0.45f);
-        [Tooltip("Min/max noise frequency (x=min, y=max).")]
-        public Vector2 proceduralNoiseFrequencyRange = new Vector2(1.5f, 3.5f);
+        //[Header("Procedural Parametric Ranges")]
+        //[Tooltip("If on, the seed also rolls the ACTUAL radii/noise values from the ranges below. " +
+        //         "Each seed then produces a different silhouette — tall/skinny/bumpy vs. wide/smooth, etc.")]
+        //public bool useParametricRanges = false;
+        //[Tooltip("Per-axis minimum radius when parametric ranges are on.")]
+        //public Vector3 proceduralRadiiMin = new Vector3(0.016f, 0.012f, 0.016f);
+        //[Tooltip("Per-axis maximum radius when parametric ranges are on.")]
+        //public Vector3 proceduralRadiiMax = new Vector3(0.034f, 0.028f, 0.030f);
+        //[Tooltip("Min/max noise strength (x=min, y=max).")]
+        //public Vector2 proceduralNoiseStrengthRange = new Vector2(0.15f, 0.45f);
+        //[Tooltip("Min/max noise frequency (x=min, y=max).")]
+        //public Vector2 proceduralNoiseFrequencyRange = new Vector2(1.5f, 3.5f);
 
-        [Header("Procedural Asymmetry / Lobes")]
-        [Tooltip("Pushes noise bumps toward one side of the blob. 0 = uniform, 1 = fully biased.")]
-        [Range(0f, 1f)]
-        public float proceduralBumpinessBias = 0f;
-        [Tooltip("Direction the bumpiness gets biased toward.")]
-        public Vector3 proceduralBumpinessBiasAxis = Vector3.up;
-        [Tooltip("Low-frequency sine warp magnitude. Bends/lobes the overall shape. 0 = straight.")]
-        [Range(0f, 1f)]
-        public float proceduralStretchAmount = 0f;
-        [Tooltip("Sine wave frequency for the stretch warp.")]
-        public float proceduralStretchFrequency = 3f;
-        [Tooltip("Flattens one side of the blob, as if pressed against the canal wall. 0 = none, 1 = fully flat.")]
-        [Range(0f, 1f)]
-        public float proceduralSquashAmount = 0f;
-        [Tooltip("Direction that gets squashed. Default -Y = flatten the bottom.")]
-        public Vector3 proceduralSquashAxis = Vector3.down;
+        //[Header("Procedural Asymmetry / Lobes")]
+        //[Tooltip("Pushes noise bumps toward one side of the blob. 0 = uniform, 1 = fully biased.")]
+        //[Range(0f, 1f)]
+        //public float proceduralBumpinessBias = 0f;
+        //[Tooltip("Direction the bumpiness gets biased toward.")]
+        //public Vector3 proceduralBumpinessBiasAxis = Vector3.up;
+        //[Tooltip("Low-frequency sine warp magnitude. Bends/lobes the overall shape. 0 = straight.")]
+        //[Range(0f, 1f)]
+        //public float proceduralStretchAmount = 0f;
+        //[Tooltip("Sine wave frequency for the stretch warp.")]
+        //public float proceduralStretchFrequency = 3f;
+        //[Tooltip("Flattens one side of the blob, as if pressed against the canal wall. 0 = none, 1 = fully flat.")]
+        //[Range(0f, 1f)]
+        //public float proceduralSquashAmount = 0f;
+        //[Tooltip("Direction that gets squashed. Default -Y = flatten the bottom.")]
+        //public Vector3 proceduralSquashAxis = Vector3.down;
 
-        [Header("Procedural Domain Warping")]
-        [Tooltip("Offsets noise sample coordinates using a second noise field before the main lookup. Makes shapes look organic/fluid rather than smoothly bumpy. 0 = off.")]
-        [Range(0f, 1f)]
-        public float proceduralDomainWarpStrength = 0f;
-        [Tooltip("Frequency of the warp field. Lower = broad sweeping distortion, higher = tight swirls.")]
-        public float proceduralDomainWarpFrequency = 1.5f;
+        //[Header("Procedural Domain Warping")]
+        //[Tooltip("Offsets noise sample coordinates using a second noise field before the main lookup. Makes shapes look organic/fluid rather than smoothly bumpy. 0 = off.")]
+        //[Range(0f, 1f)]
+        //public float proceduralDomainWarpStrength = 0f;
+        //[Tooltip("Frequency of the warp field. Lower = broad sweeping distortion, higher = tight swirls.")]
+        //public float proceduralDomainWarpFrequency = 1.5f;
         #endregion
 
         #region Solver Objects
@@ -322,61 +322,61 @@ namespace EarwaxSim
 
 
         //Wax presets. Overwrites material + noise + cohesion params with canned for different wax types so the sponsor demo has easy variety. Custom = no-op.
-        void ApplyWaxPreset()
-        {
-            switch (waxPreset)
-            {
-                case WaxPreset.DryCrumbly:
-                    // Hard, brittle, breaks apart under light pressure == fragments off as crumbs.
-                    materialDensity = 9f;
-                    baseBondCompliance = 0.05f;
-                    yieldStrain = 0.05f;
-                    plasticFlow = 0.2f;
-                    breakStrain = 0.15f;
-                    adaptRate = 0f;
-                    recoveryRate = 0f;
-                    adhesOn = true;
-                    proceduralNoiseStrength = 0.45f;
-                    proceduralNoiseFrequency = 3.5f;
-                    proceduralNoiseOctaves = 4;
-                    break;
+        //void ApplyWaxPreset()
+        //{
+        //    switch (waxPreset)
+        //    {
+        //        case WaxPreset.DryCrumbly:
+        //            // Hard, brittle, breaks apart under light pressure == fragments off as crumbs.
+        //            materialDensity = 9f;
+        //            baseBondCompliance = 0.05f;
+        //            yieldStrain = 0.05f;
+        //            plasticFlow = 0.2f;
+        //            breakStrain = 0.15f;
+        //            adaptRate = 0f;
+        //            recoveryRate = 0f;
+        //            adhesOn = true;
+        //            proceduralNoiseStrength = 0.45f;
+        //            proceduralNoiseFrequency = 3.5f;
+        //            proceduralNoiseOctaves = 4;
+        //            break;
 
-                case WaxPreset.SoftSticky:
-                    // Pliable, stretches, slowly tears apart, adheres to canal/tool.
-                    materialDensity = 7f;
-                    baseBondCompliance = 0.005f;  // soft bonds == stretchy
-                    yieldStrain = 0.4f;           // stretches before yielding
-                    plasticFlow = 1.0f;           // flows once yielded
-                    breakStrain = 0.8f;           // breakable with serious pulling
-                    adaptRate = 0.05f;
-                    recoveryRate = 0f;
-                    adhesOn = true;               // sticks to canal walls and curette
-                    proceduralNoiseStrength = 0.2f;
-                    proceduralNoiseFrequency = 1.5f;
-                    proceduralNoiseOctaves = 2;
-                    break;
+        //        case WaxPreset.SoftSticky:
+        //            // Pliable, stretches, slowly tears apart, adheres to canal/tool.
+        //            materialDensity = 7f;
+        //            baseBondCompliance = 0.005f;  // soft bonds == stretchy
+        //            yieldStrain = 0.4f;           // stretches before yielding
+        //            plasticFlow = 1.0f;           // flows once yielded
+        //            breakStrain = 0.8f;           // breakable with serious pulling
+        //            adaptRate = 0.05f;
+        //            recoveryRate = 0f;
+        //            adhesOn = true;               // sticks to canal walls and curette
+        //            proceduralNoiseStrength = 0.2f;
+        //            proceduralNoiseFrequency = 1.5f;
+        //            proceduralNoiseOctaves = 2;
+        //            break;
 
-                case WaxPreset.OldImpacted:
-                    // Dense, stuck, moderately stiff
-                    materialDensity = 12f;
-                    baseBondCompliance = 0.01f;   // medium/soft resists initial poke but pulls chunks
-                    yieldStrain = 0.15f;
-                    plasticFlow = 0.4f;
-                    breakStrain = 0.35f;          // breaks with effort, chunks come off
-                    adaptRate = 0.05f;
-                    recoveryRate = 0f;
-                    adhesOn = true;               // strongly impacted, stuck to walls
-                    proceduralNoiseStrength = 0.35f;
-                    proceduralNoiseFrequency = 2.5f;
-                    proceduralNoiseOctaves = 3;
-                    break;
+        //        case WaxPreset.OldImpacted:
+        //            // Dense, stuck, moderately stiff
+        //            materialDensity = 12f;
+        //            baseBondCompliance = 0.01f;   // medium/soft resists initial poke but pulls chunks
+        //            yieldStrain = 0.15f;
+        //            plasticFlow = 0.4f;
+        //            breakStrain = 0.35f;          // breaks with effort, chunks come off
+        //            adaptRate = 0.05f;
+        //            recoveryRate = 0f;
+        //            adhesOn = true;               // strongly impacted, stuck to walls
+        //            proceduralNoiseStrength = 0.35f;
+        //            proceduralNoiseFrequency = 2.5f;
+        //            proceduralNoiseOctaves = 3;
+        //            break;
 
-                case WaxPreset.Custom:
-                default:
-                    // Leave everything alone.
-                    break;
-            }
-        }
+        //        case WaxPreset.Custom:
+        //        default:
+        //            // Leave everything alone.
+        //            break;
+        //    }
+        //}
 
 
         /// <summary>
@@ -384,55 +384,56 @@ namespace EarwaxSim
         /// </summary>
         void BuildSimulation()
         {
+            (ps, grid, dist, dense) = GenerateLattice();
             // Apply wax preset first so procedural/material fields reflect the selected type.
-            ApplyWaxPreset();
+            //ApplyWaxPreset();
 
-            if (useProceduralShape) // If true, generates a procedural earwax shape instead of a uniform lattice. See ProceduralEarwax.cs for details.
-            {
-                var gen = new ProceduralEarwax
-                {
-                    seed = proceduralSeed,
-                    baseRadii = proceduralRadii,
-                    resolution = proceduralResolution,
-                    origin = latticeOrigin,
-                    noiseStrength = proceduralNoiseStrength,
-                    noiseFrequency = proceduralNoiseFrequency,
-                    noiseOctaves = proceduralNoiseOctaves,
-                    materialDensity = materialDensity,
-                    baseBondCompliance = baseBondCompliance,
-                    hMult = hMult,
-                    denseCompliance = denseCompliance,
-                    yieldStrain = yieldStrain,
-                    plasticFlow = plasticFlow,
-                    breakStrain = breakStrain,
-                    adaptRate = adaptRate,
-                    recoveryRate = recoveryRate,
+            //if (useProceduralShape) // If true, generates a procedural earwax shape instead of a uniform lattice. See ProceduralEarwax.cs for details.
+            //{
+            //    var gen = new ProceduralEarwax
+            //    {
+            //        seed = proceduralSeed,
+            //        baseRadii = proceduralRadii,
+            //        resolution = proceduralResolution,
+            //        origin = latticeOrigin,
+            //        noiseStrength = proceduralNoiseStrength,
+            //        noiseFrequency = proceduralNoiseFrequency,
+            //        noiseOctaves = proceduralNoiseOctaves,
+            //        materialDensity = materialDensity,
+            //        baseBondCompliance = baseBondCompliance,
+            //        hMult = hMult,
+            //        denseCompliance = denseCompliance,
+            //        yieldStrain = yieldStrain,
+            //        plasticFlow = plasticFlow,
+            //        breakStrain = breakStrain,
+            //        adaptRate = adaptRate,
+            //        recoveryRate = recoveryRate,
 
-                    //parametric ranges
-                    useParametricRanges = useParametricRanges,
-                    radiiMin = proceduralRadiiMin,
-                    radiiMax = proceduralRadiiMax,
-                    noiseStrengthRange = proceduralNoiseStrengthRange,
-                    noiseFrequencyRange = proceduralNoiseFrequencyRange,
+            //        //parametric ranges
+            //        useParametricRanges = useParametricRanges,
+            //        radiiMin = proceduralRadiiMin,
+            //        radiiMax = proceduralRadiiMax,
+            //        noiseStrengthRange = proceduralNoiseStrengthRange,
+            //        noiseFrequencyRange = proceduralNoiseFrequencyRange,
 
-                    //asymmetry / lobes
-                    bumpinessBias = proceduralBumpinessBias,
-                    bumpinessBiasAxis = proceduralBumpinessBiasAxis,
-                    stretchAmount = proceduralStretchAmount,
-                    stretchFrequency = proceduralStretchFrequency,
-                    squashAmount = proceduralSquashAmount,
-                    squashAxis = proceduralSquashAxis,
+            //        //asymmetry / lobes
+            //        bumpinessBias = proceduralBumpinessBias,
+            //        bumpinessBiasAxis = proceduralBumpinessBiasAxis,
+            //        stretchAmount = proceduralStretchAmount,
+            //        stretchFrequency = proceduralStretchFrequency,
+            //        squashAmount = proceduralSquashAmount,
+            //        squashAxis = proceduralSquashAxis,
 
-                    //domain warping
-                    domainWarpStrength = proceduralDomainWarpStrength,
-                    domainWarpFrequency = proceduralDomainWarpFrequency,
-                };
-                (ps, grid, dist, dense) = gen.Generate();
-            }
-            else
-            {
-                (ps, grid, dist, dense) = GenerateLattice();
-            }
+            //        //domain warping
+            //        domainWarpStrength = proceduralDomainWarpStrength,
+            //        domainWarpFrequency = proceduralDomainWarpFrequency,
+            //    };
+            //    (ps, grid, dist, dense) = gen.Generate();
+            //}
+            //else
+            //{
+            //    (ps, grid, dist, dense) = GenerateLattice();
+            //}
 
             anchors = new AdhesionConstraint[ps.maxCount];
             adhes = new AdhesionConstraintSolver(anchors);
@@ -444,23 +445,6 @@ namespace EarwaxSim
         {
             if (ps == null) return 0.0f;
             return (((float)ps.maxCount - ps.count) / ps.maxCount)  * 100f; // NOTE: It might make more sense if this is a method of the ParticleSet class
-
-            // NOTE: The problem with this was that it gets the percentage if distance constraints removed. The earwax is actually the particles.
-
-            //if (dist == null || dist.constraints == null)
-            //    return 0f;
-
-            //int total = dist.constraints.Length;
-            //int total = ps.active.Length;
-            //int broken = 0;
-
-            //for (int i = 0; i < total; i++)
-            //{
-            //    if (!dist.constraints[i].active)
-            //        broken++;
-            //}
-
-            //return (broken / (float)total) * 100f;
         }
         
 

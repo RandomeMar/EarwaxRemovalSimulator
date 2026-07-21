@@ -97,7 +97,7 @@ Shader "Custom/EarwaxFieldShader"
 
                 o.depth = surfaceClip.z / surfaceClip.w; // Normalized device coordinate
 
-                o.color = float4(-surfaceView.z, 0.0, 0.0, 1.0); // Linear eye depth
+                o.color = float4(surfaceView.z, 0.0, 0.0, 1.0); // Linear eye depth
 
                 return o;
             }
