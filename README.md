@@ -22,13 +22,21 @@ I wrote a custom render feature based on screen space techniques used to render 
 ## Demo and Examples
 [INSERT VIDEO HERE]
 
-![Image Description](images/earwax_frame_1.png)
+**Original Scene Color:**
 
-![Image Description](images/earwax_frame_2.png)
+<img src="images/earwax_frame_1.png" width="50%">
 
-![Image Description](images/earwax_frame_3.png)
+**Billboard Pass:**
 
-![Image Description](images/earwax_frame_4.png)
+<img src="images/earwax_frame_2.png" width="50%">
+
+**Depth Sample + Diffuse Pass:**
+
+<img src="images/earwax_frame_3.png" width="50%">
+
+**Composite Pass:**
+
+<img src="images/earwax_frame_4.png" width="50%">
 
 ## How to Setup
 ### Prerequisites
