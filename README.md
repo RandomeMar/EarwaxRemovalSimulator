@@ -20,7 +20,8 @@ I wrote a custom render feature based on screen space techniques used to render 
 3. Composite the earwax blob image with the main scene's color target.
 
 ## Demo and Examples
-[INSERT VIDEO HERE]
+[![Watch the video](https://img.youtube.com/vi/0IO1jmCm-rU/maxresdefault.jpg)](https://www.youtube.com/watch?v=0IO1jmCm-rU)
+This demo showcases the softbody physics in action, along with the earwax rendering.
 
 **Original Scene Color:**
 
